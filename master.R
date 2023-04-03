@@ -32,7 +32,13 @@ query <- query_env(QUERY_BIO = query,
                    ENV_VAR = NULL,
                    ENV_PATH = "/net/meso/work/aschickele/Diversity/data/features_monthly")
 
-# --- 3. Generate pseudo-absences if necessary
+# --- 3. Outliers and environmental covariance check
+query <- query_check(QUERY = query,
+                     OUTLIER = TRUE,
+                     ENV_COR = 0.8,
+                     MESS = TRUE)
+
+# --- 4. Generate pseudo-absences if necessary
 if(query$CALL$DATA_TYPE == "pres"){
   query <- pseudo_abs(QUERY = query,
                       METHOD_PA = "disk")
@@ -50,6 +56,9 @@ query <- folds(QUERY = query,
                FOLD_METHOD = "lon")
 
 # --- 6. Hyper parameters definition
+
+
+# --- 7. Model fit
 
 
 
