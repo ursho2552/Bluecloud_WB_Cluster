@@ -55,8 +55,10 @@ query_bio <- function(DATA_TYPE = "cont",
     dplyr::select(measurementvalue)
   
   # --- 5. Create S sample table
+  # Add the row ID in S to keep track of rows in sub-sample, train, test etc...
   S <- target %>% 
-    dplyr::select(-measurementvalue)
+    dplyr::select(-measurementvalue) %>% 
+    mutate(ID = row_number())
   
   # --- 6. Write Y and S on the disk
   write_feather(Y, paste0(project_wd, "/data/Y.feather"))

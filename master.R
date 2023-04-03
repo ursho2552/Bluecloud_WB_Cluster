@@ -14,12 +14,8 @@
 # --- START UP
 # All will be called in the config file later
 rm(list=ls())
-
+setwd("/net/meso/work/aschickele/Diversity")
 source(file = "./code/00_config.R")
-source(file = "./code/01a_list_bio.R")
-source(file = "./code/01b_query_bio.R")
-source(file = "./code/02_query_env.R")
-source(file = "./code/03_pseudo_abs.R")
 
 # --- 1. Query biological data
 # First check which species are available -- TOO LONG : add key on DB
@@ -27,18 +23,14 @@ list_bio <- list_bio(DATA_TYPE = "pres",
                      SAMPLE_SELECT = list(MIN_SAMPLE = 50, MIN_DEPTH = 0, MAX_DEPTH = 50, START_YEAR = 1990, STOP_YEAR = 2016))
 
 # Then query the species of interest -- TOO LONG : add key on DB
-message(Sys.time())
 query <- query_bio(DATA_TYPE = "pres",
                    SP_SELECT = 102,
                    SAMPLE_SELECT = list(MIN_SAMPLE = 50, MIN_DEPTH = 0, MAX_DEPTH = 50, START_YEAR = 1990, STOP_YEAR = 2016))
-message(Sys.time())
+
 # --- 2. Query environmental data
-# Get the corresponding environmental variables at the stations
-# And define the path to the environmental raster of interet
 query <- query_env(QUERY_BIO = query,
                    ENV_VAR = NULL,
                    ENV_PATH = "/net/meso/work/aschickele/Diversity/data/features_monthly")
-message(Sys.time())
 
 # --- 3. Generate pseudo-absences if necessary
 if(query$CALL$DATA_TYPE == "pres"){
@@ -46,14 +38,18 @@ if(query$CALL$DATA_TYPE == "pres"){
                       METHOD_PA = "disk")
 }
 
-
 # --- 4. Further data processing
+query <- query_check(QUERY = query,
+                     OUTLIER = TRUE,
+                     ENV_COR = 0.8,
+                     MESS = TRUE)
 
+# --- 5. Generate split and re sampling folds
+query <- folds(QUERY = query,
+               NFOLD = 5,
+               FOLD_METHOD = "lon")
 
-# --- 5. Generate split and resampling folds
-
-
-# --- 6. Hyperparameters definition
+# --- 6. Hyper parameters definition
 
 
 
