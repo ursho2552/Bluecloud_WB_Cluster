@@ -48,7 +48,7 @@ pseudo_abs <- function(QUERY = query,
   # ============================== GEOGRAPHICAL DISK ===========================
   # --- Open environmental data
   features <- stack(paste0(project_wd, "/data/features_mean_from_monthly")) %>%
-      readAll()
+    readAll()
   
   # --- Create base raster
   r <- features[[1]]
@@ -78,8 +78,14 @@ pseudo_abs <- function(QUERY = query,
     as.data.frame() %>% 
     rbind(QUERY$X)
   
-  Y <- data.frame(measurementvalue = rep("Pseudo-abs", nrow(xy))) %>% 
-    rbind(QUERY$Y)
+  Y <- data.frame(measurementvalue = c(rep(0, nrow(xy)), 
+                                       rep(1, nrow(QUERY$Y))))
+  
+  S <- data.frame(decimallongitude = xy$x,
+                  decimallatitude = xy$y,
+                  measurementtype = "Pseudo-absence") %>% 
+    bind_rows(QUERY$S) %>% 
+    dplyr::select(colnames(QUERY$S))
 
   return(list(Y = Y,
               X = X,
