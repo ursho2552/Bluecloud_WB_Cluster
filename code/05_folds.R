@@ -19,6 +19,8 @@ folds <- function(QUERY = query,
     mutate(id = row_number()) %>% 
     initial_split(prop = 0.8)
   
+  QUERY$FOLDS$init_split <- init_split
+  
   QUERY$FOLDS$test <- testing(init_split)
   QUERY$FOLDS$train <- training(init_split)
   
@@ -42,13 +44,14 @@ folds <- function(QUERY = query,
                            v = NFOLD)
   }
   
-  
   # =================== APPEND QUERY OBJECT ====================================
   # S$id keeps track of the initial row numbers within each split/re sample
+  QUERY$FOLDS$resample_split <- folds
+  
   for(i in 1:nrow(folds)){
     fold_name <- folds$id[i]
-    QUERY$FOLDS[["resample"]][[fold_name]][["assessment"]] <- folds$splits[[i]] %>% assessment()
-    QUERY$FOLDS[["resample"]][[fold_name]][["analysis"]] <- folds$splits[[i]] %>% analysis()
+    QUERY$FOLDS[["resample_folds"]][[fold_name]][["assessment"]] <- folds$splits[[i]] %>% assessment()
+    QUERY$FOLDS[["resample_folds"]][[fold_name]][["analysis"]] <- folds$splits[[i]] %>% analysis()
   }
   
   QUERY$CALL$FOLD_METHOD <- FOLD_METHOD
