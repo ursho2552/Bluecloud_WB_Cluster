@@ -71,7 +71,8 @@ query_check <- function(QUERY = query,
   if(MESS == TRUE){
     # --- 1. Load necessary data
     features <- stack(paste0(project_wd, "/data/features_mean_from_monthly")) %>% 
-      readAll()
+      readAll() %>% 
+      raster::subset(QUERY$CALL$ENV_VAR)
     
     # --- 2. Compute the mess analysis
     r_mess <- dismo::mess(x = features, v = QUERY$X)
