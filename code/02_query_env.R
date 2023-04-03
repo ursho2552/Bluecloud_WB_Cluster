@@ -50,7 +50,7 @@ query_env <- function(QUERY_BIO = query,
               CALL = list(DATA_TYPE = QUERY_BIO$CALL$DATA_TYPE,
                           SP_SELECT = QUERY_BIO$CALL$SP_SELECT,
                           SAMPLE_SELECT = QUERY_BIO$CALL$SAMPLE_SELECT,
-                          ENV_VAR = ENV_VAR,
+                          ENV_VAR = features_name,
                           ENV_PATH = ENV_PATH)))
   
   
