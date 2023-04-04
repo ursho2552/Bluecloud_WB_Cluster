@@ -44,12 +44,6 @@ if(query$CALL$DATA_TYPE == "pres"){
                       METHOD_PA = "disk")
 }
 
-# --- 4. Further data processing
-query <- query_check(QUERY = query,
-                     OUTLIER = TRUE,
-                     ENV_COR = 0.8,
-                     MESS = TRUE)
-
 # --- 5. Generate split and re sampling folds
 query <- folds(QUERY = query,
                NFOLD = 5,
