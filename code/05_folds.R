@@ -14,9 +14,11 @@ folds <- function(QUERY = query,
                   FOLD_METHOD = "kfold"){
   
   # ============================ INITIAL SPLIT =================================
+  # --- 1. Re-assemble all query tables
+  tmp <- cbind(QUERY$Y, QUERY$X, QUERY$S)
+  
   # --- 1. Do the initial split
-  init_split <- QUERY$S %>% 
-    mutate(id = row_number()) %>% 
+  init_split <- tmp %>% 
     initial_split(prop = 0.8)
   
   QUERY$FOLDS$init_split <- init_split
