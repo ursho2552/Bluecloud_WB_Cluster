@@ -49,8 +49,9 @@ query <- folds(QUERY = query,
                NFOLD = 5,
                FOLD_METHOD = "lon")
 
-# --- 6. Hyper parameters definition
-
+# --- 6. Hyper parameters to train
+hp_list <- hyperparameter(QUERY = query,
+                          MODEL_LIST = c("GLM","GAM","RF","MLP"))
 
 # --- 7. Model fit
 
