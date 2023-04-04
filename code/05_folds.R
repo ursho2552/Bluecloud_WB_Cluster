@@ -57,6 +57,7 @@ folds <- function(QUERY = query,
   }
   
   QUERY$CALL$FOLD_METHOD <- FOLD_METHOD
+  QUERY$CALL$NFOLD <- NFOLD
   
   return(query = QUERY)
   

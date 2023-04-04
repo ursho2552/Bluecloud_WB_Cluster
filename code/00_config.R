@@ -29,7 +29,7 @@ source(file = "./code/02_query_env.R")
 source(file = "./code/03_query_check.R")
 source(file = "./code/04_pseudo_abs.R")
 source(file = "./code/05_folds.R")
-source(file = "./code/06_hyperparameter.R")
+source(file = "./code/06_hyperparameters.R")
 source(file = "./code/07a_model_wrapper.R")
 
 # --- Custom functions
