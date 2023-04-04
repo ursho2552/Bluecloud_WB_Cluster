@@ -46,20 +46,20 @@ pseudo_abs <- function(QUERY = query,
   # }  
 
   # ============================== GEOGRAPHICAL DISK ===========================
-  # --- Open environmental data
+  # --- 1. Open environmental data
   features <- stack(paste0(project_wd, "/data/features_mean_from_monthly")) %>%
     readAll()
   
-  # --- Create base raster
+  # --- 2. Create base raster
   r <- features[[1]]
   r[!is.na(r)] <- 0
   
-  # --- Extract presence points
+  # --- 3. Extract presence points
   xy <- QUERY$S %>% 
     dplyr::select(decimallongitude, decimallatitude)
   val <- data.frame(val = rep(1, nrow(xy)))
   
-  # --- Calculate distance to presences in raster
+  # --- 4. Calculate distance to presences in raster
   background <- rasterize(xy, r, update=TRUE)
   background[background < 1] <- NA
   background <- distance(background)
@@ -69,27 +69,28 @@ pseudo_abs <- function(QUERY = query,
     as.data.frame() %>% 
     dplyr::filter(layer > 100e3 & !is.na(layer))
   
-  # --- Sample background data
+  # --- 5. Sample background data
   tmp <- sample(x = 1:nrow(background), size = nrow(QUERY$S))
   xy <- background[tmp,1:2]
   
-  # --- Append the query
+  # --- 6. Append the query
+  # --- 6a. Feature table
   X <- raster::extract(features, xy) %>% 
-    as.data.frame() %>% 
-    rbind(QUERY$X)
+    as.data.frame()
+  QUERY$X <- rbind(QUERY$X, X)
   
-  Y <- data.frame(measurementvalue = c(rep(0, nrow(xy)), 
-                                       rep(1, nrow(QUERY$Y))))
+  # --- 6b. Target table - replace by 0 and 1's
+  QUERY$Y <- data.frame(measurementvalue = c(rep(1, nrow(QUERY$Y)), 
+                                             rep(0, nrow(xy))))
   
+  # --- 6c. Sample tables
   S <- data.frame(decimallongitude = xy$x,
                   decimallatitude = xy$y,
                   measurementtype = "Pseudo-absence") %>% 
-    bind_rows(QUERY$S) %>% 
-    dplyr::select(colnames(QUERY$S))
+    mutate(ID = row_number()+nrow(QUERY$S))
+  QUERY$S <- QUERY$S %>% 
+    bind_rows(S)
 
-  return(list(Y = Y,
-              X = X,
-              S = QUERY$S,
-              CALL = QUERY$CALL))
+  return(query = QUERY)
   
 } # END FUNCTION
