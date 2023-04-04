@@ -90,6 +90,7 @@ hyperparameter <- function(QUERY = query,
   # --- 3. Hyper parameter selection
   # According to the specified model list
   HP <- HP[MODEL_LIST]
+  HP$CALL$MODEL_LIST <- MODEL_LIST
   
   return(HP)
   
