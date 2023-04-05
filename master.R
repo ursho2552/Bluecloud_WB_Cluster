@@ -51,9 +51,21 @@ query <- folds(QUERY = query,
 
 # --- 6. Hyper parameters to train
 hp_list <- hyperparameter(QUERY = query,
-                          MODEL_LIST = c("GLM","GAM","RF","MLP"))
+                          MODEL_LIST = c("GLM","GAM","RF","MLP"),
+                          LEVELS = 3)
 
 # --- 7. Model fit
+models <- model_wrapper(QUERY = query,
+                        HP = hp_list,
+                        MODEL_LIST = hp_list$CALL$MODEL_LIST)
+# Removing hp_list as it is transferred to the models object
+rm(hp_list)
+
+# --- 8. Model evaluation
+models <- eval_wrapper(QUERY = query,
+                       MODELS = models)
+
+
 
 
 
