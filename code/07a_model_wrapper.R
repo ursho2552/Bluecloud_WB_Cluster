@@ -30,8 +30,7 @@ model_wrapper <- function(QUERY = query,
                     HP = HP,
                     MODEL_LIST = MODEL_LIST)
     
-    
-    
+    return(m)
   } # END if pres
   
   # --- 2. Redirection to continuous model
