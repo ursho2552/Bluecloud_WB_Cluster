@@ -16,6 +16,8 @@ library(vroom)
 library(RColorBrewer) 
 library(pastecs)
 
+library(ecospat)
+
 # --- Seed
 set.seed(123)
 
@@ -31,6 +33,7 @@ source(file = "./code/04_pseudo_abs.R")
 source(file = "./code/05_folds.R")
 source(file = "./code/06_hyperparameters.R")
 source(file = "./code/07a_model_wrapper.R")
+source(file = "./code/08a_eval_wrapper.R")
 
 # --- Custom functions
 source("./function/sample_raster_NA.R")
