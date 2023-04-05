@@ -5,11 +5,13 @@
 #' @param QUERY the query object from previous function
 #' @param MODEL_LIST list of algorithms from which to compute hyperparameter
 #' selection
+#' @param LEVELS maximum number of parameter values to test in each of the grids
 #' @return a hyperparameter list of the chosen models, including spec and grid
 #' per model
 
 hyperparameter <- function(QUERY = query,
-                           MODEL_LIST = c("GLM","GAM","RF","MLP")){ # TO DO : double check model names
+                           MODEL_LIST = c("GLM","GAM","RF","MLP"),
+                           LEVELS = 3){ # TO DO : double check model names
 
   # --- 1. Generate the output object
   HP <- list()
@@ -27,16 +29,16 @@ hyperparameter <- function(QUERY = query,
   HP$RF$model_grid <- grid_regular(mtry(range = c(1, length(QUERY$CALL$ENV_VAR))),
                                    trees(),
                                    min_n(),
-                                   levels = 5)
+                                   levels = LEVELS)
   
   # --- 2.2. GENERALIZED ADDITIVE MODELS 
   # --- 2.2.1. Define the model specifications
   if(QUERY$CALL$DATA_TYPE == "pres"){
-    HP$GAM$model_spec <- gen_additive_mod(mode = "regression") %>% 
+    HP$GAM$model_spec <- gen_additive_mod(mode = "regression",
+                                          adjust_deg_free = tune(),
+                                          select_features = tune()) %>% 
       set_engine("mgcv",
-                 family = stats::binomial(link = "logit"),
-                 adjust_deg_free = tune(),
-                 select_features = tune()) %>% 
+                 family = stats::binomial(link = "logit")) %>% 
       translate()
   } else {
     HP$GAM$model_spec <- gen_additive_mod(mode = "regression",
@@ -48,28 +50,22 @@ hyperparameter <- function(QUERY = query,
   # --- 2.2.2. Define the grid according to built in functions
   HP$GAM$model_grid <- grid_regular(adjust_deg_free(),
                                     select_features(),
-                                    levels = 5)
+                                    levels = LEVELS)
   
   # --- 2.3. GENERALIZED LINEAR MODELS
   # --- 2.3.1. Define the model specifications
   if(QUERY$CALL$DATA_TYPE == "pres"){
     HP$GLM$model_spec <- linear_reg(mode = "regression") %>% 
       set_engine("glm", 
-                 family = stats::binomial(link = "logit"),
-                 penalty = tune(),
-                 mixture = tune()) %>% 
+                 family = stats::binomial(link = "logit")) %>% 
       translate()
   } else {
     HP$GLM$model_spec <- linear_reg(mode = "regression",
-                                    engine = "glm",
-                                    penalty = tune(),
-                                    mixture = tune())
+                                    engine = "glm")
   }
 
   # --- 2.3.2. Define the grid according to built in functions
-  HP$GLM$model_grid <- grid_regular(penalty(),
-                                    mixture(),
-                                    levels = 5)
+  # No parameters to tune for engine "glm"
   
   # --- 2.4. SINGLE LAYER NEURAL NETWORK
   # --- 2.4.1. Define the model specifications
@@ -85,7 +81,7 @@ hyperparameter <- function(QUERY = query,
   # --- 2.4.2. Define the grid according to built in functions
   HP$MLP$model_grid <- grid_regular(hidden_units(),
                                     penalty(),
-                                    levels = 5)
+                                    levels = LEVELS)
   
   # --- 3. Hyper parameter selection
   # According to the specified model list
