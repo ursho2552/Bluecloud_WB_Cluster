@@ -6,10 +6,10 @@
 #' continuous (e.g. Ecotaxa), presence-only (e.g. OBIS) or proportions (e.g. 
 #' omics) data
 #' @param SAMPLE_SELECT list of sample selection criteria, including :
-#' MIN_SAMPLE : minimum number of geographical points to consider the selection
+#' MIN_SAMPLE : minimum number of geographical points to consider the selection (i.e. non-zero records)
 #' MIN_DEPTH and MAX_DEPTH: minimum and maximum depth levels in m
 #' START_YEAR and STOP_YEAR: start and stop years for the considered period
-#' @return worms_ID: a data frame of Aphia ID available if SP_SELECT is NULL
+#' @return worms_ID: a data frame of Aphia ID available
 
 list_bio <- function(DATA_TYPE = "cont",
                      SAMPLE_SELECT = list(MIN_SAMPLE = 50, MIN_DEPTH = 0, MAX_DEPTH = 50, START_YEAR = 1990, STOP_YEAR = 2016)){
@@ -34,7 +34,8 @@ list_bio <- function(DATA_TYPE = "cont",
                     depth <= !!SAMPLE_SELECT$MAX_DEPTH & 
                     year >= !!SAMPLE_SELECT$START_YEAR & 
                     year <= !!SAMPLE_SELECT$STOP_YEAR &
-                    measurementvalue != "Absence") %>% 
+                    measurementvalue != "Absence" &
+                    measurementvalue != 0) %>% 
     group_by(worms_id) %>% 
     summarise(nb_occ = n()) %>% 
     dplyr::filter(nb_occ >= !!SAMPLE_SELECT$MIN_SAMPLE) %>% 
