@@ -49,36 +49,26 @@ query_env <- function(QUERY_BIO = query,
     dplyr::select(measurementvalue)
   
   # --- 5. Extract the environmental data in the data frame
-  # (1) If there is less than 100 points, from nearest non-NA cells
-  # (2) If more than 100 points, uses the simple extract function and discards NA
-  # This choice is motivated by speed requirements and low impact of some NAs on large datasets
+  # If there is an NA, extract from nearest non-NA cells
   X <- NULL
   for(j in 1:nrow(S)){
     id <- grep(pattern = S$month[j], names(features))
     xy <- S[j,] %>% dplyr::select(x = decimallongitude, y = decimallatitude)
     
-    if(nrow(S) < 100){
+    tmp <- raster::extract(features[[id]], xy) %>% 
+      as.data.frame()
+    
+    if(is.na(sum(tmp))){
       tmp <- mclapply(features[[id]]@layers, function(a_layer) sample_raster_NA(a_layer, xy), mc.cores = 10) %>% 
         lapply(mean) %>% # average between two points if a coordinate is EXACTLY at an integer value (i.e., between two cells)
         as.data.frame()
-    } else {
-      tmp <- raster::extract(features[[id]], xy) %>% 
-        as.data.frame()
-    } # End if < 100
+    } # If extract is NA
 
     colnames(tmp) <- features_name
     X <- rbind(X, tmp)
   } # End for j
-  
-  # --- 6. Clean NA in S, Y and X
-  to_remove <- which(is.na(apply(X, 1, sum)))
-  S <- S[-to_remove,]
-  X <- X[-to_remove,]
-  Y <- Y[-to_remove,]
 
-  # --- 7. (Re) Write S, Y and X on the disk
-  write_feather(S, paste0(project_wd, "/data/S.feather"))
-  write_feather(Y, paste0(project_wd, "/data/Y.feather"))
+  # --- 7. Write X on the disk
   write_feather(X, paste0(project_wd, "/data/X.feather"))
   
   # --- 8. Append query_bio with the environmental values
@@ -90,6 +80,5 @@ query_env <- function(QUERY_BIO = query,
                           SAMPLE_SELECT = QUERY_BIO$CALL$SAMPLE_SELECT,
                           ENV_VAR = features_name,
                           ENV_PATH = ENV_PATH)))
-  
   
 } # END FUNCTION
