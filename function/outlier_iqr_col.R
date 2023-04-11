@@ -1,12 +1,20 @@
 #Outlier exclusion
-outlier_iqr_col <- function(x,n) {
-  #' Function to identify outliers based on z-score
+outlier_iqr_col <- function(y,n) {
+  #' @description Function to identify outliers based on z-score. 
+  #' Calculated on non-zero values
+  #' Adapted from Nielja's code to be used on multiple target matrices
   #' @param n maximum allowed deviation in number of SD
   
-  #Evaluate outliers based on z-score
-  # y <- (x - mean(x, na.rm = TRUE))/sd(x, na.rm = TRUE)
-  y <- x - apply(x, 2, function(x)(x = mean(x, na.rm = TRUE)))/ apply(x, 2, function(x)(x = sd(x, na.rm = TRUE)))
-  x[y > n] <- NA
+  # --- 1. Remove zeros from calculations (i.e. later na.rm = TRUE)
+  y[y == 0] <- NA
   
-  return(x)
+  # --- 2. Calculate score
+  score <- apply(y, 2, function(x)(y = (x-mean(x, na.rm = TRUE))/sd(x, na.rm = TRUE)))
+  
+  # --- 3. Identify row numbers over the threshold
+  outliers <- apply(score, 2, function(x)(x = which(x > n))) %>% 
+    unlist() %>% 
+    unique()
+  
+  return(outliers)
 }

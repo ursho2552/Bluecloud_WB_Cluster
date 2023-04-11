@@ -20,9 +20,12 @@ query_check <- function(QUERY = query,
     if(QUERY$CALL$DATA_TYPE == "pres"){
       message("--- Cannot perform outlier analysis on presence - pseudo absence data ---")
     } else {
-      Y <- outlier_iqr_col(QUERY$Y, n = 2.5)
+      to_remove <- outlier_iqr_col(QUERY$Y, n = 2.5)
+      QUERY$Y <- QUERY$Y[-to_remove,]
+      QUERY$X <- QUERY$X[-to_remove,]
+      QUERY$S <- QUERY$S[-to_remove,]
+      message(paste("--- OUTLIERS : Removed row number", to_remove, "\n"))
     }
-    
   } # END if outlier TRUE
   
   # ======================== ENV VARIABLE CORRELATION ==========================
