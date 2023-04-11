@@ -38,6 +38,7 @@ source(file = "./code/08a_eval_wrapper.R")
 # --- Custom functions
 source("./function/sample_raster_NA.R")
 source("./function/outlier_iqr_col.R")
+source("./function/viridis.R")
 
 # --- Other custom arguments
 Sys.setenv(HDF5_USE_FILE_LOCKING="FALSE") # to be able to open .nc from complex
