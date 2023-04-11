@@ -47,8 +47,7 @@ query_bio <- function(DATA_TYPE = "cont",
                     measurementvalue != "Absence") %>% 
     group_by(worms_id) %>% 
     mutate(nb_occ = n()) %>% 
-    ungroup() %>%  
-    dplyr::filter(nb_occ >= !!SAMPLE_SELECT$MIN_SAMPLE)
+    ungroup()
   
   # --- 4. Create Y target table
   Y <- target %>% 
