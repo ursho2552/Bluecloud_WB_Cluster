@@ -19,7 +19,8 @@ folds <- function(QUERY = query,
   
   # --- 1. Do the initial split
   init_split <- tmp %>% 
-    initial_split(prop = 0.8)
+    initial_split(prop = 0.8,
+                  strata = measurementvalue)
   
   QUERY$FOLDS$init_split <- init_split
   
@@ -35,6 +36,7 @@ folds <- function(QUERY = query,
   # --- 1. Normal k-fold re sampling
   if(FOLD_METHOD == "kfold"){
     folds <- vfold_cv(data = QUERY$FOLDS$train,
+                      strata = measurementvalue,
                       v = NFOLD)
   }
   
