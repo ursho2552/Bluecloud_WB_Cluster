@@ -27,7 +27,7 @@ query <- query_bio(DATA_TYPE = "pres",
                    SP_SELECT = 102,
                    SAMPLE_SELECT = list(MIN_SAMPLE = 50, MIN_DEPTH = 0, MAX_DEPTH = 50, START_YEAR = 1990, STOP_YEAR = 2016))
 
-# --- 2. Query environmental data
+# --- 2. Query environmental data -- TOO LONG : find a solution for large data
 query <- query_env(QUERY_BIO = query,
                    ENV_VAR = NULL,
                    ENV_PATH = "/net/meso/work/aschickele/Diversity/data/features_monthly")
@@ -38,7 +38,7 @@ query <- query_check(QUERY = query,
                      ENV_COR = 0.8,
                      MESS = TRUE)
 
-# --- 4. Generate pseudo-absences if necessary
+# --- 4. Generate pseudo-absences if necessary -- BUG FIX : throw an error on some identical runs...
 if(query$CALL$DATA_TYPE == "pres"){
   query <- pseudo_abs(QUERY = query,
                       METHOD_PA = "disk")
@@ -64,6 +64,20 @@ rm(hp_list)
 # --- 8. Model evaluation
 models <- eval_wrapper(QUERY = query,
                        MODELS = models)
+
+# --- 9. Model projections
+if(length(models$CALL$MODEL_LIST) >= 1){
+  models <- proj_wrapper(QUERY = query,
+                         MODELS = models,
+                         N_BOOTSTRAP = 10,
+                         PROJ_PATH = NULL)
+}
+
+# --- 10. Output plots
+standard_maps(QUERY = query,
+              MODELS = models,
+              ENSEMBLE = TRUE,
+              MESS = FALSE)
 
 
 

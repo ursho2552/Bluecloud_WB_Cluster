@@ -34,6 +34,8 @@ source(file = "./code/05_folds.R")
 source(file = "./code/06_hyperparameters.R")
 source(file = "./code/07a_model_wrapper.R")
 source(file = "./code/08a_eval_wrapper.R")
+source(file = "./code/09a_proj_wrapper.R")
+source(file = "./code/10a_standard_maps.R")
 
 # --- Custom functions
 source("./function/sample_raster_NA.R")
