@@ -1,5 +1,5 @@
 #' =============================================================================
-#' @name model_wrapper
+#' @name eval_wrapper
 #' @description wrapper function redirecting towards the sub-pipeline
 #' corresponding to the type of data.
 #' @param QUERY the query object from the master pipeline
@@ -22,6 +22,16 @@ eval_wrapper <- function(QUERY = query,
   } # END if pres
   
   # --- 2. Redirection to continuous model
+  if(QUERY$CALL$DATA_TYPE == "cont"){
+    # --- 1.1. Load function
+    source(file = paste0(project_wd, "/code/08c_eval_cont.R"))
+    
+    # --- 1.2. Run function
+    m <- eval_cont(QUERY = QUERY,
+                   MODELS = MODELS)
+    
+    return(m)
+  } # END if pres
   
   
   # --- 3. Redirection to proportion model

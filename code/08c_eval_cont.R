@@ -1,11 +1,11 @@
 #' =============================================================================
-#' @name eval_pres
-#' @description sub-pipeline for model evaluation corresponding to presence data
+#' @name eval_cont
+#' @description sub-pipeline for model evaluation corresponding to continuous data
 #' @param QUERY the query object from the master pipeline
 #' @param MODELS the models object from the master pipeline
 #' @return the MODELS object updated with evaluation metric values
 
-eval_pres <- function(QUERY,
+eval_cont <- function(QUERY,
                       MODELS){
   
   for(i in MODELS$CALL$MODEL_LIST){
@@ -17,19 +17,19 @@ eval_pres <- function(QUERY,
     y <- final_fit$measurementvalue
     y_hat <- final_fit$.pred
     
-    # --- 3. Compute Continuous Boyce Index into MODELS object
-    MODELS[[i]][["eval"]][["CBI"]] <- ecospat.boyce(fit = y_hat,
-                                                    obs = y_hat[which(y == 1)],
-                                                    PEplot = FALSE) %>% 
-      .$cor
+    # --- 3. Compute R-squared into MODELS object
+    df <- data.frame(truth = y, estimate = y_hat)
+    MODELS[[i]][["eval"]][["R2"]] <- yardstick::rsq(data = df, truth, estimate ) %>% 
+      .$.estimate %>% 
+      round(3)
     
     # --- 4. Removing model from list if low quality fit
-    # Fixed at 0.3 for CBI value or NA (in case of a 0 & 1 binary model prediction)
-    if(MODELS[[i]][["eval"]][["CBI"]] < 0.3 | is.na(MODELS[[i]][["eval"]][["CBI"]])){
+    # Fixed at 0.3 for R2 value
+    if(MODELS[[i]][["eval"]][["R2"]] < 0.3){
       MODELS$CALL$MODEL_LIST <- MODELS$CALL$MODEL_LIST[MODELS$CALL$MODEL_LIST != i]
-      message(paste("--- EVAL : discarded", i, "due to CBI =", MODELS[[i]][["eval"]][["CBI"]], "< 0.3 \n"))
+      message(paste("--- EVAL : discarded", i, "due to R2 =", MODELS[[i]][["eval"]][["R2"]], "< 0.3 \n"))
     }
-
+    
   } # for each model loop
   
   return(MODELS)
