@@ -1,51 +1,27 @@
 #' =============================================================================
 #' @name pseudo_abs
 #' @description computes pseudo absences added to the X and Y matrices from
-#' query_env and bio according to a convexhull or geographical method.
+#' query_env and bio according to various background selection methods.
 #' @param QUERY query object resulting from query_bio and query_env
+#' @param METHOD_PA method of pseudo-absence, either "env" or "geo"
 #' @param NB_PA number of pseudo-absences to generate
-#' @param METHOD_PA method of pseudo-absence, either "sre" or "disk"
+#' @param DIST_PA if METHOD_PA = "geo", distance from presences (in meters),
+#'  from which to define the background data. Expert use only.
+#' @param BACKGROUND_FILTER additional background filter for finer tuning, such
+#' as selecting pseudo-absences within the sampled background of a given campaign
+#' or instrument deployment. Passed by the user in the form of a 2 column 
+#' data frame, x = longitude and y = latitude where the pseudo-absences
+#' can be sampled. Expert use only. 
 #' @return X updated with the pseudo-absence values (= 0)
 #' @return Y updated with the environmental values corresponding
 #' 
 
 pseudo_abs <- function(QUERY = query,
+                       METHOD_PA = "env",
                        NB_PA = nrow(QUERY$S),
-                       METHOD_PA = "sre"){
+                       DIST_PA = 100e3,
+                       BACKGROUND_FILTER = NULL){
   
-  # =============================== BY CONVEX HULL =============================
-  # ----- FAR TOO HEAVY AND LONG
-  # library(geometry)
-  # build_chull <- QUERY$X %>% distinct() 
-  # # Attention grosse approximation car en vrai, il faudrait prendre les données env. mensuelles
-  # chull <- convhulln(build_chull, options = 'Qbk:0Bk:O', output.options = TRUE)
-  # 
-  # features <- stack(paste0(project_wd, "/data/features_mean_from_monthly")) %>% 
-  #   readAll() %>% 
-  #   rasterToPoints()
-  # 
-  # check_chull <- inhulln(chull, features[,-c(1,2)])
-  # summary(check_chull)
-  
-  # ================= BY BIOCLIMATIQUE ENVELOPPE KIND OF =======================
-  # --- Calculates the environmental presence boundaries for each variable
-  # --- Selects presence outside the n-th quantile for each boundary
-  # --- WORKS BUT SRE IS TAKING ALL AVAILABLE SPACE WITH THAT MUCH VARIABLES...
-  
-  # # Define environmental boundaries
-  # sre <- QUERY$X %>% 
-  #   apply(2, function(x) (x = quantile(x, probs = c(0.25, 0.75))))
-  # # Filter environmental background
-  # features <- stack(paste0(project_wd, "/data/features_mean_from_monthly")) %>%
-  #   readAll() %>%
-  #   rasterToPoints() %>% 
-  #   as.data.frame()
-  # for(c in colnames(sre)){
-  #   tmp <- which(features[,c] < sre[1,c] | features[,c] > sre[2,c])
-  #   features <- features[tmp,]
-  # }  
-
-  # ============================== GEOGRAPHICAL DISK ===========================
   # --- 1. Open environmental data
   features <- stack(paste0(project_wd, "/data/features_mean_from_monthly")) %>%
     readAll()
@@ -54,24 +30,55 @@ pseudo_abs <- function(QUERY = query,
   r <- features[[1]]
   r[!is.na(r)] <- 0
   
-  # --- 3. Extract presence points
-  xy <- QUERY$S %>% 
-    dplyr::select(decimallongitude, decimallatitude)
-  val <- data.frame(val = rep(1, nrow(xy)))
+  # --- 3. Environmental background computation
+  # --- 3.1. Based on an environmental envelope
+  # Here, we are using the MESS analysis to approximate environmental background
+  # outside the environmental space of presence
+  if(METHOD_PA == "env"){
+    if(is.null(QUERY$MESS)){
+      stop("env Pseudo-Absence generation requires a MESS analysis in the previous step \n")
+    } else {
+      background <- QUERY$MESS
+      background <- synchroniseNA(stack(background, r))[[1]] %>% 
+        rasterToPoints() %>% 
+        as.data.frame() %>% 
+        dplyr::filter(mess < 0 & !is.na(mess)) %>% 
+        dplyr::select(x, y)
+    }
+  } # End if env
+
+  # --- 3.2. Based on a geographical distance
+  # Defining the background as cells distant from more than n-km from presence
+  if(METHOD_PA == "geo"){
+    # --- 3.2.1. Extract presence points
+    val <- QUERY$S %>% 
+      dplyr::select(decimallongitude, decimallatitude)
+    
+    # --- 3.2.2. Calculate distance to presences in raster object
+    background <- rasterize(val, r, update=TRUE)
+    background[background < 1] <- NA
+    background <- distance(background)
+    
+    background <- synchroniseNA(stack(background, r))[[1]] %>% 
+      rasterToPoints() %>% 
+      as.data.frame() %>% 
+      dplyr::filter(layer > DIST_PA & !is.na(layer)) %>% 
+      dplyr::select(x, y)
+  } # End if geo
   
-  # --- 4. Calculate distance to presences in raster
-  background <- rasterize(xy, r, update=TRUE)
-  background[background < 1] <- NA
-  background <- distance(background)
-  
-  background <- synchroniseNA(stack(background, r))[[1]] %>% 
-    rasterToPoints() %>% 
-    as.data.frame() %>% 
-    dplyr::filter(layer > 100e3 & !is.na(layer))
-  
-  # --- 5. Sample background data
-  tmp <- sample(x = 1:nrow(background), size = nrow(QUERY$S))
-  xy <- background[tmp,1:2]
+  # --- 4. Additional background filter
+  # TO UPDATE LATER
+
+  # --- 5. Sample within the background data
+  # Add a resample option if there is not enough background available
+  if(nrow(background) < NB_PA){
+    message(" PSEUDO-ABS : background too small, selection with replacement !")
+    tmp <- sample(x = 1:nrow(background), size = NB_PA, replace = TRUE)
+  } else {
+    tmp <- sample(x = 1:nrow(background), size = NB_PA)
+  }
+  # Subset the background coordinates
+  xy <- background[tmp,]
   
   # --- 6. Append the query
   # --- 6a. Feature table
@@ -83,7 +90,7 @@ pseudo_abs <- function(QUERY = query,
   QUERY$Y <- data.frame(measurementvalue = c(rep(1, nrow(QUERY$Y)), 
                                              rep(0, nrow(xy))))
   
-  # --- 6c. Sample tables
+  # --- 6c. Sample table
   S <- data.frame(decimallongitude = xy$x,
                   decimallatitude = xy$y,
                   measurementtype = "Pseudo-absence") %>% 
