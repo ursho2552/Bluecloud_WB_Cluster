@@ -34,6 +34,17 @@ model_wrapper <- function(QUERY = query,
   } # END if pres
   
   # --- 2. Redirection to continuous model
+  if(QUERY$CALL$DATA_TYPE == "cont"){
+    # --- 1.1. Load function
+    source(file = paste0(project_wd, "/code/07c_model_cont.R"))
+    
+    # --- 1.2. Run function
+    m <- model_cont(QUERY = QUERY,
+                    HP = HP,
+                    MODEL_LIST = MODEL_LIST)
+    
+    return(m)
+  } # END if pres
   
   
   # --- 3. Redirection to proportion model
