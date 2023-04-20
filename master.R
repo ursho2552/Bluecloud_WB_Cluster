@@ -23,8 +23,9 @@ list_bio <- list_bio(DATA_TYPE = "pres",
                      SAMPLE_SELECT = list(MIN_SAMPLE = 50, MIN_DEPTH = 0, MAX_DEPTH = 50, START_YEAR = 1990, STOP_YEAR = 2016))
 
 # Then query the species of interest -- TOO LONG : add key on DB
+# Here WORMS 104464 is Calanus finmarchus, very known example
 query <- query_bio(DATA_TYPE = "pres",
-                   SP_SELECT = 102,
+                   SP_SELECT = 104464,
                    SAMPLE_SELECT = list(MIN_SAMPLE = 50, MIN_DEPTH = 0, MAX_DEPTH = 50, START_YEAR = 1990, STOP_YEAR = 2016))
 
 # --- 2. Query environmental data -- TOO LONG : find a solution for large data
@@ -41,7 +42,7 @@ query <- query_check(QUERY = query,
 # --- 4. Generate pseudo-absences if necessary -- BUG FIX : throw an error on some identical runs...
 if(query$CALL$DATA_TYPE == "pres"){
   query <- pseudo_abs(QUERY = query,
-                      METHOD_PA = "disk")
+                      METHOD_PA = "env")
 }
 
 # --- 5. Generate split and re sampling folds
@@ -54,7 +55,7 @@ hp_list <- hyperparameter(QUERY = query,
                           MODEL_LIST = c("GLM","GAM","RF","MLP"),
                           LEVELS = 3)
 
-# --- 7. Model fit
+# --- 7. Model fit -- FIX : RF is very long for big data
 models <- model_wrapper(QUERY = query,
                         HP = hp_list,
                         MODEL_LIST = hp_list$CALL$MODEL_LIST)
@@ -78,6 +79,16 @@ standard_maps(QUERY = query,
               MODELS = models,
               ENSEMBLE = TRUE,
               MESS = FALSE)
+
+var_imp(QUERY = query,
+        MODELS = models,
+        ENSEMBLE = TRUE)
+
+pdp(QUERY = query,
+    MODELS = models,
+    N_BOOTSTRAP = 10,
+    ENSEMBLE = TRUE)
+
 
 
 
