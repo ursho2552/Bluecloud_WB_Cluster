@@ -17,6 +17,8 @@ library(RColorBrewer)
 library(pastecs)
 
 library(ecospat)
+library(DALEX)
+library(DALEXtra)
 
 # --- Seed
 set.seed(123)
