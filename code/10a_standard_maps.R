@@ -31,6 +31,7 @@ standard_maps <- function(QUERY = query,
       apply(1, function(x)(x = cv(x, na.rm = TRUE)))
     r_cv <- r %>% 
       setValues(val)
+    r_cv[r_cv > 100] <- 100
     
     # --- 1.3. Plot the corresponding maps
     plot(r_m, col = viridis_pal(100),
@@ -67,6 +68,7 @@ standard_maps <- function(QUERY = query,
     val <- apply(y_ens, 1, function(x)(x = cv(x, na.rm = TRUE)))
     r_cv <- r %>% 
       setValues(val)
+    r_cv[r_cv > 100] <- 100
     
     # --- 2.4. Plot the corresponding maps
     plot(r_m, col = viridis_pal(100),
@@ -77,23 +79,4 @@ standard_maps <- function(QUERY = query,
   } # End if ENSEMBLE = TRUE
   
 } # END FUNCTION
-
-
-# ==================
-# PLOT PROTOTYPE
-i = "MLP"
-MODELS = models
-
-par(mfrow = c(2,1), mar = c(2,2,3,5))
-# Mean value
-val <- MODELS[[i]][["proj"]][["y_hat_m"]]
-r <- raster(paste0(project_wd, "/data/features_mean_from_monthly")) %>% 
-  setValues(val)
-plot(r, main = "mean", col = viridis_pal(100))
-
-# CV value
-val <- MODELS[[i]][["proj"]][["y_hat_cv"]]
-r <- raster(paste0(project_wd, "/data/features_mean_from_monthly")) %>% 
-  setValues(val)
-plot(r, main = "cv", col = viridis_pal(100))
 

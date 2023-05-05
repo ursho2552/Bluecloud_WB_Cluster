@@ -79,7 +79,7 @@ query_check <- function(QUERY = query,
     
     # --- 2. Compute the mess analysis
     tmp <- QUERY$X %>% dplyr::select(QUERY$CALL$ENV_VAR)
-    r_mess <- dismo::mess(x = features, v = tmp)
+    r_mess <- dismo::mess(x = features, v = tmp, full = FALSE)
     
     # --- 3. Append to query
     QUERY$MESS <- r_mess
