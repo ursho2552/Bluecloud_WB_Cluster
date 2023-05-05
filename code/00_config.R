@@ -1,24 +1,27 @@
-# --- R Package
+# --- 1. R Packages
+# --- 1.1. Tidy environment-related
 library(tidyverse)
 library(tidymodels)
-library(RSQLite)
-# library(RPostgreSQL) not working, need to check that !
-library(abind) 
-library(feather) 
-library(reticulate) 
+library(DALEX)
+library(DALEXtra)
 library(parallel)
+library(abind) 
 
+# --- 1.2. Data table opening and storage
+library(RSQLite)
+library(feather) 
+library(vroom)
+
+# --- 1.2. Spatial data and object
 library(raster)
 library(virtualspecies) 
 library(ncdf4)
-library(vroom)
 
+# --- 1.3. Others
 library(RColorBrewer) 
 library(pastecs)
-
 library(ecospat)
-library(DALEX)
-library(DALEXtra)
+library(reticulate) 
 
 # --- Seed
 set.seed(123)
@@ -50,3 +53,5 @@ Sys.setenv(HDF5_USE_FILE_LOCKING="FALSE") # to be able to open .nc from complex
 # --- Data specific parameters
 
 # --- Model specific parameters
+LOCAL_CLUSTERS <- 16
+N_CLUSTERS <- 16

@@ -4,11 +4,9 @@
 #' A. Schickele 2023
 #' =============================================================================
 #' ============================== TO DO LIST ===================================
-#' - data access service
-#' - make sure the models are sending dataminer jobs
-#' - have an easy and common architecture of files
-#' - check the compatibility between dataminer and Biomod2...
-#' - have a prototype wrapper for the 3 sub-pipelines
+#' - check data access service as input
+#' - check blue cloud data miner compatibility of the functions
+#' - include MBTR in the prototypes for proportion data
 #' =============================================================================
 
 # --- START UP
@@ -75,20 +73,27 @@ if(length(models$CALL$MODEL_LIST) >= 1){
 }
 
 # --- 10. Output plots
+# --- 10.1. Standard maps per algorithms
 standard_maps(QUERY = query,
               MODELS = models,
               ENSEMBLE = TRUE,
               MESS = FALSE)
 
+# --- 10.2. Variable importance output
 var_imp(QUERY = query,
         MODELS = models,
         ENSEMBLE = TRUE)
 
+# --- 10.3. Partial dependency plots
 pdp(QUERY = query,
     MODELS = models,
     N_BOOTSTRAP = 10,
     ENSEMBLE = TRUE)
 
+# --- 99. Saving
+# Compressed .RData looks fine, 65 Mo for 270 model runs, including projections, hyperparameters and model specifications.
+# Compression levels could even be set higher in the save function option.
+save(query, models, file = paste0("./output/",query$CALL$SP_SELECT, "_output.RData"), compress = "gzip")
 
 
 
