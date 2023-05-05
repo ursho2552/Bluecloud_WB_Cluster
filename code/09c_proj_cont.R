@@ -31,45 +31,65 @@ proj_cont <- function(QUERY,
   # --- 2.2. Run the bootstrap generation from tidy models
   boot_split <- bootstraps(tmp, times = N_BOOTSTRAP)
   
-  # --- 3. Fit model on bootstrap
-  # fit_resamples() does not save models by default. Thus the control_resamples()
-  boot_fit <- MODELS$GAM$final_wf %>% 
-    fit_resamples(resamples = boot_split,
-                  control = control_resamples(extract = function (x) extract_fit_parsnip(x))) %>% 
-    unnest(.extracts)
-  
-  # --- 4. Compute one prediction per bootstrap
-  # As we extracted the model information in a supplementary column, we can
-  # directly compute the bootstrap within the synthetic resample object.
-  boot_proj <- boot_fit %>% 
-    mutate(proj = map(.extracts, function(x)(x = predict(x, features))))
-  
-  # --- 5. Compute average and CV across bootstraps
-  # First transform the object into a cell x bootstrap matrix
-  # /!\ Need to create a unique row identifier for pivot_wider to work...
-  tmp <- boot_proj %>% 
-    dplyr::select(id, proj) %>% 
-    unnest(c(id, proj)) %>% 
-    as.data.frame() %>% 
-    group_by(id) %>%
-    mutate(row = row_number()) %>%
-    pivot_wider(names_from = id, values_from = .pred) %>%
-    dplyr::select(-row)
-  
-  # Open a raster to have the list of cells
-  r_val <- raster(paste0(project_wd, "/data/features_mean_from_monthly")) %>% 
-    getValues()
-  
-  # Assign the desired values to the non-NA cells in the list
-  y_hat <- apply(tmp, 2, function(x){
-    r <- r_val
-    r[!is.na(r)] <- x
-    x <- r
-  })
-  
-  # --- 6. Append the MODEL object
-  MODELS[[i]][["proj"]][["y_hat"]] <- y_hat
-  
+  # =========================== MODEL LOOP SECTION =============================
+  for(i in MODELS$CALL$MODEL_LIST){
+    
+    # --- 3. Fit model on bootstrap
+    # --- 3.1. Register parallel
+    # Only if the number of species is less then the number of available clusters
+    # Otherwise, the parallel computing is done by species
+    if(length(QUERY$CALL$SP_SELECT) < LOCAL_CLUSTERS){
+      cl <- makePSOCKcluster(LOCAL_CLUSTERS)
+      doParallel::registerDoParallel(cl)
+      message(paste(Sys.time(), "--- Parallel bootstrap for", MODEL_LIST[[i]], ": START"))
+    }
+    
+    # --- 3.2. Fit
+    # fit_resamples() does not save models by default. Thus the control_resamples()
+    boot_fit <- MODELS[[i]][["final_wf"]] %>% 
+      fit_resamples(resamples = boot_split,
+                    control = control_resamples(extract = function (x) extract_fit_parsnip(x),
+                                                allow_par = TRUE,
+                                                parallel_over = "everything")) %>% 
+      unnest(.extracts)
+    
+    # --- 3.3. Stop parallel backend
+    stopCluster(cl)
+    message(paste(Sys.time(), "--- Parallel grid tuning for", MODEL_LIST[[i]], ": DONE"))
+    
+    # --- 4. Compute one prediction per bootstrap
+    # As we extracted the model information in a supplementary column, we can
+    # directly compute the bootstrap within the synthetic resample object.
+    boot_proj <- boot_fit %>% 
+      mutate(proj = map(.extracts, function(x)(x = predict(x, features))))
+    
+    # --- 5. Compute average and CV across bootstraps
+    # First transform the object into a cell x bootstrap matrix
+    # /!\ Need to create a unique row identifier for pivot_wider to work...
+    tmp <- boot_proj %>% 
+      dplyr::select(id, proj) %>% 
+      unnest(c(id, proj)) %>% 
+      as.data.frame() %>% 
+      group_by(id) %>%
+      mutate(row = row_number()) %>%
+      pivot_wider(names_from = id, values_from = .pred) %>%
+      dplyr::select(-row)
+    
+    # Open a raster to have the list of cells
+    r_val <- raster(paste0(project_wd, "/data/features_mean_from_monthly")) %>% 
+      getValues()
+    
+    # Assign the desired values to the non-NA cells in the list
+    y_hat <- apply(tmp, 2, function(x){
+      r <- r_val
+      r[!is.na(r)] <- x
+      x <- r
+    })
+    
+    # --- 6. Append the MODEL object
+    MODELS[[i]][["proj"]][["y_hat"]] <- y_hat
+    
+  } # for i model loop
   
   return()
   
