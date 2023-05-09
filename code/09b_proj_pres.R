@@ -12,14 +12,15 @@
 #' embedded in each model sub-list.
 
 proj_pres <- function(QUERY,
-                      MODELS,
+                      MODEL,
+                      CALL,
                       N_BOOTSTRAP,
                       PROJ_PATH){
   
   # --- 1. Load environmental data - TO FIX DYNAMICALLY
   features <- stack(paste0(project_wd, "/data/features_mean_from_monthly")) %>% 
     readAll() %>% 
-    raster::subset(QUERY$CALL$ENV_VAR) %>% 
+    raster::subset(CALL$ENV_VAR) %>% 
     rasterToPoints() %>% 
     as.data.frame() %>% 
     dplyr::select(-c(x, y))
@@ -32,21 +33,21 @@ proj_pres <- function(QUERY,
   boot_split <- bootstraps(tmp, times = N_BOOTSTRAP)
   
   # =========================== MODEL LOOP SECTION =============================
-  for(i in MODELS$CALL$MODEL_LIST){
+  for(i in MODEL$CALL$MODEL_LIST){
     
     # --- 3. Fit model on bootstrap
     # --- 3.1. Register parallel
     # Only if the number of species is less then the number of available clusters
     # Otherwise, the parallel computing is done by species
-    if(length(QUERY$CALL$SP_SELECT) < LOCAL_CLUSTERS){
+    if(length(CALL$SP_SELECT) < LOCAL_CLUSTERS){
       cl <- makePSOCKcluster(LOCAL_CLUSTERS)
       doParallel::registerDoParallel(cl)
-      message(paste(Sys.time(), "--- Parallel bootstrap for", MODEL_LIST[[i]], ": START"))
+      message(paste(Sys.time(), "--- Parallel bootstrap for", i, ": START"))
     }
     
     # --- 3.2. Fit
     # fit_resamples() does not save models by default. Thus the control_resamples()
-    boot_fit <- MODELS[[i]][["final_wf"]] %>% 
+    boot_fit <- MODEL[[i]][["final_wf"]] %>% 
       fit_resamples(resamples = boot_split,
                     control = control_resamples(extract = function (x) extract_fit_parsnip(x),
                                                 allow_par = TRUE,
@@ -55,7 +56,7 @@ proj_pres <- function(QUERY,
     
     # --- 3.3. Stop parallel backend
     stopCluster(cl)
-    message(paste(Sys.time(), "--- Parallel grid tuning for", MODEL_LIST[[i]], ": DONE"))
+    message(paste(Sys.time(), "--- Parallel grid tuning for", i, ": DONE"))
     
     # --- 4. Compute one prediction per bootstrap
     # As we extracted the model information in a supplementary column, we can
@@ -87,11 +88,11 @@ proj_pres <- function(QUERY,
     })
     
     # --- 6. Append the MODEL object
-    MODELS[[i]][["proj"]][["y_hat"]] <- y_hat
+    MODEL[[i]][["proj"]][["y_hat"]] <- y_hat
     
   } # for i model loop
   
-  return(MODELS)
+  return(MODEL)
   
 } # END FUNCTION
 

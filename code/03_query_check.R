@@ -2,17 +2,23 @@
 #' @name query_check
 #' @description This function performs a series of last check before modelling,
 #' including an outlier check, environmental variable correlation and MESS
-#' @param QUERY the query output from the previous functions
+#' @param SP_SELECT species to run the analysis for, in form of Aphia ID
+#' @param FOLDER_NAME name of the corresponding folder
 #' @param OUTLIER if TRUE, remove outliers
 #' @param ENV_COR numeric, removes the correlated environmental values from the
 #' query objects and CALL according to the defined threshold. Else NULL.
 #' @param MESS if TRUE, performs a MESS analysis that is stored in the query
-#' @return the updated query list
+#' @return Updates the output in a QUERY.RData and CALL.Rdata files
 
-query_check <- function(QUERY = query,
+query_check <- function(SP_SELECT = NULL,
+                        FOLDER_NAME = NULL,
                         OUTLIER = TRUE,
                         ENV_COR = 0.8, 
                         MESS = TRUE){
+  
+  # =========================== PARAMETER LOADING ==============================
+  load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
+  load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SP_SELECT, "/QUERY.RData"))
   
   # =============================== OUTLIER ANALYSIS ===========================
   # --- 1. Outlier check on the query based on z-score (from Nielja code)
@@ -63,8 +69,8 @@ query_check <- function(QUERY = query,
       }
     }
     
-    # --- 5. Update QUERY$CALL$ENV_VAR
-    QUERY$CALL$ENV_VAR <- names(features_keep)
+    # --- 5. Update CALL$ENV_VAR
+    CALL$ENV_VAR <- names(features_keep)
     
   } # END if env_cor TRUE
   
@@ -75,10 +81,10 @@ query_check <- function(QUERY = query,
     # --- 1. Load necessary data
     features <- stack(paste0(project_wd, "/data/features_mean_from_monthly")) %>% 
       readAll() %>% 
-      raster::subset(QUERY$CALL$ENV_VAR)
+      raster::subset(CALL$ENV_VAR)
     
     # --- 2. Compute the mess analysis
-    tmp <- QUERY$X %>% dplyr::select(QUERY$CALL$ENV_VAR)
+    tmp <- QUERY$X %>% dplyr::select(CALL$ENV_VAR)
     r_mess <- dismo::mess(x = features, v = tmp, full = FALSE)
     
     # --- 3. Append to query
@@ -86,6 +92,8 @@ query_check <- function(QUERY = query,
     
   } # END if mess TRUE
   
-  return(query = QUERY)
+  # ================= SAVE QUERY AND CALL OBJECTS ============================
+  save(QUERY, file = paste0(project_wd, "/output/", FOLDER_NAME,"/", SP_SELECT, "/QUERY.RData"))
+  save(CALL, file = paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
   
 } # END FUNCTION

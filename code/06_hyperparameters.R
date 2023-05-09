@@ -2,19 +2,24 @@
 #' @name hyperparameter
 #' @description this function creates an hyperparameter grid for each available
 #' algorithm in the pipeline and returns those selected by the user
-#' @param QUERY the query object from previous function
+#' @param SP_SELECT species to run the analysis for, in form of Aphia ID
+#' @param FOLDER_NAME name of the corresponding folder
 #' @param MODEL_LIST list of algorithms from which to compute hyperparameter
 #' selection
 #' @param LEVELS maximum number of parameter values to test in each of the grids
 #' @return a hyperparameter list of the chosen models, including spec and grid
 #' per model
+#' @return the general HP list is saved in the CALL.RData object
 
-hyperparameter <- function(QUERY = query,
+hyperparameter <- function(FOLDER_NAME = NULL,
                            MODEL_LIST = c("GLM","GAM","RF","MLP"),
                            LEVELS = 3){ # TO DO : double check model names
 
-  # --- 1. Generate the output object
+  # --- 1. Initialize the  object
+  # --- 1.1. Output object
   HP <- list()
+  # --- 1.2. Load CALL object
+  load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
   
   # --- 2. Fill up the object with a set of possible grids
   # --- 2.1. RANDOM FOREST 
@@ -26,14 +31,14 @@ hyperparameter <- function(QUERY = query,
                                   min_n = tune())
   
   # --- 2.1.2. Define the grid according to built in functions
-  HP$RF$model_grid <- grid_regular(mtry(range = c(1, length(QUERY$CALL$ENV_VAR))),
+  HP$RF$model_grid <- grid_regular(mtry(range = c(1, length(CALL$ENV_VAR))),
                                    trees(),
                                    min_n(),
                                    levels = LEVELS)
   
   # --- 2.2. GENERALIZED ADDITIVE MODELS 
   # --- 2.2.1. Define the model specifications
-  if(QUERY$CALL$DATA_TYPE == "pres"){
+  if(CALL$DATA_TYPE == "pres"){
     HP$GAM$model_spec <- gen_additive_mod(mode = "regression",
                                           adjust_deg_free = tune(),
                                           select_features = tune()) %>% 
@@ -54,7 +59,7 @@ hyperparameter <- function(QUERY = query,
   
   # --- 2.3. GENERALIZED LINEAR MODELS
   # --- 2.3.1. Define the model specifications
-  if(QUERY$CALL$DATA_TYPE == "pres"){
+  if(CALL$DATA_TYPE == "pres"){
     HP$GLM$model_spec <- linear_reg(mode = "regression") %>% 
       set_engine("glm", 
                  family = stats::binomial(link = "logit")) %>% 
@@ -88,6 +93,8 @@ hyperparameter <- function(QUERY = query,
   HP <- HP[MODEL_LIST]
   HP$CALL$MODEL_LIST <- MODEL_LIST
   
-  return(HP)
+  # --- 4. Append CALL and save
+  CALL[["HP"]] <- HP
+  save(CALL, file = paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
   
 } # END FUNCTION

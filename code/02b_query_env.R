@@ -3,16 +3,23 @@
 #' @description appends the query_bio output with a list of environmental
 #' values at the sampling stations and a path to the environmental raster that
 #' will be used for projections
-#' @param QUERY_BIO output object of 01b_query_bio.R
+#' @param SP_SELECT species to run the analysis for, in form of Aphia ID
+#' @param FOLDER_NAME name of the corresponding folder
 #' @param ENV_VAR vector of names of environmental variables available within
 #' the climatologies available in Blue Cloud. If null all variables are taken.
 #' @param ENV_PATH string, path to the .nc or raster of environmental variables
 #' @return X: a data frame of environmental values at the sampling stations and 
 #' @return ENV_PATH: the path to the environmental .nc or raster
+#' @return Updates the output in a QUERY.RData and CALL.Rdata files
 
-query_env <- function(QUERY_BIO = query,
+query_env <- function(SP_SELECT = NULL,
+                      FOLDER_NAME = NULL,
                       ENV_VAR = NULL,
                       ENV_PATH = "/net/meso/work/aschickele/Diversity/data/features_monthly"){
+  
+  # =========================== PARAMETER LOADING ==============================
+  load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
+  load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SP_SELECT, "/QUERY.RData"))
   
   # =============================== ENV QUERY ==================================
   # --- 1. Open features gridded data and names
@@ -26,8 +33,8 @@ query_env <- function(QUERY_BIO = query,
   # (2) /!\ Depth is not taken into account for now, neither year (1990-2016 = WOA)
   res <- res(features)[[1]]
   digit <- nchar(sub('^0+','',sub('\\.','',res)))-1
-  sample <- QUERY_BIO$S %>% 
-    cbind(QUERY_BIO$Y) %>% 
+  sample <- QUERY$S %>% 
+    cbind(QUERY$Y) %>% 
     mutate(decimallatitude = round(decimallatitude+0.5*res, digits = digit)-0.5*res) %>% 
     mutate(decimallongitude = round(decimallongitude+0.5*res, digits = digit)-0.5*res) 
   
@@ -67,18 +74,17 @@ query_env <- function(QUERY_BIO = query,
     colnames(tmp) <- features_name
     X <- rbind(X, tmp)
   } # End for j
-
-  # --- 7. Write X on the disk
-  write_feather(X, paste0(project_wd, "/data/X.feather"))
   
-  # --- 8. Append query_bio with the environmental values
-  return(list(Y = Y,
-              X = X,
-              S = S,
-              CALL = list(DATA_TYPE = QUERY_BIO$CALL$DATA_TYPE,
-                          SP_SELECT = QUERY_BIO$CALL$SP_SELECT,
-                          SAMPLE_SELECT = QUERY_BIO$CALL$SAMPLE_SELECT,
-                          ENV_VAR = features_name,
-                          ENV_PATH = ENV_PATH)))
+  # --- 7. Append QUERY with the environmental values and save
+  QUERY[["Y"]] <- Y
+  QUERY[["S"]] <- S
+  QUERY[["X"]] <- X
+  save(QUERY, file = paste0(project_wd, "/output/", FOLDER_NAME,"/", SP_SELECT, "/QUERY.RData"))
+  
+  # --- 8. Append CALL with supplementary general parameters
+  CALL[["ENV_VAR"]] <- features_name
+  CALL[["ENV_PATH"]] <- ENV_PATH
+  save(CALL, file = paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
+  
   
 } # END FUNCTION

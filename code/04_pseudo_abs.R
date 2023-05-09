@@ -2,7 +2,8 @@
 #' @name pseudo_abs
 #' @description computes pseudo absences added to the X and Y matrices from
 #' query_env and bio according to various background selection methods.
-#' @param QUERY query object resulting from query_bio and query_env
+#' @param SP_SELECT species to run the analysis for, in form of Aphia ID
+#' @param FOLDER_NAME name of the corresponding folder
 #' @param METHOD_PA method of pseudo-absence, either "env" or "geo"
 #' @param NB_PA number of pseudo-absences to generate
 #' @param DIST_PA if METHOD_PA = "geo", distance from presences (in meters),
@@ -14,13 +15,24 @@
 #' can be sampled. Expert use only. 
 #' @return X updated with the pseudo-absence values (= 0)
 #' @return Y updated with the environmental values corresponding
-#' 
+#' @return Updates the output in a QUERY.RData and CALL.Rdata files
 
-pseudo_abs <- function(QUERY = query,
+pseudo_abs <- function(SP_SELECT = NULL,
+                       FOLDER_NAME = NULL,
                        METHOD_PA = "env",
-                       NB_PA = nrow(QUERY$S),
+                       NB_PA = NULL,
                        DIST_PA = 100e3,
                        BACKGROUND_FILTER = NULL){
+  
+  # =========================== PARAMETER LOADING ==============================
+  load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
+  load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SP_SELECT, "/QUERY.RData"))
+  if(is.null(NB_PA)){NB_PA = nrow(QUERY$S)}
+  
+  # =========================== DATA TYPE CHECK ================================
+  if(CALL$DATA_TYPE != "pres"){
+    stop("No Pseudo-absence generation necessary for this data type")
+  } 
   
   # --- 1. Open environmental data
   features <- stack(paste0(project_wd, "/data/features_mean_from_monthly")) %>%
@@ -98,6 +110,7 @@ pseudo_abs <- function(QUERY = query,
   QUERY$S <- QUERY$S %>% 
     bind_rows(S)
 
-  return(query = QUERY)
+  # --- 7. Save QUERY object
+  save(QUERY, file = paste0(project_wd, "/output/", FOLDER_NAME,"/", SP_SELECT, "/QUERY.RData"))
   
 } # END FUNCTION

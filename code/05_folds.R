@@ -2,16 +2,23 @@
 #' @name folds
 #' @description this functions adds an ID list to the query. It corresponds to
 #' the different folds between train and test splits
-#' @param QUERY query object, for tracking
+#' @param SP_SELECT species to run the analysis for, in form of Aphia ID
+#' @param FOLDER_NAME name of the corresponding folder
 #' @param NFOLD number of folds, used defined integer
 #' @param FOLD_METHOD method used to create the folds, integer between "kfold"
 #' and "lon"
 #' @return CALL$FOLD_METHOD for tracking
 #' @return ID : list of line id corresponding to the n defined folds
+#' @return Updates the output in a QUERY.RData and CALL.Rdata files
 
-folds <- function(QUERY = query,
+folds <- function(SP_SELECT = NULL,
+                  FOLDER_NAME = NULL,
                   NFOLD = 5,
                   FOLD_METHOD = "kfold"){
+  
+  # =========================== PARAMETER LOADING ==============================
+  load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
+  load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SP_SELECT, "/QUERY.RData"))
   
   # ============================ INITIAL SPLIT =================================
   # --- 1. Re-assemble all query tables
@@ -48,8 +55,10 @@ folds <- function(QUERY = query,
                            v = NFOLD)
   }
   
-  # =================== APPEND QUERY OBJECT ====================================
+  # =================== APPEND QUERY and CALL OBJECT ===========================
   # S$id keeps track of the initial row numbers within each split/re sample
+  
+  # --- 1. Append object
   QUERY$FOLDS$resample_split <- folds
   
   for(i in 1:nrow(folds)){
@@ -58,9 +67,12 @@ folds <- function(QUERY = query,
     QUERY$FOLDS[["resample_folds"]][[fold_name]][["analysis"]] <- folds$splits[[i]] %>% analysis()
   }
   
-  QUERY$CALL$FOLD_METHOD <- FOLD_METHOD
-  QUERY$CALL$NFOLD <- NFOLD
+  # --- 2. Save query
+  save(QUERY, file = paste0(project_wd, "/output/", FOLDER_NAME,"/", SP_SELECT, "/QUERY.RData"))
   
-  return(query = QUERY)
+  # --- 3. Append CALL object
+  CALL$FOLD_METHOD <- FOLD_METHOD
+  CALL$NFOLD <- NFOLD
+  save(CALL, file = paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
   
 } # END FUNCTION

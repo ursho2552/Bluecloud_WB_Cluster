@@ -12,12 +12,13 @@
 #' @return returns a list object containing the best model, associated hyper
 #' parameters and predicted values per re sampling folds
 
-model_pres <- function(QUERY,
+model_pres <- function(CALL,
+                       QUERY,
                        HP,
                        MODEL_LIST){
   
   # --- 1. Define formula common to the model workflows
-  tmp <- QUERY$CALL$ENV_VAR %>% paste(collapse = " + ")
+  tmp <- CALL$ENV_VAR %>% paste(collapse = " + ")
   formula <- paste0("measurementvalue ~ ", tmp) %>% as.formula()
   
   # --- 2. Loop with all selected models
@@ -35,7 +36,7 @@ model_pres <- function(QUERY,
     # --- 2.2. Register parallel
     # Only if the number of species is less then the number of available clusters
     # Otherwise, the parallel computing is done by species
-    if(length(QUERY$CALL$SP_SELECT) < LOCAL_CLUSTERS){
+    if(length(CALL$SP_SELECT) < LOCAL_CLUSTERS){
       cl <- makePSOCKcluster(LOCAL_CLUSTERS)
       doParallel::registerDoParallel(cl)
       message(paste(Sys.time(), "--- Parallel grid tuning for", MODEL_LIST[[i]], ": START"))

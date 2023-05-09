@@ -9,91 +9,99 @@
 #' - include MBTR in the prototypes for proportion data
 #' =============================================================================
 
-# --- START UP
+# --- 0. Start up and load functions
 # All will be called in the config file later
 rm(list=ls())
 setwd("/net/meso/work/aschickele/Diversity")
 source(file = "./code/00_config.R")
+run_name <- "test_run"
 
-# --- 1. Query biological data
-# First check which species are available -- TOO LONG : add key on DB
+# --- 1a. List the available species
+# Within the user defined selection criteria
 list_bio <- list_bio(DATA_TYPE = "pres",
                      SAMPLE_SELECT = list(MIN_SAMPLE = 50, MIN_DEPTH = 0, MAX_DEPTH = 50, START_YEAR = 1990, STOP_YEAR = 2016))
 
-# Then query the species of interest -- TOO LONG : add key on DB
-# Here WORMS 104464 is Calanus finmarchus, very known example
-query <- query_bio(DATA_TYPE = "pres",
-                   SP_SELECT = 104464,
-                   SAMPLE_SELECT = list(MIN_SAMPLE = 50, MIN_DEPTH = 0, MAX_DEPTH = 50, START_YEAR = 1990, STOP_YEAR = 2016))
+# --- 1b. Create the output folder
+# Create an output folder containing all species-level runs
+folder_init(DATA_TYPE = "pres",
+                       SAMPLE_SELECT = list(MIN_SAMPLE = 50, MIN_DEPTH = 0, MAX_DEPTH = 50, START_YEAR = 1990, STOP_YEAR = 2016),
+                       SP_SELECT = c(104464, 101, 102),
+                       FOLDER_NAME = run_name)
 
-# --- 2. Query environmental data -- TOO LONG : find a solution for large data
-query <- query_env(QUERY_BIO = query,
-                   ENV_VAR = NULL,
-                   ENV_PATH = "/net/meso/work/aschickele/Diversity/data/features_monthly")
+# --- 2a. Query biological data
+# Then query the species of interest according to their WORMS_ID
+query_bio(SP_SELECT = 104464,
+          FOLDER_NAME = run_name)
+
+# Test if working in multivariate -- YES -- TO IMPLEMENT TO ALL FUNCTIONS !!
+mcmapply(FUN = query_bio,
+         SP_SELECT = c(104464,102),
+         FOLDER_NAME = run_name)
+
+# --- 2b. Query environmental data -- TOO LONG : find a solution for large data
+query_env(SP_SELECT = 104464,
+          FOLDER_NAME = run_name,
+          ENV_VAR = NULL,
+          ENV_PATH = "/net/meso/work/aschickele/Diversity/data/features_monthly")
 
 # --- 3. Outliers and environmental covariance check
-query <- query_check(QUERY = query,
-                     OUTLIER = TRUE,
-                     ENV_COR = 0.8,
-                     MESS = TRUE)
+query_check(SP_SELECT = 104464,
+            FOLDER_NAME = run_name,
+            OUTLIER = TRUE,
+            ENV_COR = 0.8,
+            MESS = TRUE)
 
 # --- 4. Generate pseudo-absences if necessary -- BUG FIX : throw an error on some identical runs...
-if(query$CALL$DATA_TYPE == "pres"){
-  query <- pseudo_abs(QUERY = query,
-                      METHOD_PA = "env")
-}
+pseudo_abs(SP_SELECT = 104464,
+           FOLDER_NAME = run_name,
+           METHOD_PA = "env")
 
 # --- 5. Generate split and re sampling folds
-query <- folds(QUERY = query,
-               NFOLD = 5,
-               FOLD_METHOD = "lon")
+folds(SP_SELECT = 104464,
+      FOLDER_NAME = run_name,
+      NFOLD = 5,
+      FOLD_METHOD = "lon")
 
-# --- 6. Hyper parameters to train
-hp_list <- hyperparameter(QUERY = query,
-                          MODEL_LIST = c("GLM","GAM","RF","MLP"),
-                          LEVELS = 3)
+# --- 6. Hyper parameters to train - CHECK WHERE TO MOVE
+# Maybe this should be moved with the model list, environmental variable correlation etc...
+# To the beginning of the script ?
+hyperparameter(FOLDER_NAME = run_name,
+               MODEL_LIST = c("GLM","GAM","RF","MLP"),
+               LEVELS = 3)
 
 # --- 7. Model fit -- FIX : RF is very long for big data
-models <- model_wrapper(QUERY = query,
-                        HP = hp_list,
-                        MODEL_LIST = hp_list$CALL$MODEL_LIST)
-# Removing hp_list as it is transferred to the models object
-rm(hp_list)
+model_wrapper(SP_SELECT = 104464,
+              FOLDER_NAME = run_name,
+              MODEL_LIST = NULL)
 
 # --- 8. Model evaluation
-models <- eval_wrapper(QUERY = query,
-                       MODELS = models)
+eval_wrapper(SP_SELECT = 104464,
+             FOLDER_NAME = run_name)
 
 # --- 9. Model projections
-if(length(models$CALL$MODEL_LIST) >= 1){
-  models <- proj_wrapper(QUERY = query,
-                         MODELS = models,
-                         N_BOOTSTRAP = 10,
-                         PROJ_PATH = NULL)
-}
+proj_wrapper(SP_SELECT = 104464,
+             FOLDER_NAME = run_name,
+             N_BOOTSTRAP = 10,
+             PROJ_PATH = NULL)
 
 # --- 10. Output plots
 # --- 10.1. Standard maps per algorithms
-standard_maps(QUERY = query,
-              MODELS = models,
+standard_maps(SP_SELECT = 104464,
+              FOLDER_NAME = run_name,
               ENSEMBLE = TRUE,
               MESS = FALSE)
 
 # --- 10.2. Variable importance output
-var_imp(QUERY = query,
-        MODELS = models,
+var_imp(SP_SELECT = 104464,
+        FOLDER_NAME = run_name,
         ENSEMBLE = TRUE)
 
 # --- 10.3. Partial dependency plots
-pdp(QUERY = query,
-    MODELS = models,
+pdp(SP_SELECT = 104464,
+    FOLDER_NAME = run_name,
     N_BOOTSTRAP = 10,
     ENSEMBLE = TRUE)
 
-# --- 99. Saving
-# Compressed .RData looks fine, 65 Mo for 270 model runs, including projections, hyperparameters and model specifications.
-# Compression levels could even be set higher in the save function option.
-save(query, models, file = paste0("./output/",query$CALL$SP_SELECT, "_output.RData"), compress = "gzip")
 
 
 

@@ -3,14 +3,23 @@
 #' @description Function to compute and extract the variable importance related
 #' to model fitting. The proportion data variable importance is already embedded
 #' in the MBTR model. Thus, this function is only related to pres or cont data.
-#' @param QUERY the query object from the master pipeline
-#' @param MODELS the models object from the master pipeline
+#' @param SP_SELECT species to run the analysis for, in form of Aphia ID
+#' @param FOLDER_NAME name of the corresponding folder
 #' @param ENSEMBLE if TRUE, computes the variable importance as an ensemble ? 
 #' @return plots mean and uncertainty maps per model or ensemble
 
-var_imp <- function(QUERY = query,
-                    MODELS = models,
+var_imp <- function(SP_SELECT = NULL,
+                    FOLDER_NAME = NULL,
                     ENSEMBLE = FALSE){
+  
+  # =========================== PARAMETER LOADING ==============================
+  load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
+  load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SP_SELECT, "/QUERY.RData"))
+  load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SP_SELECT, "/MODEL.RData"))
+  
+  # ========================== BUILDING VAR IMP ================================
+  # With PDF saving
+  pdf(paste0(project_wd,"/output/",FOLDER_NAME,"/",SP_SELECT,"/variable_importance.pdf"))
   
   # --- 1. Set initial parameters
   # --- 1.1. Model related data
@@ -23,9 +32,9 @@ var_imp <- function(QUERY = query,
   var_imp <- NULL
   par(mfrow = c(3,2), mar = c(5,5,5,5))
   
-  for(i in MODELS$CALL$MODEL_LIST){
+  for(i in MODEL$CALL$MODEL_LIST){
     # --- 2. Extract final model fit
-    m <- extract_fit_parsnip(MODELS[[i]][["final_fit"]])
+    m <- extract_fit_parsnip(MODEL[[i]][["final_fit"]])
     
     # --- 3. Build model explainer
     explainer <- explain_tidymodels(model = m,
@@ -62,7 +71,7 @@ var_imp <- function(QUERY = query,
   } # End i model loop
   
   
-  if(ENSEMBLE == TRUE & length(MODELS$CALL$MODEL_LIST > 1)){
+  if(ENSEMBLE == TRUE & length(MODEL$CALL$MODEL_LIST > 1)){
     # --- 5. Compute an ensemble plot
     # Variable importance values also scaled by the metric value
     
@@ -70,17 +79,17 @@ var_imp <- function(QUERY = query,
     ens_imp <- NULL
     message("--- VAR IMPORTANCE : compute ensemble")
     
-    for(i in MODELS$CALL$MODEL_LIST){
+    for(i in MODEL$CALL$MODEL_LIST){
       # Concatenate eval-weighted raw variable importance
       tmp <- var_imp[[i]] %>% 
-        mutate(value = value * MODELS[[i]][["eval"]][[1]])
+        mutate(value = value * MODEL[[i]][["eval"]][[1]])
       ens_imp <- rbind(ens_imp, tmp)
     } # End i model loop
     
     # --- 5.2. Further compute it as percentage
     tmp <- ens_imp %>% 
       group_by(permutation) %>% 
-      mutate(value = value / sum(value) * 100 * length(MODELS$CALL$MODEL_LIST))  %>% 
+      mutate(value = value / sum(value) * 100 * length(MODEL$CALL$MODEL_LIST))  %>% 
       ungroup() %>% 
       dplyr::select(variable, value) %>% 
       mutate(variable = fct_reorder(variable, value, .desc = TRUE))
@@ -96,6 +105,9 @@ var_imp <- function(QUERY = query,
     
   } # End if ensemble TRUE
 
+  # Stop pdf saving
+  dev.off()
+  
 } # END FUNCTION
   
   
