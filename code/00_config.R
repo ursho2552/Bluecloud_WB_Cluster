@@ -17,11 +17,16 @@ library(raster)
 library(virtualspecies) 
 library(ncdf4)
 
-# --- 1.3. Others
+# --- 1.3. Data access service
+library(phyloseq)
+library(MGnifyR)
+
+# --- 1.4. Others
 library(RColorBrewer) 
 library(pastecs)
 library(ecospat)
 library(reticulate) 
+
 
 # --- Seed
 set.seed(123)
