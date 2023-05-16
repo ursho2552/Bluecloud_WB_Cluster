@@ -2,25 +2,25 @@
 #' @name standard_maps
 #' @description Simple function for building standard mean and CV maps from
 #' projection data
-#' @param SP_SELECT species to run the analysis for, in form of Aphia ID
 #' @param FOLDER_NAME name of the corresponding folder
+#' @param SUBFOLDER_NAME list of sub_folders to parallelize on.
 #' @param ENSEMBLE if TRUE, computes the ensemble map ? 
 #' @param MESS if TRUE, considers the mess analysis in the maps
 #' @return plots mean and uncertainty maps per model or ensemble
 
-standard_maps <- function(SP_SELECT = NULL,
-                          FOLDER_NAME = NULL,
+standard_maps <- function(FOLDER_NAME = NULL,
+                          SUBFOLDER_NAME = NULL,
                           ENSEMBLE = FALSE,
                           MESS = FALSE){
   
   # =========================== PARAMETER LOADING ==============================
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
-  load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SP_SELECT, "/QUERY.RData"))
-  load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SP_SELECT, "/MODEL.RData"))
+  load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))
+  load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/MODEL.RData"))
   
   # ============================= BUILDING MAPS ================================
   # With PDF saving
-  pdf(paste0(project_wd,"/output/",FOLDER_NAME,"/",SP_SELECT,"/standard_maps.pdf"))
+  pdf(paste0(project_wd,"/output/",FOLDER_NAME,"/",SUBFOLDER_NAME,"/standard_maps.pdf"))
   
   # --- 1. Build model-level outputs
   # --- 1.1. Set initial plot layout & requirements

@@ -2,28 +2,28 @@
 #' @name query_check
 #' @description This function performs a series of last check before modelling,
 #' including an outlier check, environmental variable correlation and MESS
-#' @param SP_SELECT species to run the analysis for, in form of Aphia ID
 #' @param FOLDER_NAME name of the corresponding folder
+#' @param SUBFOLDER_NAME list of sub_folders to parallelize on.
 #' @param OUTLIER if TRUE, remove outliers
 #' @param ENV_COR numeric, removes the correlated environmental values from the
 #' query objects and CALL according to the defined threshold. Else NULL.
 #' @param MESS if TRUE, performs a MESS analysis that is stored in the query
 #' @return Updates the output in a QUERY.RData and CALL.Rdata files
 
-query_check <- function(SP_SELECT = NULL,
-                        FOLDER_NAME = NULL,
+query_check <- function(FOLDER_NAME = NULL,
+                        SUBFOLDER_NAME = NULL,
                         OUTLIER = TRUE,
                         ENV_COR = 0.8, 
                         MESS = TRUE){
   
   # =========================== PARAMETER LOADING ==============================
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
-  load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SP_SELECT, "/QUERY.RData"))
+  load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))
   
   # =============================== OUTLIER ANALYSIS ===========================
   # --- 1. Outlier check on the query based on z-score (from Nielja code)
   if(OUTLIER == TRUE){
-    if(QUERY$CALL$DATA_TYPE == "pres"){
+    if(CALL$DATA_TYPE == "pres"){
       message("--- Cannot perform outlier analysis on presence - pseudo absence data ---")
     } else {
       to_remove <- outlier_iqr_col(QUERY$Y, n = 2.5)
@@ -93,7 +93,7 @@ query_check <- function(SP_SELECT = NULL,
   } # END if mess TRUE
   
   # ================= SAVE QUERY AND CALL OBJECTS ============================
-  save(QUERY, file = paste0(project_wd, "/output/", FOLDER_NAME,"/", SP_SELECT, "/QUERY.RData"))
+  save(QUERY, file = paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))
   save(CALL, file = paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
   
 } # END FUNCTION

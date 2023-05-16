@@ -32,44 +32,29 @@ model_pres <- function(CALL,
     model_wf <- workflow() %>% 
       add_model(HP[[MODEL_LIST[i]]][["model_spec"]], formula = formula) %>% 
       add_formula(formula)
-    
-    # --- 2.2. Register parallel
-    # Only if the number of species is less then the number of available clusters
-    # Otherwise, the parallel computing is done by species
-    if(length(CALL$SP_SELECT) < LOCAL_CLUSTERS){
-      cl <- makePSOCKcluster(LOCAL_CLUSTERS)
-      doParallel::registerDoParallel(cl)
-      message(paste(Sys.time(), "--- Parallel grid tuning for", MODEL_LIST[[i]], ": START"))
-    }
-    
-    # --- 2.3. Run the model for each fold x (hyper parameter grid rows)
+
+    # --- 2.2. Run the model for each fold x (hyper parameter grid rows)
     # Runs hyper parameter tuning if a grid is present in the HP (e.g. no GLM tune)
     if(!is.null(HP[[MODEL_LIST[i]]][["model_grid"]])){
       model_res <- model_wf %>% 
         tune_grid(resamples = QUERY$FOLDS$resample_split,
                   grid = HP[[MODEL_LIST[i]]][["model_grid"]],
-                  metrics = yardstick::metric_set(rmse),
-                  control = control_grid(allow_par = TRUE,
-                                         parallel_over = "everything"))
+                  metrics = yardstick::metric_set(rmse))
     } else {
       model_res <- model_wf %>% 
         fit_resamples(resamples = QUERY$FOLDS$resample_split)
     }
-    
-    # --- 2.4. Stop parallel backend
-    stopCluster(cl)
-    message(paste(Sys.time(), "--- Parallel grid tuning for", MODEL_LIST[[i]], ": DONE"))
-    
-    # --- 2.5. Select best hyper parameter set
+
+    # --- 2.3. Select best hyper parameter set
     # Based on RMSE values per model run (rsq does not work with 0's)
     model_best <- model_res %>% 
       select_best("rmse")
     
-    # --- 2.6. Define final workflow
+    # --- 2.4. Define final workflow
     final_wf <- model_wf %>% 
       finalize_workflow(model_best)
     
-    # --- 2.7. Run the model on the initial split
+    # --- 2.5. Run the model on the initial split
     # Save the workflow and model object in a list to be passed to further steps
     final_fit <- final_wf %>%
       last_fit(QUERY$FOLDS$init_split) 

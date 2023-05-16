@@ -2,18 +2,18 @@
 #' @name eval_wrapper
 #' @description wrapper function redirecting towards the sub-pipeline
 #' corresponding to the type of data.
-#' @param SP_SELECT species to run the analysis for, in form of Aphia ID
 #' @param FOLDER_NAME name of the corresponding folder
+#' @param SUBFOLDER_NAME list of sub_folders to parallelize on.
 #' @return the MODELS object updated with evaluation metric values
 #' @return outputs are saved in the MODEL.RData object
 
-eval_wrapper <- function(SP_SELECT = NULL,
-                         FOLDER_NAME = NULL){
+eval_wrapper <- function(FOLDER_NAME = NULL,
+                         SUBFOLDER_NAME = NULL){
   
   # =========================== PARAMETER LOADING ==============================
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
-  load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SP_SELECT, "/QUERY.RData"))
-  load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SP_SELECT, "/MODEL.RData"))
+  load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))
+  load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/MODEL.RData"))
   
   # ================================== WRAPPER =================================
   # --- 1. Redirection to presence model evaluation
@@ -26,7 +26,7 @@ eval_wrapper <- function(SP_SELECT = NULL,
                       MODEL = MODEL)
     
     # --- 1.3. Save as MODEL object
-    save(MODEL, file = paste0(project_wd, "/output/", FOLDER_NAME,"/", SP_SELECT, "/MODEL.RData"))
+    save(MODEL, file = paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/MODEL.RData"))
   } # END if pres
   
   # --- 2. Redirection to continuous model
@@ -39,7 +39,7 @@ eval_wrapper <- function(SP_SELECT = NULL,
                        MODEL = MODEL)
     
     # --- 2.3. Save as MODEL object
-    save(MODEL, file = paste0(project_wd, "/output/", FOLDER_NAME,"/", SP_SELECT, "/MODEL.RData"))
+    save(MODEL, file = paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/MODEL.RData"))
   } # END if pres
   
   

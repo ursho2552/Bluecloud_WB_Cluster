@@ -36,27 +36,11 @@ proj_cont <- function(QUERY,
   for(i in MODEL$CALL$MODEL_LIST){
     
     # --- 3. Fit model on bootstrap
-    # --- 3.1. Register parallel
-    # Only if the number of species is less then the number of available clusters
-    # Otherwise, the parallel computing is done by species
-    if(length(CALL$SP_SELECT) < LOCAL_CLUSTERS){
-      cl <- makePSOCKcluster(LOCAL_CLUSTERS)
-      doParallel::registerDoParallel(cl)
-      message(paste(Sys.time(), "--- Parallel bootstrap for", i, ": START"))
-    }
-    
-    # --- 3.2. Fit
     # fit_resamples() does not save models by default. Thus the control_resamples()
     boot_fit <- MODEL[[i]][["final_wf"]] %>% 
       fit_resamples(resamples = boot_split,
-                    control = control_resamples(extract = function (x) extract_fit_parsnip(x),
-                                                allow_par = TRUE,
-                                                parallel_over = "everything")) %>% 
+                    control = control_resamples(extract = function (x) extract_fit_parsnip(x))) %>% 
       unnest(.extracts)
-    
-    # --- 3.3. Stop parallel backend
-    stopCluster(cl)
-    message(paste(Sys.time(), "--- Parallel grid tuning for", i, ": DONE"))
     
     # --- 4. Compute one prediction per bootstrap
     # As we extracted the model information in a supplementary column, we can

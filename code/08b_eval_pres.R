@@ -26,7 +26,7 @@ eval_pres <- function(QUERY,
     # --- 4. Removing model from list if low quality fit
     # Fixed at 0.3 for CBI value or NA (in case of a 0 & 1 binary model prediction)
     if(MODEL[[i]][["eval"]][["CBI"]] < 0.3 | is.na(MODEL[[i]][["eval"]][["CBI"]])){
-      MODEL$CALL$MODEL_LIST <- MODEL$CALL$MODEL_LIST[MODELS$CALL$MODEL_LIST != i]
+      MODEL$CALL$MODEL_LIST <- MODEL$CALL$MODEL_LIST[MODEL$CALL$MODEL_LIST != i]
       message(paste("--- EVAL : discarded", i, "due to CBI =", MODEL[[i]][["eval"]][["CBI"]], "< 0.3 \n"))
     }
 

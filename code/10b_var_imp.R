@@ -3,23 +3,23 @@
 #' @description Function to compute and extract the variable importance related
 #' to model fitting. The proportion data variable importance is already embedded
 #' in the MBTR model. Thus, this function is only related to pres or cont data.
-#' @param SP_SELECT species to run the analysis for, in form of Aphia ID
 #' @param FOLDER_NAME name of the corresponding folder
+#' @param SUBFOLDER_NAME list of sub_folders to parallelize on.
 #' @param ENSEMBLE if TRUE, computes the variable importance as an ensemble ? 
 #' @return plots mean and uncertainty maps per model or ensemble
 
-var_imp <- function(SP_SELECT = NULL,
-                    FOLDER_NAME = NULL,
+var_imp <- function(FOLDER_NAME = NULL,
+                    SUBFOLDER_NAME = NULL,
                     ENSEMBLE = FALSE){
   
   # =========================== PARAMETER LOADING ==============================
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
-  load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SP_SELECT, "/QUERY.RData"))
-  load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SP_SELECT, "/MODEL.RData"))
+  load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))
+  load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/MODEL.RData"))
   
   # ========================== BUILDING VAR IMP ================================
   # With PDF saving
-  pdf(paste0(project_wd,"/output/",FOLDER_NAME,"/",SP_SELECT,"/variable_importance.pdf"))
+  pdf(paste0(project_wd,"/output/",FOLDER_NAME,"/",SUBFOLDER_NAME,"/variable_importance.pdf"))
   
   # --- 1. Set initial parameters
   # --- 1.1. Model related data
@@ -96,7 +96,7 @@ var_imp <- function(SP_SELECT = NULL,
       
     # --- 5.3 Plot the variable importance
     boxplot(tmp$value ~ tmp$variable, axes = FALSE, 
-            main = paste("Ensemble", i), col = "gray50",
+            main = paste("Ensemble"), col = "gray50",
             xlab = "", ylab = "Variable importance (%)")
     axis(side = 1, at = 1:ncol(features), labels = levels(tmp$variable), las = 2)
     axis(side = 2, at = seq(0, 100, 10), labels = seq(0, 100, 10), las = 2)

@@ -3,8 +3,8 @@
 #' @description appends the query_bio output with a list of environmental
 #' values at the sampling stations and a path to the environmental raster that
 #' will be used for projections
-#' @param SP_SELECT species to run the analysis for, in form of Aphia ID
 #' @param FOLDER_NAME name of the corresponding folder
+#' @param SUBFOLDER_NAME list of sub_folders to parallelize on.
 #' @param ENV_VAR vector of names of environmental variables available within
 #' the climatologies available in Blue Cloud. If null all variables are taken.
 #' @param ENV_PATH string, path to the .nc or raster of environmental variables
@@ -12,14 +12,14 @@
 #' @return ENV_PATH: the path to the environmental .nc or raster
 #' @return Updates the output in a QUERY.RData and CALL.Rdata files
 
-query_env <- function(SP_SELECT = NULL,
-                      FOLDER_NAME = NULL,
+query_env <- function(FOLDER_NAME = NULL,
+                      SUBFOLDER_NAME = NULL,
                       ENV_VAR = NULL,
-                      ENV_PATH = "/net/meso/work/aschickele/Diversity/data/features_monthly"){
+                      ENV_PATH = "/net/meso/work/aschickele/Bluecloud_WB_local/data/features_monthly"){
   
   # =========================== PARAMETER LOADING ==============================
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
-  load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SP_SELECT, "/QUERY.RData"))
+  load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))
   
   # =============================== ENV QUERY ==================================
   # --- 1. Open features gridded data and names
@@ -42,18 +42,18 @@ query_env <- function(SP_SELECT = NULL,
   # Among each group of identical lat, long and month, one random point is selected
   # Sample description are the same among each group as we select one worms ID
   S <- sample %>% 
-    dplyr::select(-measurementvalue) %>% 
+    dplyr::select(-names(QUERY$Y)) %>% 
     group_by(decimallongitude, decimallatitude, month) %>% 
     slice_sample(n = 1) %>% 
     dplyr::ungroup() 
   
   # --- 4. Average measurement value per group of identical coordinates x month
   Y <- sample %>% 
-    dplyr::select(decimallongitude, decimallatitude, month, measurementvalue) %>% 
+    dplyr::select(decimallongitude, decimallatitude, month, names(QUERY$Y)) %>% 
     group_by(decimallongitude, decimallatitude, month) %>% 
-    summarise(measurementvalue = mean(measurementvalue)) %>% 
+    summarize_at(names(QUERY$Y), mean) %>% 
     dplyr::ungroup() %>% 
-    dplyr::select(measurementvalue)
+    dplyr::select(names(QUERY$Y))
   
   # --- 5. Extract the environmental data in the data frame
   # If there is an NA, extract from nearest non-NA cells
@@ -76,10 +76,11 @@ query_env <- function(SP_SELECT = NULL,
   } # End for j
   
   # --- 7. Append QUERY with the environmental values and save
+  # And updated Y and S tables with dupplicate coordinate removed
   QUERY[["Y"]] <- Y
   QUERY[["S"]] <- S
   QUERY[["X"]] <- X
-  save(QUERY, file = paste0(project_wd, "/output/", FOLDER_NAME,"/", SP_SELECT, "/QUERY.RData"))
+  save(QUERY, file = paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))
   
   # --- 8. Append CALL with supplementary general parameters
   CALL[["ENV_VAR"]] <- features_name

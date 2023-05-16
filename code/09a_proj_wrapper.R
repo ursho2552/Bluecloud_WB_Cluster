@@ -4,8 +4,8 @@
 #' corresponding to the type of data. 
 #' @description In case of proportion data, an input converting section is run,
 #' to properly pass the inputs to python library MBTR
-#' @param SP_SELECT species to run the analysis for, in form of Aphia ID
 #' @param FOLDER_NAME name of the corresponding folder
+#' @param SUBFOLDER_NAME list of sub_folders to parallelize on.
 #' @param N_BOOTSTRAP number of bootstrap to do for the projections
 #' @param PROJ_PATH (optional) path to a environmental raster, potentially 
 #' different than the one given in the QUERY object. This is the case for 
@@ -15,15 +15,15 @@
 #' embedded in each model sub-list.
 #' @return outputs are saved in the MODEL.RData object
 
-proj_wrapper <- function(SP_SELECT = NULL,
-                         FOLDER_NAME = NULL,
+proj_wrapper <- function(FOLDER_NAME = NULL,
+                         SUBFOLDER_NAME = NULL,
                          N_BOOTSTRAP = 10,
                          PROJ_PATH = NULL){
   
   # =========================== PARAMETER LOADING ==============================
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
-  load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SP_SELECT, "/QUERY.RData"))
-  load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SP_SELECT, "/MODEL.RData"))
+  load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))
+  load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/MODEL.RData"))
   
   # ================================== WRAPPER =================================
   # --- 1. Redirection to the presence model projections
@@ -33,13 +33,13 @@ proj_wrapper <- function(SP_SELECT = NULL,
     
     # --- 1.2. Run function
     MODEL <- proj_pres(QUERY = QUERY,
-                   MODEL = MODEL,
-                   CALL = CALL,
-                   N_BOOTSTRAP = N_BOOTSTRAP,
-                   PROJ_PATH = PROJ_PATH)
+                       MODEL = MODEL,
+                       CALL = CALL,
+                       N_BOOTSTRAP = N_BOOTSTRAP,
+                       PROJ_PATH = PROJ_PATH)
     
     # --- 1.3. Save as MODEL object
-    save(MODEL, file = paste0(project_wd, "/output/", FOLDER_NAME,"/", SP_SELECT, "/MODEL.RData"),
+    save(MODEL, file = paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/MODEL.RData"),
          compress = "gzip", compression_level = 6)
   } # END if pres
   
@@ -50,13 +50,13 @@ proj_wrapper <- function(SP_SELECT = NULL,
     
     # --- 2.2. Run function
     MODEL <- proj_cont(QUERY = QUERY,
-                   MODEL = MODEL,
-                   CALL = CALL,
-                   N_BOOTSTRAP = N_BOOTSTRAP,
-                   PROJ_PATH = PROJ_PATH)
+                       MODEL = MODEL,
+                       CALL = CALL,
+                       N_BOOTSTRAP = N_BOOTSTRAP,
+                       PROJ_PATH = PROJ_PATH)
     
     # --- 2.3. Save as MODEL object
-    save(MODEL, file = paste0(project_wd, "/output/", FOLDER_NAME,"/", SP_SELECT, "/MODEL.RData"),
+    save(MODEL, file = paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/MODEL.RData"),
          compress = "gzip", compression_level = 6)
   } # END if pres
   

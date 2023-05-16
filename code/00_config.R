@@ -35,10 +35,10 @@ set.seed(123)
 project_wd <- getwd()
 
 # --- Necessary code steps
-source(file = "./code/01a_list_bio.R")
-source(file = "./code/01b_folder_init.R")
-source(file = "./code/02a_query_bio.R")
-source(file = "./code/02b_query_env.R")
+source(file = "./code/01a_list_bio_wrapper.R")
+source(file = "./code/01d_folder_init.R")
+source(file = "./code/02a_query_bio_wrapper.R")
+source(file = "./code/02d_query_env.R")
 source(file = "./code/03_query_check.R")
 source(file = "./code/04_pseudo_abs.R")
 source(file = "./code/05_folds.R")
@@ -59,5 +59,4 @@ Sys.setenv(HDF5_USE_FILE_LOCKING="FALSE") # to be able to open .nc from complex
 # --- Data specific parameters
 
 # --- Model specific parameters
-LOCAL_CLUSTERS <- 16
-N_CLUSTERS <- 16
+MAX_CLUSTERS <- 16

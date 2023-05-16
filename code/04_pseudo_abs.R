@@ -2,8 +2,8 @@
 #' @name pseudo_abs
 #' @description computes pseudo absences added to the X and Y matrices from
 #' query_env and bio according to various background selection methods.
-#' @param SP_SELECT species to run the analysis for, in form of Aphia ID
 #' @param FOLDER_NAME name of the corresponding folder
+#' @param SUBFOLDER_NAME list of sub_folders to parallelize on.
 #' @param METHOD_PA method of pseudo-absence, either "env" or "geo"
 #' @param NB_PA number of pseudo-absences to generate
 #' @param DIST_PA if METHOD_PA = "geo", distance from presences (in meters),
@@ -17,8 +17,8 @@
 #' @return Y updated with the environmental values corresponding
 #' @return Updates the output in a QUERY.RData and CALL.Rdata files
 
-pseudo_abs <- function(SP_SELECT = NULL,
-                       FOLDER_NAME = NULL,
+pseudo_abs <- function(FOLDER_NAME = NULL,
+                       SUBFOLDER_NAME = NULL,
                        METHOD_PA = "env",
                        NB_PA = NULL,
                        DIST_PA = 100e3,
@@ -26,7 +26,7 @@ pseudo_abs <- function(SP_SELECT = NULL,
   
   # =========================== PARAMETER LOADING ==============================
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
-  load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SP_SELECT, "/QUERY.RData"))
+  load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))
   if(is.null(NB_PA)){NB_PA = nrow(QUERY$S)}
   
   # =========================== DATA TYPE CHECK ================================
@@ -111,6 +111,6 @@ pseudo_abs <- function(SP_SELECT = NULL,
     bind_rows(S)
 
   # --- 7. Save QUERY object
-  save(QUERY, file = paste0(project_wd, "/output/", FOLDER_NAME,"/", SP_SELECT, "/QUERY.RData"))
+  save(QUERY, file = paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))
   
 } # END FUNCTION
