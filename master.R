@@ -40,14 +40,14 @@ subfolder_list <- list.dirs(paste0(project_wd, "/output/", run_name), full.names
 mcmapply(FUN = query_bio_wrapper,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
-         mc.cores = min(length(subfolder_list, MAX_CLUSTERS)))
+         mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
 # --- 2b. Query environmental data 
 mcmapply(FUN = query_env,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
          ENV_PATH = "/net/meso/work/aschickele/Bluecloud_WB_local/data/features_monthly",
-         mc.cores = min(length(subfolder_list, MAX_CLUSTERS)))
+         mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
 # --- 3. Outliers and environmental covariance check
 mcmapply(FUN = query_check,
@@ -56,14 +56,14 @@ mcmapply(FUN = query_check,
          OUTLIER = TRUE,
          ENV_COR = 0.8,
          MESS = TRUE,
-         mc.cores = min(length(subfolder_list, MAX_CLUSTERS)))
+         mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
 # --- 4. Generate pseudo-absences if necessary -- BUG FIX : throw an error on some identical runs...
 mcmapply(FUN = pseudo_abs,
          FOLDER_NAME = run_name,
            SUBFOLDER_NAME = subfolder_list,
            METHOD_PA = "env",
-         mc.cores = min(length(subfolder_list, MAX_CLUSTERS)))
+         mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
 # --- 5. Generate split and re sampling folds
 mcmapply(FUN = folds,
@@ -71,32 +71,32 @@ mcmapply(FUN = folds,
          SUBFOLDER_NAME = subfolder_list,
          NFOLD = 5,
          FOLD_METHOD = "lon",
-         mc.cores = min(length(subfolder_list, MAX_CLUSTERS)))
+         mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
 # --- 6. Hyper parameters to train
 hyperparameter(FOLDER_NAME = run_name,
                MODEL_LIST = c("GLM","GAM","RF","MLP"),
                LEVELS = 3,
-               mc.cores = min(length(subfolder_list, MAX_CLUSTERS)))
+               mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
 # --- 7. Model fit -- FIX : RF is very long for big data
 mcmapply(FUN = model_wrapper,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
-         mc.cores = min(length(subfolder_list, MAX_CLUSTERS)))
+         mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
 # --- 8. Model evaluation
 mcmapply(FUN = eval_wrapper,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
-         mc.cores = min(length(subfolder_list, MAX_CLUSTERS)))
+         mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
 # --- 9. Model projections
 mcmapply(FUN = proj_wrapper,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
          N_BOOTSTRAP = 10,
-         mc.cores = min(length(subfolder_list, MAX_CLUSTERS)))
+         mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
 # --- 10. Output plots
 # --- 10.1. Standard maps per algorithms
@@ -105,14 +105,14 @@ mcmapply(FUN = standard_maps,
          SUBFOLDER_NAME = subfolder_list,
          ENSEMBLE = TRUE,
          MESS = FALSE,
-         mc.cores = min(length(subfolder_list, MAX_CLUSTERS)))
+         mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
 # --- 10.2. Variable importance output
 mcmapply(FUN = var_imp,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
          ENSEMBLE = TRUE,
-         mc.cores = min(length(subfolder_list, MAX_CLUSTERS)))
+         mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
 # --- 10.3. Partial dependency plots
 pdp(SP_SELECT = 104464,
