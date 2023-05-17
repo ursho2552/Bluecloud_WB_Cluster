@@ -16,12 +16,17 @@ query_check <- function(FOLDER_NAME = NULL,
                         ENV_COR = 0.8, 
                         MESS = TRUE){
   
-  # =========================== PARAMETER LOADING ==============================
+  # --- 1. Initialize function
+  # --- 1.1. Start logs - append file
+  sinkfile <- log_sink(FILE = file(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/log.txt"), open = "a"),
+                       START = TRUE)
+  message(paste(Sys.time(), "******************** START : query_check ********************"))
+  # --- 1.2. Load the run metadata and query
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))
   
-  # =============================== OUTLIER ANALYSIS ===========================
-  # --- 1. Outlier check on the query based on z-score (from Nielja code)
+  # --- 2. Outlier analysis
+  # Outlier check on the query based on z-score (from Nielja code)
   if(OUTLIER == TRUE){
     if(CALL$DATA_TYPE == "pres"){
       message("--- Cannot perform outlier analysis on presence - pseudo absence data ---")
@@ -34,12 +39,10 @@ query_check <- function(FOLDER_NAME = NULL,
     }
   } # END if outlier TRUE
   
-  # ======================== ENV VARIABLE CORRELATION ==========================
-  # Deletes correlated variables - SHOULD BE MOVED EARLIER PROBALY
-  # TO FIX with the CALL to environmental variable raster
-
+  # --- 3. Environmental variable correlation
+  # Removing correlated environmental variables to avoid correlated model features
   if(is.numeric(ENV_COR) == TRUE){
-    # --- 1. Open raster as dataframe
+    # --- 3.1. Open raster as dataframe
     features <- stack(paste0(project_wd, "/data/features_mean_from_monthly")) %>% 
       readAll() %>% 
       rasterToPoints() %>% 
@@ -47,53 +50,54 @@ query_check <- function(FOLDER_NAME = NULL,
       dplyr::select(-c(x, y)) %>% 
       tidyr::drop_na()
     
-    # --- 2. Check correlation/distance between variables
+    # --- 3.2. Check correlation/distance between variables
     features_dist <- cor(features) %>% as.dist()
     
-    # --- 3. Do a clustering and cut
+    # --- 3.3. Do a clustering and cut
     features_clust <- hclust(-features_dist) # dist = 1/cor
     plot(features_clust)
     abline(h = -ENV_COR, col = "red")
     
     features_group <- cutree(features_clust, h = -ENV_COR)
     
-    # --- 4. Randomly choose one variable within each inter-correlated clusters
+    # --- 3.4. Randomly choose one variable within each inter-correlated clusters
     features_keep <- features_group
     for(i in 1:max(features_group)){
       tmp <- which(features_group == i)
       if(length(tmp) > 1){
-        message(paste("--- Cluster", i, ": Keeping", names(tmp[1])))
+        message(paste("--- ENV_COR : Cluster", i, ": Keeping", names(tmp[1])))
         tmp <- tmp[-1]
-        message(paste("--- Cluster", i, ": Removing", names(tmp)))
+        message(paste("--- ENV_COR : Cluster", i, ": Removing", names(tmp)))
         features_keep <- features_keep[-tmp]
       }
     }
     
-    # --- 5. Update CALL$ENV_VAR
+    # --- 3.5. Update CALL$ENV_VAR
     CALL$ENV_VAR <- names(features_keep)
-    
   } # END if env_cor TRUE
   
-  # ============================== MESS ANALYSIS ===============================
-  # TO FIX : probably have to move that to the training set to be more accurate
-  
+  # --- 4. MESS analysis
+  # TO FIX : probably have to move that to the training set to be more accurate ?
   if(MESS == TRUE){
-    # --- 1. Load necessary data
+    # --- 4.1. Load necessary data
     features <- stack(paste0(project_wd, "/data/features_mean_from_monthly")) %>% 
       readAll() %>% 
       raster::subset(CALL$ENV_VAR)
     
-    # --- 2. Compute the mess analysis
+    # --- 4.2. Compute the mess analysis
     tmp <- QUERY$X %>% dplyr::select(CALL$ENV_VAR)
     r_mess <- dismo::mess(x = features, v = tmp, full = FALSE)
     
-    # --- 3. Append to query
+    # --- 4.3. Append to query
     QUERY$MESS <- r_mess
-    
   } # END if mess TRUE
   
-  # ================= SAVE QUERY AND CALL OBJECTS ============================
+  # --- 5. Wrap up and save
+  # --- 5.1. Save file(s)
   save(QUERY, file = paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))
   save(CALL, file = paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
+  
+  # --- 5.2. Stop logs
+  log_sink(FILE = sinkfile, START = FALSE)
   
 } # END FUNCTION

@@ -15,10 +15,14 @@
 query_bio_wrapper <- function(FOLDER_NAME = NULL,
                               SUBFOLDER_NAME = NULL){
   
-  # --- 1. Load the metadata
-  # --- 1.1. Load the run metadata in the CALL.RData object
+  # --- 1. Initialize function
+  # --- 1.1. Start logs - new file
+  sinkfile <- log_sink(FILE = file(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/log.txt"), open = "wt"),
+                       START = TRUE)
+  message(paste(Sys.time(), "******************** START : query_bio_wrapper ********************"))
+  # --- 1.3. Load the run metadata in the CALL.RData object
   load(paste0(project_wd, "/output/", FOLDER_NAME, "/CALL.RData"))
-  # --- 1.2. Load the parallel node metadata in the QUERY.RData object
+  # --- 1.4. Load the parallel node metadata in the QUERY.RData object
   load(paste0(project_wd, "/output/", FOLDER_NAME, "/", SUBFOLDER_NAME, "/QUERY.RData"))
   
   # --- 2. Redirection to the ATLANTECO query
@@ -43,6 +47,9 @@ query_bio_wrapper <- function(FOLDER_NAME = NULL,
   } # End MGNIFY redirection
   
   # --- 4. Wrap up and save
+  # --- 4.1 Save file(s)
   save(QUERY, file = paste0(project_wd, "/output/", FOLDER_NAME, "/", SUBFOLDER_NAME,"/QUERY.RData"))
+  # --- 4.2. Stop logs
+  log_sink(FILE = sinkfile, START = FALSE)
   
 } # END FUNCTION

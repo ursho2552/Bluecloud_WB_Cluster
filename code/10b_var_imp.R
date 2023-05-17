@@ -12,23 +12,23 @@ var_imp <- function(FOLDER_NAME = NULL,
                     SUBFOLDER_NAME = NULL,
                     ENSEMBLE = FALSE){
   
-  # =========================== PARAMETER LOADING ==============================
+  # --- 1. Initialize function
+  # --- 1.1. Parameter loading
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/MODEL.RData"))
   
-  # ========================== BUILDING VAR IMP ================================
-  # With PDF saving
+  # --- 1.2. Create PDf saving
   pdf(paste0(project_wd,"/output/",FOLDER_NAME,"/",SUBFOLDER_NAME,"/variable_importance.pdf"))
   
-  # --- 1. Set initial parameters
-  # --- 1.1. Model related data
+  # --- 1.3. Set initial parameters
+  # --- 1.3.1. Model related data
   features <- QUERY$FOLDS$train %>% 
     dplyr::select(all_of(names(QUERY$X)))
   target <- QUERY$FOLDS$train %>% 
     dplyr::select(measurementvalue)
   
-  # --- 1.2. Storage and graphical specification
+  # --- 1.3.2. Storage and graphical specification
   var_imp <- NULL
   par(mfrow = c(3,2), mar = c(5,5,5,5))
   
@@ -105,7 +105,8 @@ var_imp <- function(FOLDER_NAME = NULL,
     
   } # End if ensemble TRUE
 
-  # Stop pdf saving
+  # --- 6. Wrap up and save
+  # --- 6.1. Stop PDF saving
   dev.off()
   
 } # END FUNCTION

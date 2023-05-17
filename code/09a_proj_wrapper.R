@@ -20,48 +20,51 @@ proj_wrapper <- function(FOLDER_NAME = NULL,
                          N_BOOTSTRAP = 10,
                          PROJ_PATH = NULL){
   
-  # =========================== PARAMETER LOADING ==============================
+  # --- 1. Initialize function
+  # --- 1.1. Start logs - append file
+  sinkfile <- log_sink(FILE = file(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/log.txt"), open = "a"),
+                       START = TRUE)
+  message(paste(Sys.time(), "******************** START : proj_wrapper ********************"))
+  
+  # --- 1.2. Parameter loading
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/MODEL.RData"))
   
-  # ================================== WRAPPER =================================
-  # --- 1. Redirection to the presence model projections
+  # --- 2. Redirection to the PRESENCE model projections
   if(CALL$DATA_TYPE == "pres"){
-    # --- 1.1. Load function
+    # --- 2.1. Load function
     source(file = paste0(project_wd, "/code/09b_proj_pres.R"))
     
-    # --- 1.2. Run function
+    # --- 2.2. Run function
     MODEL <- proj_pres(QUERY = QUERY,
                        MODEL = MODEL,
                        CALL = CALL,
                        N_BOOTSTRAP = N_BOOTSTRAP,
                        PROJ_PATH = PROJ_PATH)
-    
-    # --- 1.3. Save as MODEL object
-    save(MODEL, file = paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/MODEL.RData"),
-         compress = "gzip", compression_level = 6)
   } # END if pres
   
-  # --- 2. Redirection to the continuous model projections
+  # --- 3. Redirection to the CONTINUOUS model projections
   if(CALL$DATA_TYPE == "cont"){
-    # --- 2.1. Load function
+    # --- 3.1. Load function
     source(file = paste0(project_wd, "/code/09b_proj_cont.R"))
     
-    # --- 2.2. Run function
+    # --- 3.2. Run function
     MODEL <- proj_cont(QUERY = QUERY,
                        MODEL = MODEL,
                        CALL = CALL,
                        N_BOOTSTRAP = N_BOOTSTRAP,
                        PROJ_PATH = PROJ_PATH)
-    
-    # --- 2.3. Save as MODEL object
-    save(MODEL, file = paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/MODEL.RData"),
-         compress = "gzip", compression_level = 6)
   } # END if pres
   
+  # --- 4. Redirection to the PROPORTION model projections
+  # TO BE IMPLEMENTED
   
-  # --- 3. Redirection to the proportion model projections
-  
+  # --- 5. Wrap up and save
+  # --- 5.1. Save file(s)
+  save(MODEL, file = paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/MODEL.RData"),
+       compress = "gzip", compression_level = 6)
+  # --- 5.2. Stop logs
+  log_sink(FILE = sinkfile, START = FALSE)
   
 } # END FUNCTION

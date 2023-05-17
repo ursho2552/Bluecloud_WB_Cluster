@@ -19,7 +19,13 @@ model_wrapper <- function(FOLDER_NAME = NULL,
                           SUBFOLDER_NAME = NULL,
                           MODEL_LIST = NULL){
   
-  # =========================== PARAMETER LOADING ==============================
+  # --- 1. Initialize function
+  # --- 1.1. Start logs - append file
+  sinkfile <- log_sink(FILE = file(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/log.txt"), open = "a"),
+                       START = TRUE)
+  message(paste(Sys.time(), "******************** START : model_wrapper ********************"))
+  
+  # --- 1.2. Parameter loading
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))
   HP <- CALL$HP
@@ -27,42 +33,38 @@ model_wrapper <- function(FOLDER_NAME = NULL,
     MODEL_LIST <- HP$CALL$MODEL_LIST
   }
   
-  # ================================== WRAPPER =================================
-  # --- 1. Redirection to presence model
+  # --- 2. Redirection to PRESENCE model
   if(CALL$DATA_TYPE == "pres"){
-    # --- 1.1. Load function
+    # --- 2.1. Load function
     source(file = paste0(project_wd, "/code/07b_model_pres.R"))
     
-    # --- 1.2. Run function
+    # --- 2.2. Run function
     MODEL <- model_pres(CALL,
                         QUERY = QUERY,
                         HP = HP,
                         MODEL_LIST = MODEL_LIST)
-    
-    # --- 1.3. Save as MODEL object
-    save(MODEL, file = paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/MODEL.RData"))
   } # END if pres
   
-  # --- 2. Redirection to continuous model
+  # --- 3. Redirection to CONTINUOUS model
   if(CALL$DATA_TYPE == "cont"){
-    # --- 1.1. Load function
+    # --- 3.1. Load function
     source(file = paste0(project_wd, "/code/07c_model_cont.R"))
     
-    # --- 1.2. Run function
+    # --- 3.2. Run function
     MODEL <- model_cont(CALL,
                         QUERY = QUERY,
                         HP = HP,
                         MODEL_LIST = MODEL_LIST)
-    
-    # --- 1.3. Save as MODEL object
-    save(MODEL, file = paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/MODEL.RData"))
   } # END if pres
   
   
-  # --- 3. Redirection to proportion model
+  # --- 4. Redirection to PROPORTION model
+  # TO BE IMPLEMENTED
   
-  
-  
-  
-  
+  # --- 5. Wrap up and save
+  # --- 5.1. Save file(s)
+  save(MODEL, file = paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/MODEL.RData"))
+  # --- 5.2. Stop logs
+  log_sink(FILE = sinkfile, START = FALSE)
+
 } # END FUNCTION

@@ -17,18 +17,22 @@ query_env <- function(FOLDER_NAME = NULL,
                       ENV_VAR = NULL,
                       ENV_PATH = "/net/meso/work/aschickele/Bluecloud_WB_local/data/features_monthly"){
   
-  # =========================== PARAMETER LOADING ==============================
+  # --- 1. Initialize function
+  # --- 1.1. Start logs - append file
+  sinkfile <- log_sink(FILE = file(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/log.txt"), open = "a"),
+                       START = TRUE)
+  message(paste(Sys.time(), "******************** START : query_env ********************"))
+  # --- 1.2. Load the run metadata and query
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))
   
-  # =============================== ENV QUERY ==================================
-  # --- 1. Open features gridded data and names
+  # --- 2. Open features gridded data and names
   # /!\ To change later for a direct query in a .nc file : avoid 2 different raster files
   features <- stack(ENV_PATH) %>% readAll()
   features_name <- stack(paste0(project_wd, "/data/features_mean_from_monthly")) %>% 
     names()
 
-  # --- 2. Re-grid sample on the raster resolution and filter
+  # --- 3. Re-grid sample on the raster resolution and filter
   # (1) The cell centers are at .5, thus it is re-gridded to the nearest .5 value
   # (2) /!\ Depth is not taken into account for now, neither year (1990-2016 = WOA)
   res <- res(features)[[1]]
@@ -38,16 +42,15 @@ query_env <- function(FOLDER_NAME = NULL,
     mutate(decimallatitude = round(decimallatitude+0.5*res, digits = digit)-0.5*res) %>% 
     mutate(decimallongitude = round(decimallongitude+0.5*res, digits = digit)-0.5*res) 
   
-  # --- 3. Select one sample per group of identical coordinates x month
+  # --- 4. Select one sample per group of identical coordinates x month
   # Among each group of identical lat, long and month, one random point is selected
-  # Sample description are the same among each group as we select one worms ID
   S <- sample %>% 
     dplyr::select(-names(QUERY$Y)) %>% 
     group_by(decimallongitude, decimallatitude, month) %>% 
     slice_sample(n = 1) %>% 
     dplyr::ungroup() 
   
-  # --- 4. Average measurement value per group of identical coordinates x month
+  # --- 5. Average measurement value per group of identical coordinates x month
   Y <- sample %>% 
     dplyr::select(decimallongitude, decimallatitude, month, names(QUERY$Y)) %>% 
     group_by(decimallongitude, decimallatitude, month) %>% 
@@ -55,7 +58,7 @@ query_env <- function(FOLDER_NAME = NULL,
     dplyr::ungroup() %>% 
     dplyr::select(names(QUERY$Y))
   
-  # --- 5. Extract the environmental data in the data frame
+  # --- 6. Extract the environmental data in the data frame
   # If there is an NA, extract from nearest non-NA cells
   X <- NULL
   for(j in 1:nrow(S)){
@@ -75,17 +78,20 @@ query_env <- function(FOLDER_NAME = NULL,
     X <- rbind(X, tmp)
   } # End for j
   
-  # --- 7. Append QUERY with the environmental values and save
+  # --- 7. Wrap up and save
+  # --- 7.1. Append QUERY with the environmental values and save
   # And updated Y and S tables with dupplicate coordinate removed
   QUERY[["Y"]] <- Y
   QUERY[["S"]] <- S
   QUERY[["X"]] <- X
   save(QUERY, file = paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))
   
-  # --- 8. Append CALL with supplementary general parameters
+  # --- 7.2. Append CALL with supplementary general parameters
   CALL[["ENV_VAR"]] <- features_name
   CALL[["ENV_PATH"]] <- ENV_PATH
   save(CALL, file = paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
   
+  # --- 8.3. Stop logs
+  log_sink(FILE = sinkfile, START = FALSE)
   
 } # END FUNCTION

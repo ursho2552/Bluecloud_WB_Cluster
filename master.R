@@ -76,8 +76,7 @@ mcmapply(FUN = folds,
 # --- 6. Hyper parameters to train
 hyperparameter(FOLDER_NAME = run_name,
                MODEL_LIST = c("GLM","GAM","RF","MLP"),
-               LEVELS = 3,
-               mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
+               LEVELS = 3)
 
 # --- 7. Model fit -- FIX : RF is very long for big data
 mcmapply(FUN = model_wrapper,
@@ -115,22 +114,11 @@ mcmapply(FUN = var_imp,
          mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
 # --- 10.3. Partial dependency plots
-pdp(SP_SELECT = 104464,
-    FOLDER_NAME = run_name,
-    N_BOOTSTRAP = 10,
-    ENSEMBLE = TRUE)
-
-
-
-
-
-
-
-
-
-
-
-
-
+mcmapply(FUN = pdp,
+         FOLDER_NAME = run_name,
+         SUBFOLDER_NAME = subfolder_list,
+         N_BOOTSTRAP = 10,
+         ENSEMBLE = TRUE,
+         mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
 # --- END --- 
