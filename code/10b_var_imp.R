@@ -7,6 +7,8 @@
 #' @param SUBFOLDER_NAME list of sub_folders to parallelize on.
 #' @param ENSEMBLE if TRUE, computes the variable importance as an ensemble ? 
 #' @return plots mean and uncertainty maps per model or ensemble
+#' @return the cumulative variable importance saved in the MODEL object. Used as
+#' a quality assessment of the model later
 
 var_imp <- function(FOLDER_NAME = NULL,
                     SUBFOLDER_NAME = NULL,
@@ -105,9 +107,24 @@ var_imp <- function(FOLDER_NAME = NULL,
     
   } # End if ensemble TRUE
 
-  # --- 6. Wrap up and save
-  # --- 6.1. Stop PDF saving
+  # --- 6. Compute cumulative variable importance
+  # --- 6.1. Compute
+  CUM_VIP <- tmp %>% 
+    group_by(variable) %>% 
+    summarise(average = mean(value)) %>% 
+    dplyr::slice(1:3) %>% 
+    dplyr::select(average) %>% 
+    sum()
+  # --- 6.2. Append
+  MODEL$ENSEMBLE$EVAL$CUM_VIP <- CUM_VIP
+  
+  # --- 7. Wrap up and save
+  # --- 7.1. Stop PDF saving
   dev.off()
+  
+  # --- 7.2. Save file(s)
+  save(MODEL, file = paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/MODEL.RData"),
+        compress = "gzip", compression_level = 6)
   
 } # END FUNCTION
   
