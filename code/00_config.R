@@ -36,7 +36,7 @@ project_wd <- getwd()
 
 # --- Necessary code steps
 source(file = "./code/01a_list_bio_wrapper.R")
-source(file = "./code/01d_folder_init.R")
+source(file = "./code/01d_run_init.R")
 source(file = "./code/02a_query_bio_wrapper.R")
 source(file = "./code/02d_query_env.R")
 source(file = "./code/03_query_check.R")

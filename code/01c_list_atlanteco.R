@@ -20,7 +20,7 @@ list_atlanteco <- function(DATA_SOURCE,
   # type and sample criteria
   message("--- LIST BIO : retrieving species available in ATLANTECO")
   data_list <- tbl(db, paste0(DATA_SOURCE,"_data")) %>% 
-    dplyr::select(worms_id, decimallongitude, decimallatitude, depth, year, measurementvalue) %>% 
+    # dplyr::select(worms_id, decimallongitude, decimallatitude, depth, year, measurementvalue) %>%
     dplyr::filter(depth >= !!SAMPLE_SELECT$MIN_DEPTH & 
                     depth <= !!SAMPLE_SELECT$MAX_DEPTH & 
                     year >= !!SAMPLE_SELECT$START_YEAR & 
@@ -28,9 +28,14 @@ list_atlanteco <- function(DATA_SOURCE,
                     measurementvalue != "Absence" &
                     measurementvalue != 0) %>% 
     group_by(worms_id) %>% 
-    summarise(nb_occ = n()) %>% 
+    mutate(nb_occ = n()) %>% 
+    dplyr::select(-c(decimallongitude, decimallatitude, month, depth, year, measurementvalue, measurementunit)) %>% 
+    distinct() %>% 
     dplyr::filter(nb_occ >= !!SAMPLE_SELECT$MIN_SAMPLE) %>% 
     collect()
+    # summarise(nb_occ = n()) %>% 
+    # dplyr::filter(nb_occ >= !!SAMPLE_SELECT$MIN_SAMPLE) %>% 
+    # collect()
   
   return(data_list)
   

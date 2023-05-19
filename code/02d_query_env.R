@@ -5,17 +5,12 @@
 #' will be used for projections
 #' @param FOLDER_NAME name of the corresponding folder
 #' @param SUBFOLDER_NAME list of sub_folders to parallelize on.
-#' @param ENV_VAR vector of names of environmental variables available within
-#' the climatologies available in Blue Cloud. If null all variables are taken.
-#' @param ENV_PATH string, path to the .nc or raster of environmental variables
 #' @return X: a data frame of environmental values at the sampling stations and 
 #' @return ENV_PATH: the path to the environmental .nc or raster
 #' @return Updates the output in a QUERY.RData and CALL.Rdata files
 
 query_env <- function(FOLDER_NAME = NULL,
-                      SUBFOLDER_NAME = NULL,
-                      ENV_VAR = NULL,
-                      ENV_PATH = "/net/meso/work/aschickele/Bluecloud_WB_local/data/features_monthly"){
+                      SUBFOLDER_NAME = NULL){
   
   # --- 1. Initialize function
   # --- 1.1. Start logs - append file
@@ -28,7 +23,7 @@ query_env <- function(FOLDER_NAME = NULL,
   
   # --- 2. Open features gridded data and names
   # /!\ To change later for a direct query in a .nc file : avoid 2 different raster files
-  features <- stack(ENV_PATH) %>% readAll()
+  features <- stack(CALL$ENV_PATH) %>% readAll()
   features_name <- stack(paste0(project_wd, "/data/features_mean_from_monthly")) %>% 
     names()
 
@@ -68,11 +63,16 @@ query_env <- function(FOLDER_NAME = NULL,
     tmp <- raster::extract(features[[id]], xy) %>% 
       as.data.frame()
     
+    # if(is.na(sum(tmp))){
+    #   tmp <- mclapply(features[[id]]@layers, function(a_layer) sample_raster_NA(a_layer, xy), mc.cores = 1) %>% 
+    #     lapply(mean) %>% # average between two points if a coordinate is EXACTLY at an integer value (i.e., between two cells)
+    #     as.data.frame()
+    # } # If extract is NA
     if(is.na(sum(tmp))){
-      tmp <- mclapply(features[[id]]@layers, function(a_layer) sample_raster_NA(a_layer, xy), mc.cores = 10) %>% 
-        lapply(mean) %>% # average between two points if a coordinate is EXACTLY at an integer value (i.e., between two cells)
+      tmp <- lapply(features[[id]]@layers, function(a_layer) sample_raster_NA(a_layer, xy)) %>% 
+        lapply(mean) %>% 
         as.data.frame()
-    } # If extract is NA
+    }
 
     colnames(tmp) <- features_name
     X <- rbind(X, tmp)
@@ -86,12 +86,7 @@ query_env <- function(FOLDER_NAME = NULL,
   QUERY[["X"]] <- X
   save(QUERY, file = paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))
   
-  # --- 7.2. Append CALL with supplementary general parameters
-  CALL[["ENV_VAR"]] <- features_name
-  CALL[["ENV_PATH"]] <- ENV_PATH
-  save(CALL, file = paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
-  
-  # --- 8.3. Stop logs
+  # --- 7.2. Stop logs
   log_sink(FILE = sinkfile, START = FALSE)
   
 } # END FUNCTION

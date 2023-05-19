@@ -1,20 +1,13 @@
 #' =============================================================================
 #' @name folds
-#' @description this functions adds an ID list to the query. It corresponds to
-#' the different folds between train and test splits
+#' @description this functions adds an FOLD list to the query. It corresponds to
+#' the different folds between train and test splits and associated parameters
 #' @param FOLDER_NAME name of the corresponding folder
 #' @param SUBFOLDER_NAME list of sub_folders to parallelize on.
-#' @param NFOLD number of folds, used defined integer
-#' @param FOLD_METHOD method used to create the folds, integer between "kfold"
-#' and "lon"
-#' @return CALL$FOLD_METHOD for tracking
-#' @return ID : list of line id corresponding to the n defined folds
-#' @return Updates the output in a QUERY.RData and CALL.Rdata files
+#' @return Updates the FOLDS in a QUERY.RData file
 
 folds <- function(FOLDER_NAME = NULL,
-                  SUBFOLDER_NAME = NULL,
-                  NFOLD = 5,
-                  FOLD_METHOD = "kfold"){
+                  SUBFOLDER_NAME = NULL){
   
   # --- 1. Initialize function
   # --- 1.1. Start logs - append file
@@ -50,28 +43,28 @@ folds <- function(FOLDER_NAME = NULL,
   
   # --- 3. Train set resampling
   # --- 3.1. Parameter check
-  if(FOLD_METHOD != "kfold" & FOLD_METHOD != "lon"){
+  if(CALL$FOLD_METHOD != "kfold" & CALL$FOLD_METHOD != "lon"){
     stop("FOLD_METHOD not implemented or incorrect. It should be 'kfold' or 'lon'")
   }
   
   # --- 3.2. Normal k-fold re sampling
   # --- 3.2.1. For univariate data - strata is possible so we do it
-  if(FOLD_METHOD == "kfold" & CALL$DATA_TYPE != "omic"){
+  if(CALL$FOLD_METHOD == "kfold" & CALL$DATA_TYPE != "omic"){
     folds <- vfold_cv(data = QUERY$FOLDS$train,
                       strata = measurementvalue,
-                      v = NFOLD)
+                      v = CALL$NFOLD)
   }
   # --- 3.2.2. For multivariate data - strata is not possible
-  if(FOLD_METHOD == "kfold" & CALL$DATA_TYPE == "omic"){
+  if(CALL$FOLD_METHOD == "kfold" & CALL$DATA_TYPE == "omic"){
     folds <- vfold_cv(data = QUERY$FOLDS$train,
-                      v = NFOLD)
+                      v = CALL$NFOLD)
   }
   
   # --- 3.3. Longitudinal block re sampling
-  if(FOLD_METHOD == "lon"){
+  if(CALL$FOLD_METHOD == "lon"){
     folds <- clustering_cv(data = QUERY$FOLDS$train,
                            vars = c(decimallongitude),
-                           v = NFOLD)
+                           v = CALL$NFOLD)
   }
   
   # --- 4. Append QUERY and CALL objects 
@@ -83,14 +76,10 @@ folds <- function(FOLDER_NAME = NULL,
     QUERY$FOLDS[["resample_folds"]][[fold_name]][["assessment"]] <- folds$splits[[i]] %>% assessment()
     QUERY$FOLDS[["resample_folds"]][[fold_name]][["analysis"]] <- folds$splits[[i]] %>% analysis()
   }
-  # --- 4.2. Append CALL
-  CALL$FOLD_METHOD <- FOLD_METHOD
-  CALL$NFOLD <- NFOLD
-  
+
   # --- 5. Wrap up and save
   # --- 5.1. Save file(s)
   save(QUERY, file = paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))
-  save(CALL, file = paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
   
   # --- 5.2. Stop logs
   log_sink(FILE = sinkfile, START = FALSE)

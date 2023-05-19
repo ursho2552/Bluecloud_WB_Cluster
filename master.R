@@ -14,23 +14,33 @@
 rm(list=ls())
 setwd("/net/meso/work/aschickele/Bluecloud_WB_local")
 source(file = "./code/00_config.R")
-run_name <- "new_data_access2"
+run_name <- "thalassiosira_all"
 
 # --- 1a. List the available species
 # Within the user defined selection criteria
 list_bio <- list_bio_wrapper(FOLDER_NAME = run_name,
-                             DATA_SOURCE = "omic",
+                             DATA_SOURCE = "pres",
                              SAMPLE_SELECT = list(MIN_SAMPLE = 50, MIN_DEPTH = 0, MAX_DEPTH = 50, START_YEAR = 1990, STOP_YEAR = 2016))
 
 # Define the list of species to consider
-sp_list <- c("5820", "9760")
+sp_list <- c("5820", "9760") # random OTU short selection
+sp_list <- list_bio %>% 
+  dplyr::filter(grepl("Thalassiosira ", scientificname)) %>% 
+  dplyr::select(worms_id) %>% 
+  unique() %>% pull() # get all calanus like species
 
-# --- 1b. Create the output folder and initialize parallelisation
-# Create an output folder containing all species-level runs
-folder_init(FOLDER_NAME = run_name,
-            SP_SELECT = sp_list,
-            LOAD_FROM = "new_data_access",
-            DATA_TYPE = "pres")
+# --- 1b. Create the output folder, initialize parallelisation and parameters
+# (1) Create an output folder containing all species-level runs, (2) Stores the 
+# global parameters in an object, (3) Checks for environmental correlated variables
+run_init(FOLDER_NAME = run_name,
+         SP_SELECT = sp_list,
+         LOAD_FROM = NULL,
+         DATA_TYPE = "pres",
+         ENV_VAR = NULL,
+         ENV_PATH = "/net/meso/work/aschickele/Bluecloud_WB_local/data/features_monthly",
+         ENV_COR = 0.8,
+         NFOLD = 3,
+         FOLD_METHOD = "lon")
 
 # Define the list of sub folders to parallelize on
 subfolder_list <- list.dirs(paste0(project_wd, "/output/", run_name), full.names = FALSE, recursive = FALSE)
@@ -42,35 +52,32 @@ mcmapply(FUN = query_bio_wrapper,
          SUBFOLDER_NAME = subfolder_list,
          mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
-# --- 2b. Query environmental data 
+# --- 2b. Query environmental data
+# *** MCMAPPLY WORKERS DO NOT PROPERLY CLOSE FOR SOME REASON... WORKS WITH A LOOP
 mcmapply(FUN = query_env,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
-         ENV_PATH = "/net/meso/work/aschickele/Bluecloud_WB_local/data/features_monthly",
          mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
-# --- 3. Outliers and environmental covariance check
+# --- 3. Outliers and MESS check
 mcmapply(FUN = query_check,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
          OUTLIER = TRUE,
-         ENV_COR = 0.8,
          MESS = TRUE,
          mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
 # --- 4. Generate pseudo-absences if necessary -- BUG FIX : throw an error on some identical runs...
 mcmapply(FUN = pseudo_abs,
          FOLDER_NAME = run_name,
-           SUBFOLDER_NAME = subfolder_list,
-           METHOD_PA = "env",
+         SUBFOLDER_NAME = subfolder_list,
+         METHOD_PA = "env",
          mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
 # --- 5. Generate split and re sampling folds
 mcmapply(FUN = folds,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
-         NFOLD = 5,
-         FOLD_METHOD = "lon",
          mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
 # --- 6. Hyper parameters to train

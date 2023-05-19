@@ -26,7 +26,7 @@ query_atlanteco <- function(FOLDER_NAME = NULL,
   
   # --- 3. Extract data from our Aphia_ID of interest
   target <- tbl(db, paste0(CALL$DATA_TYPE, "_data")) %>% 
-    dplyr::filter(worms_id %in% !!CALL$SP_SELECT) %>% 
+    dplyr::filter(worms_id %in% !!SP_SELECT) %>% 
     collect() %>% 
     mutate(month = str_pad(month, 2, pad = "0"))
   
@@ -39,7 +39,8 @@ query_atlanteco <- function(FOLDER_NAME = NULL,
                     measurementvalue != "Absence") %>% 
     group_by(worms_id) %>% 
     mutate(nb_occ = n()) %>% 
-    ungroup()
+    ungroup() %>% 
+    distinct()
   
   # --- 5. Create Y target table
   Y <- target %>% 
