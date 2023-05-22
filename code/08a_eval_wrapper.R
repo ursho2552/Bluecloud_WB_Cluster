@@ -4,11 +4,15 @@
 #' corresponding to the type of data.
 #' @param FOLDER_NAME name of the corresponding folder
 #' @param SUBFOLDER_NAME list of sub_folders to parallelize on.
-#' @return the MODELS object updated with evaluation metric values
+#' @param ENSEMBLE if TRUE, computes variable importance metrics for the ensemble 
+#' model as well
+#' @return the MODEL object updated with evaluation metric values (model performance
+#' metric and variable importance metric)
 #' @return outputs are saved in the MODEL.RData object
 
 eval_wrapper <- function(FOLDER_NAME = NULL,
-                         SUBFOLDER_NAME = NULL){
+                         SUBFOLDER_NAME = NULL,
+                         ENSEMBLE = TRUE){
   
   # --- 1. Initialize function
   # --- 1.1. Start logs - append file
@@ -28,7 +32,8 @@ eval_wrapper <- function(FOLDER_NAME = NULL,
     
     # --- 2.2. Run function
     MODEL<- eval_pres(QUERY = QUERY,
-                      MODEL = MODEL)
+                      MODEL = MODEL,
+                      ENSEMBLE = ENSEMBLE)
   } # END if pres
   
   # --- 3. Redirection to CONTINUOUS model evaluation
@@ -38,7 +43,8 @@ eval_wrapper <- function(FOLDER_NAME = NULL,
     
     # --- 3.2. Run function
     MODEL <- eval_cont(QUERY = QUERY,
-                       MODEL = MODEL)
+                       MODEL = MODEL,
+                       ENSEMBLE = ENSEMBLE)
   } # END if pres
   
   # --- 4. Redirection to PROPORTION model evaluation

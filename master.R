@@ -92,9 +92,11 @@ mcmapply(FUN = model_wrapper,
          mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
 # --- 8. Model evaluation
+# Performance metric and variable importance
 mcmapply(FUN = eval_wrapper,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
+         ENSEMBLE = TRUE,
          mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
 # --- 9. Model projections
@@ -113,14 +115,7 @@ mcmapply(FUN = standard_maps,
          MESS = FALSE,
          mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
-# --- 10.2. Variable importance output
-mcmapply(FUN = var_imp,
-         FOLDER_NAME = run_name,
-         SUBFOLDER_NAME = subfolder_list,
-         ENSEMBLE = TRUE,
-         mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
-
-# --- 10.3. Partial dependency plots
+# --- 10.2. Partial dependency plots
 mcmapply(FUN = pdp,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,

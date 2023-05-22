@@ -2,36 +2,154 @@
 #' @name eval_pres
 #' @description sub-pipeline for model evaluation corresponding to presence data
 #' @param QUERY the query object from the master pipeline
-#' @param MODELS the models object from the master pipeline
-#' @return the MODELS object updated with evaluation metric values
+#' @param MODEL the models object from the master pipeline#'
+#' @param ENSEMBLE if TRUE, computes variable importance metrics for the ensemble 
+#' model as well
+#' @return the MODEL object updated with evaluation metric values (model performance
+#' metric and variable importance metric)
+#' @return variable importance plots as PDF file
 
 eval_pres <- function(QUERY,
-                      MODEL){
-  
+                      MODEL,
+                      ENSEMBLE = TRUE){
+
+  # --- 1. Model performance assessment
   for(i in MODEL$CALL$MODEL_LIST){
-    # --- 1. Load final model data 
+    # --- 1.1. Load final model data 
     final_fit <- MODEL[[i]][["final_fit"]] %>% 
       collect_predictions()
     
-    # --- 2. Extract observations and predictions
+    # --- 1.2. Extract observations and predictions
     y <- final_fit$measurementvalue
     y_hat <- final_fit$.pred
     
-    # --- 3. Compute Continuous Boyce Index into MODELS object
+    # --- 1.3. Compute Continuous Boyce Index into MODELS object
     MODEL[[i]][["eval"]][["CBI"]] <- ecospat.boyce(fit = y_hat,
-                                                    obs = y_hat[which(y == 1)],
-                                                    PEplot = FALSE) %>% 
+                                                   obs = y_hat[which(y == 1)],
+                                                   PEplot = FALSE) %>% 
       .$cor
+  } # for each model loop
+  
+  # --- 2. Variable importance - algorithm level
+  # --- 2.1. Initialize function
+  # --- 2.1.1. Storage and graphical specification
+  var_imp <- NULL
+  par(mfrow = c(3,2), mar = c(5,5,5,5))
+  
+  # --- 2.1.2. Model related data
+  features <- QUERY$FOLDS$train %>% 
+    dplyr::select(all_of(names(QUERY$X)))
+  target <- QUERY$FOLDS$train %>% 
+    dplyr::select(measurementvalue)
+ 
+  for(i in MODEL$CALL$MODEL_LIST){
+    # --- 2.2. Extract final model fit
+    m <- extract_fit_parsnip(MODEL[[i]][["final_fit"]])
     
-    # --- 4. Removing model from list if low quality fit
+    # --- 2.3. Build model explainer
+    explainer <- explain_tidymodels(model = m,
+                                    data = features,
+                                    y = target)
+    
+    # --- 2.4. Compute variable importance
+    # --- 2.4.1. First in terms of RMSE, i.e., raw var importance for later ensemble computing
+    message(paste("--- VAR IMPORTANCE : compute for", i))
+    var_imp[[i]][["Raw"]] <- model_parts(explainer = explainer,
+                                loss_function = loss_root_mean_square) %>% 
+      dplyr::filter(permutation != 0) %>% 
+      dplyr::filter(variable != "_baseline_") %>% 
+      group_by(permutation) %>% 
+      mutate(value = dropout_loss - dropout_loss[variable == "_full_model_"]) %>% 
+      dplyr::filter(variable != "_full_model_")
+    
+    # --- 2.4.2. Further compute it as percentage for model-level plot
+    var_imp[[i]][["Percent"]] <- var_imp[[i]][["Raw"]] %>% 
+      mutate(value = value / sum(value) * 100)  %>% 
+      ungroup() %>% 
+      dplyr::select(variable, value) %>% 
+      mutate(variable = fct_reorder(variable, value, .desc = TRUE))
+    
+    # --- 2.4.3. Compute cumulative variable importance
+    MODEL[[i]][["eval"]][["CUM_VIP"]] <- var_imp[[i]][["Percent"]] %>% 
+      group_by(variable) %>% 
+      summarise(average = mean(value)) %>% 
+      dplyr::slice(1:3) %>% 
+      dplyr::select(average) %>% 
+      sum()
+    
+  } # for each model loop
+  
+  # --- 3. Removing low quality algorithms
+  for(i in MODEL$CALL$MODEL_LIST){
+    # --- 3.1. Based on model performance
     # Fixed at 0.3 for CBI value or NA (in case of a 0 & 1 binary model prediction)
     if(MODEL[[i]][["eval"]][["CBI"]] < 0.3 | is.na(MODEL[[i]][["eval"]][["CBI"]])){
       MODEL$CALL$MODEL_LIST <- MODEL$CALL$MODEL_LIST[MODEL$CALL$MODEL_LIST != i]
       message(paste("--- EVAL : discarded", i, "due to CBI =", MODEL[[i]][["eval"]][["CBI"]], "< 0.3 \n"))
     }
-
+    
+    # --- 3.2. Based on cumulative variable importance
+    # Fixed at 30% cumulative importance for the top three predictors
+    if(MODEL[[i]][["eval"]][["CUM_VIP"]] < 30 | is.na(MODEL[[i]][["eval"]][["CUM_VIP"]])){
+      MODEL$CALL$MODEL_LIST <- MODEL$CALL$MODEL_LIST[MODEL$CALL$MODEL_LIST != i]
+      message(paste("--- EVAL : discarded", i, "due to CUM_VIP =", MODEL[[i]][["eval"]][["CBI"]], "< 50% \n"))
+    }
   } # for each model loop
   
+  # --- 4. Variable importance - Ensemble level
+  # Variable importance values also scaled by the CBI metric value
+  if(ENSEMBLE == TRUE & length(MODEL$CALL$MODEL_LIST > 1)){
+    # --- 4.1. Aggregate and weight raw data
+    ens_imp <- NULL
+    message("--- VAR IMPORTANCE : compute ensemble")
+    
+    for(i in MODEL$CALL$MODEL_LIST){
+      # Concatenate eval-weighted raw variable importance
+      tmp <- var_imp[[i]][["Raw"]] %>% 
+        mutate(value = value * MODEL[[i]][["eval"]][[1]])
+      ens_imp <- rbind(ens_imp, tmp)
+    } # End i model loop
+    
+    # --- 4.2. Further compute it as percentage
+    var_imp[["ENSEMBLE"]][["Percent"]] <- ens_imp %>% 
+      group_by(permutation) %>% 
+      mutate(value = value / sum(value) * 100 * length(MODEL$CALL$MODEL_LIST))  %>% 
+      ungroup() %>% 
+      dplyr::select(variable, value) %>% 
+      mutate(variable = fct_reorder(variable, value, .desc = TRUE))
+  } # End if ensemble TRUE
+  
+  # --- 5. Variable importance - Plot
+  # --- 5.1. Initialize PDF
+  pdf(paste0(project_wd,"/output/",FOLDER_NAME,"/",SUBFOLDER_NAME,"/variable_importance.pdf"))
+  
+  # --- 5.2. Plot algorithm level and ensemble variable importance
+  if(length(MODEL$CALL$MODEL_LIST > 1)){
+    for(i in MODEL$CALL$MODEL_LIST){
+      tmp <- var_imp[[i]][["Percent"]]
+      boxplot(tmp$value ~ tmp$variable, axes = FALSE, 
+              main = paste("Model-level for :", i), col = "gray50",
+              xlab = "", ylab = "Variable importance (%)")
+      axis(side = 1, at = 1:ncol(features), labels = levels(tmp$variable), las = 2)
+      axis(side = 2, at = seq(0, 100, 10), labels = seq(0, 100, 10), las = 2)
+      abline(h = seq(0, 100, 10), lty = "dotted")
+      box()
+    } # End i model loop
+    if(ENSEMBLE == TRUE){
+      tmp <- var_imp[["ENSEMBLE"]][["Percent"]] 
+      boxplot(tmp$value ~ tmp$variable, axes = FALSE, 
+              main = paste("Ensemble"), col = "gray50",
+              xlab = "", ylab = "Variable importance (%)")
+      axis(side = 1, at = 1:ncol(features), labels = levels(tmp$variable), las = 2)
+      axis(side = 2, at = seq(0, 100, 10), labels = seq(0, 100, 10), las = 2)
+      abline(h = seq(0, 100, 10), lty = "dotted")
+      box()
+    } # End if ensemble TRUE
+  } # End if model list > 1
+  # --- 5.3. Close PDF
+  dev.off()
+  
+  # --- 6. Wrap up and save
   return(MODEL)
   
 } # END FUNCTION
