@@ -23,6 +23,7 @@ library(MGnifyR)
 
 # --- 1.4. Others
 library(RColorBrewer) 
+library(fields)
 library(pastecs)
 library(ecospat)
 library(reticulate) 

@@ -22,94 +22,133 @@ standard_maps <- function(FOLDER_NAME = NULL,
   # --- 1.2. Create PDF saving
   pdf(paste0(project_wd,"/output/",FOLDER_NAME,"/",SUBFOLDER_NAME,"/standard_maps2.pdf"))
   
-  # --- 2. Build model-level outputs
-  # --- 2.1. Set initial plot layout & requirements
-  par(mfrow = c(4,2), mar = c(2,8,3,3))
-  r <- raster(paste0(project_wd, "/data/features_mean_from_monthly"))
+  # --- 1.3. Set initial plot layout & requirements
+  par(mfrow = c(4,3), mar = c(2,2,4,1))
+  r0 <- raster(paste0(project_wd, "/data/features_mean_from_monthly"))
   
+  # --- 1.4 Land mask
+  land <- r0
+  land[is.na(land)] <- 9999
+  land[land != 9999] <- NA
+  
+  # --- 2. Plot the legends
+  # --- 2.1. Abundance or habitat suitability legend
+  hsi_pal <- inferno_pal(100)
+  plot.new()
+  colorbar.plot(x = 0.5, y = 0, strip = seq(0,1,length.out = 100),
+                strip.width = 0.3, strip.length = 2.7,
+                col = hsi_pal, border = "black")
+  axis(side = 1)
+  text(x = 0.5, y = 0.3, "Habitat Suitability Index", adj = 0.5)
+  # --- 2.2. Observation vs 75% quartile
+  plot.new()
+  points(x = 0.1, y = 0.4, pch = 22, col = "black", bg = "gray80", cex = 5)
+  text(x = 0.2, y = 0.4, "75% Habitat Suitability Index Quantile", pos = 4)
+  points(x = 0.1, y = 0.1, pch = 3, col = "red", cex = 2)
+  text(x = 0.2, y = 0.1, "Observation", pos = 4)
+  # --- 2.3. MESS x CV 2D color scale
+  par(mar = c(5,5,3,2))
+  bivar_pal <- colmat(xmax = "deepskyblue4", ymax = "darkgoldenrod2", nbreaks = 100)
+  colmat_plot(bivar_pal, xlab = "Coefficient of variation", ylab = "MESS value")
+  axis(side = 1, at = c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = c(0, 0.2, 0.4, 0.6, 0.8, 1))
+  axis(side = 2, at = c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = c(0, -20, -40, -60, -80, -100), las = 2)
+  par(mar = c(2,2,4,1))
+  
+  # --- 2. Build model-level outputs
   for(i in MODEL$CALL$MODEL_LIST){
-    # --- 2.2. Compute mean and CV
-    # --- 2.2.1. Mean value
+    # --- 2.1. Compute the different layers
+    # --- 2.1.1. Mean value
     val <- MODEL[[i]][["proj"]][["y_hat"]] %>% 
       apply(1, function(x)(x = mean(x, na.rm = TRUE)))
-    r_m <- r %>% 
+    r_m <- r0 %>% 
       setValues(val)
     
-    # --- 2.2.2. Coefficient of variation
+    # --- 2.1.2. Coefficient of variation
     val <- MODEL[[i]][["proj"]][["y_hat"]] %>% 
       apply(1, function(x)(x = cv(x, na.rm = TRUE)))
-    r_cv <- r %>% 
+    r_cv <- r0 %>% 
       setValues(val)
     r_cv[r_cv > 100] <- 100
     
-    # --- 2.2.4. MESS
+    # --- 2.1.3. MESS
     r_mess <- QUERY$MESS*-1
     r_mess[r_mess<0] <- NA
     r_mess[r_mess>100] <- 100
     
-    # --- 2.2.5. Landmask
-    land <- r_cv
-    land[is.na(land)] <- 9999
-    land[land != 9999] <- NA
+    # --- 2.2. Plot the corresponding maps
+    # --- 2.2.1. Plot the abundance
+    # Abundance or habitat suitability values
+    plot(r_m, col = hsi_pal, legend=FALSE,
+         main = paste("Average proj. for", i, names(MODEL[[i]][["eval"]][[1]])))
+    # Land mask
+    plot(land, col = "antiquewhite4", legend=FALSE, add = TRUE)
     
-    # --- 2.3. Construct color palettes
-    cv_pal <- alpha(colorRampPalette(brewer.pal(9,"Blues"))(100), seq(0,0.5,length.out = 100))
-    mess_pal <- alpha(colorRampPalette(brewer.pal(9,"Reds"))(100), seq(0,0.5,length.out = 100))
+    # --- 2.2.2. Plot the observations
+    # Top abundance quartile as contour
+    plot(r_m > quantile(r_m, 0.75), col = c("white","gray80"), legend=FALSE, main = "Observations")
+    # Land mask
+    plot(land, col = "antiquewhite4", legend=FALSE, add = TRUE)
+    # Observations
+    tmp <- QUERY$S[which(QUERY$Y$measurementvalue > 0),]
+    points(tmp$decimallongitude, tmp$decimallatitude,
+           col = "red", pch = 3)
     
-    # --- 2.4. Plot the corresponding maps
-    # --- 2.4.1. Plot the abundance
-    plot(r_m, col = viridis_pal(100),
-         main = paste("Average proj. for", i, "\n", 
-                      names(MODEL[[i]][["eval"]]), "=", MODEL[[i]][["eval"]])
-    )
-    
-    # --- 2.4.2. Plot the CV
-    plot(r_cv, col = cv_pal, main = paste("Uncertainties (CV, MESS, 80%) proj. for", i))
-    plot(r_mess, col = mess_pal, add = TRUE)
-    
-    contour(r_m, levels =quantile(r_m, 0.8), labels = "", lwd = 2, col = "black", add = TRUE)
-    plot(land, col = "antiquewhite3", add = TRUE)
+    # --- 2.2.3. Plot the uncertainties
+    # Land mask
+    plot(land, col = "antiquewhite4", legend=FALSE, main = "Uncertainties")
+    # CV x MESS plot
+    r <- bivar_map(rasterx = r_cv, rastery = r_mess, colormatrix = bivar_pal,
+                   cutx = 0:100, cuty = 0:100)
+    plot(r[[1]], col = r[[2]], legend=FALSE, add = TRUE)
+  
   } # End i model loop
   
   # --- 3. Build ensemble outputs
   if(ENSEMBLE == TRUE){
-    # --- 3.1. Set initial plot layout & requirements
-    par(mfrow = c(2,1), mar = c(2,8,3,3))
-    r <- raster(paste0(project_wd, "/data/features_mean_from_monthly"))
-    
-    # --- 3.2. Build ensemble array, weighted by evaluation values, re-scale max=1
+    # --- 3.1. Build ensemble array, weighted by evaluation values, re-scale max=1
     y_ens <- NULL
     for(i in MODEL$CALL$MODEL_LIST){
       y_ens <- cbind(y_ens,
                      MODEL[[i]][["proj"]][["y_hat"]]*MODEL[[i]][["eval"]][[1]])
     }
     y_ens <- y_ens/max(y_ens, na.rm = TRUE)
-    
-    # --- 3.3. Compute mean and CV
-    # --- 3.3.1. Mean value
+    # --- 3.2. Compute the different layers
+    # --- 3.2.1. Mean value
     val <- apply(y_ens, 1, function(x)(x = mean(x, na.rm = TRUE)))
-    r_m <- r %>% 
+    r_m <- r0 %>% 
       setValues(val)
     
-    # --- 3.3.2. Coefficient of variation
+    # --- 3.2.2. Coefficient of variation
     val <- apply(y_ens, 1, function(x)(x = cv(x, na.rm = TRUE)))
-    r_cv <- r %>% 
+    r_cv <- r0 %>% 
       setValues(val)
     r_cv[r_cv > 100] <- 100
     
-    # --- 3.4. Plot the corresponding maps
-    # --- 3.4.1. Plot the abundance
-    plot(r_m, col = viridis_pal(100),
-         main = paste("Average proj. for", i, "\n", 
-                      names(MODEL[[i]][["eval"]]), "=", MODEL[[i]][["eval"]])
-    )
+    # --- 3.3. Plot the corresponding maps
+    # --- 3.3.1. Plot the abundance
+    # Abundance or habitat suitability values
+    plot(r_m, col = hsi_pal, legend=FALSE,
+         main = "Average Ensemble proj.")
+    # Land mask
+    plot(land, col = "antiquewhite4", legend=FALSE, add = TRUE)
     
-    # --- 3.4.2. Plot the CV
-    plot(r_cv, col = cv_pal, main = paste("Uncertainties (CV, MESS, 80%) proj. for", i))
-    plot(r_mess, col = mess_pal, add = TRUE)
+    # --- 3.3.2. Plot the observations
+    # Top abundance quartile as contour
+    plot(r_m > quantile(r_m, 0.75), col = c("white","gray80"), legend=FALSE, main = "Observations")
+    # Land mask
+    plot(land, col = "antiquewhite4", legend=FALSE, add = TRUE)
+    # Observations
+    tmp <- QUERY$S[which(QUERY$Y$measurementvalue > 0),]
+    points(tmp$decimallongitude, tmp$decimallatitude,
+           col = "red", pch = 3)
     
-    contour(r_m, levels =quantile(r_m, 0.8), labels = "", lwd = 2, col = "black", add = TRUE)
-    plot(land, col = "antiquewhite3", add = TRUE)
+    # --- 3.3.3. Plot the uncertainties
+    # Land mask
+    plot(land, col = "antiquewhite4", legend=FALSE, main = "Uncertainties")
+    # CV x MESS plot
+    r <- bivar_map(rasterx = r_cv, rastery = r_mess, colormatrix = bivar_pal,
+                   cutx = 0:100, cuty = 0:100)
+    plot(r[[1]], col = r[[2]], legend=FALSE, add = TRUE)
   } # End if ENSEMBLE = TRUE
   
   # --- 4. Wrap up and save
