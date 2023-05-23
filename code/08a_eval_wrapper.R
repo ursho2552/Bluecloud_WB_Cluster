@@ -25,6 +25,9 @@ eval_wrapper <- function(FOLDER_NAME = NULL,
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/MODEL.RData"))
   
+  # --- 1.3. Start PDF saving - variable importance
+  pdf(paste0(project_wd,"/output/",FOLDER_NAME,"/",SUBFOLDER_NAME,"/variable_importance.pdf"))
+  
   # --- 2. Redirection to PRESENCE model evaluation
   if(CALL$DATA_TYPE == "pres"){
     # --- 2.1. Load function
@@ -55,5 +58,7 @@ eval_wrapper <- function(FOLDER_NAME = NULL,
   save(MODEL, file = paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/MODEL.RData"))
   # --- 5.2. Stop logs
   log_sink(FILE = sinkfile, START = FALSE)
+  # --- 5.3. Stop PDF
+  dev.off()
   
 } # END FUNCTION

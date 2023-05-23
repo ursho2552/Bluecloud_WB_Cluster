@@ -120,10 +120,7 @@ eval_pres <- function(QUERY,
   } # End if ensemble TRUE
   
   # --- 5. Variable importance - Plot
-  # --- 5.1. Initialize PDF
-  pdf(paste0(project_wd,"/output/",FOLDER_NAME,"/",SUBFOLDER_NAME,"/variable_importance.pdf"))
-  
-  # --- 5.2. Plot algorithm level and ensemble variable importance
+  # Plot algorithm level and ensemble variable importance
   if(length(MODEL$CALL$MODEL_LIST > 1)){
     for(i in MODEL$CALL$MODEL_LIST){
       tmp <- var_imp[[i]][["Percent"]]
@@ -146,8 +143,6 @@ eval_pres <- function(QUERY,
       box()
     } # End if ensemble TRUE
   } # End if model list > 1
-  # --- 5.3. Close PDF
-  dev.off()
   
   # --- 6. Wrap up and save
   return(MODEL)
