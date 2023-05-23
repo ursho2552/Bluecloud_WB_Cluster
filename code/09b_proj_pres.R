@@ -15,7 +15,7 @@ proj_pres <- function(QUERY,
                       MODEL,
                       CALL,
                       N_BOOTSTRAP,
-                      PROJ_PATH){
+                      PROJ_PATH = NULL){
   
   # --- 1. Load environmental data - TO FIX DYNAMICALLY
   features <- stack(paste0(project_wd, "/data/features_mean_from_monthly")) %>% 
@@ -71,8 +71,13 @@ proj_pres <- function(QUERY,
       x <- r
     })
     
-    # --- 6. Append the MODEL object
+    # --- 6. Compute the average CV across bootstrap runs as a QC
+    AVG_CV <- apply(y_hat, 1, function(x)(x = cv(x, na.rm = TRUE))) %>% 
+      mean(na.rm = TRUE)
+    
+    # --- 7. Append the MODEL object
     MODEL[[i]][["proj"]][["y_hat"]] <- y_hat
+    MODEL[[i]][["eval"]][["AVG_CV"]] <- AVG_CV
     
   } # for i model loop
   

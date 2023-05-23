@@ -40,8 +40,7 @@ proj_wrapper <- function(FOLDER_NAME = NULL,
     MODEL <- proj_pres(QUERY = QUERY,
                        MODEL = MODEL,
                        CALL = CALL,
-                       N_BOOTSTRAP = N_BOOTSTRAP,
-                       PROJ_PATH = PROJ_PATH)
+                       N_BOOTSTRAP = N_BOOTSTRAP)
   } # END if pres
   
   # --- 3. Redirection to the CONTINUOUS model projections
@@ -53,8 +52,7 @@ proj_wrapper <- function(FOLDER_NAME = NULL,
     MODEL <- proj_cont(QUERY = QUERY,
                        MODEL = MODEL,
                        CALL = CALL,
-                       N_BOOTSTRAP = N_BOOTSTRAP,
-                       PROJ_PATH = PROJ_PATH)
+                       N_BOOTSTRAP = N_BOOTSTRAP)
   } # END if pres
   
   # --- 4. Redirection to the PROPORTION model projections
