@@ -55,6 +55,7 @@ source("./function/sample_raster_NA.R")
 source("./function/outlier_iqr_col.R")
 source("./function/viridis.R")
 source("./function/log_sink.R")
+source("./function/QC_recommandations.R")
 
 # --- Other custom arguments
 Sys.setenv(HDF5_USE_FILE_LOCKING="FALSE") # to be able to open .nc from complex
