@@ -12,9 +12,10 @@
 # --- 0. Start up and load functions
 # All will be called in the config file later
 rm(list=ls())
+closeAllConnections()
 setwd("/net/meso/work/aschickele/Bluecloud_WB_local")
 source(file = "./code/00_config.R")
-run_name <- "thalassiosira_all"
+run_name <- "calanus_all"
 
 # --- 1a. List the available species
 # Within the user defined selection criteria
@@ -25,7 +26,7 @@ list_bio <- list_bio_wrapper(FOLDER_NAME = run_name,
 # Define the list of species to consider
 sp_list <- c("5820", "9760") # random OTU short selection
 sp_list <- list_bio %>% 
-  dplyr::filter(grepl("Thalassiosira ", scientificname)) %>% 
+  dplyr::filter(grepl("Calanus |Calanoides ", scientificname)) %>% 
   dplyr::select(worms_id) %>% 
   unique() %>% pull() # get all calanus like species
 
@@ -54,10 +55,13 @@ mcmapply(FUN = query_bio_wrapper,
 
 # --- 2b. Query environmental data
 # *** MCMAPPLY WORKERS DO NOT PROPERLY CLOSE FOR SOME REASON... WORKS WITH A LOOP
+# *** It has probably something to do with the raster connection + extract
+for(i in subfolder_list){
 mcmapply(FUN = query_env,
          FOLDER_NAME = run_name,
-         SUBFOLDER_NAME = subfolder_list,
+         SUBFOLDER_NAME = i,
          mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
+}
 
 # --- 3. Outliers and MESS check
 mcmapply(FUN = query_check,
@@ -115,7 +119,7 @@ mcmapply(FUN = standard_maps,
          MESS = FALSE,
          mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
-# --- 10.2. Partial dependency plots
+# --- 10.2. Partial dependency plots - TAKES AGES FOR LARGE OCCURRENCE NUMBER
 mcmapply(FUN = pdp,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,

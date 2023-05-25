@@ -23,8 +23,8 @@ query_env <- function(FOLDER_NAME = NULL,
   
   # --- 2. Open features gridded data and names
   # /!\ To change later for a direct query in a .nc file : avoid 2 different raster files
-  features <- stack(CALL$ENV_PATH) %>% readAll()
-  features_name <- stack(paste0(project_wd, "/data/features_mean_from_monthly")) %>% 
+  features <- brick(CALL$ENV_PATH) %>% readAll()
+  features_name <- brick(paste0(project_wd, "/data/features_mean_from_monthly")) %>% 
     names()
 
   # --- 3. Re-grid sample on the raster resolution and filter
@@ -56,6 +56,7 @@ query_env <- function(FOLDER_NAME = NULL,
   # --- 6. Extract the environmental data in the data frame
   # If there is an NA, extract from nearest non-NA cells
   X <- NULL
+  on.exit(expr = message(paste("Exit at row", j, "/", nrow(S))))
   for(j in 1:nrow(S)){
     id <- grep(pattern = S$month[j], names(features))
     xy <- S[j,] %>% dplyr::select(x = decimallongitude, y = decimallatitude)
@@ -63,16 +64,26 @@ query_env <- function(FOLDER_NAME = NULL,
     tmp <- raster::extract(features[[id]], xy) %>% 
       as.data.frame()
     
-    # if(is.na(sum(tmp))){
-    #   tmp <- mclapply(features[[id]]@layers, function(a_layer) sample_raster_NA(a_layer, xy), mc.cores = 1) %>% 
-    #     lapply(mean) %>% # average between two points if a coordinate is EXACTLY at an integer value (i.e., between two cells)
-    #     as.data.frame()
-    # } # If extract is NA
     if(is.na(sum(tmp))){
-      tmp <- lapply(features[[id]]@layers, function(a_layer) sample_raster_NA(a_layer, xy)) %>% 
-        lapply(mean) %>% 
+      r_dist <- distanceFromPoints(features[[id]], xy) # Compute distance to NA point
+      r_dist <- synchroniseNA(stack(r_dist, features[[1]]))[[1]] # Synchronize NA
+      min_dist <- which.min(getValues(r_dist)) # Get closest non-NA point ID
+      tmp <- features[[id]][min_dist] %>%
         as.data.frame()
+      # tmp <- raster::extract(features[[id]], min_dist) %>% 
+      #   as.data.frame()
     }
+    # 
+    # # if(is.na(sum(tmp))){
+    # #   tmp <- mclapply(features[[id]]@layers, function(a_layer) sample_raster_NA(a_layer, xy), mc.cores = 1) %>% 
+    # #     lapply(mean) %>% # average between two points if a coordinate is EXACTLY at an integer value (i.e., between two cells)
+    # #     as.data.frame()
+    # # } # If extract is NA
+    # if(is.na(sum(tmp))){
+    #   tmp <- lapply(features[[id]]@layers, function(a_layer) sample_raster_NA(a_layer, xy)) %>%
+    #     lapply(mean) %>%
+    #     as.data.frame()
+    # }
 
     colnames(tmp) <- features_name
     X <- rbind(X, tmp)

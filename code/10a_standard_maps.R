@@ -39,6 +39,7 @@ standard_maps <- function(FOLDER_NAME = NULL,
   traffic_col[which(traffic_val == 0)] <- "white"
   # --- 2.2. Plot the traffic lights and recommendations
   plot.new()
+  mtext(paste("QC for", QUERY$annotations$scientificname))
   par(mar = c(1,5,3,1), xpd = NA)
   plot(x = rep(1:3, nrow(rec)), y = rep(nrow(rec):1, each = 3), axes = FALSE, cex = 4,
        xlim = c(0,4), ylim = c(0,nrow(rec)+1), ylab = "", xlab = "",

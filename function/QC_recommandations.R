@@ -32,7 +32,9 @@ qc_recommandations <- function(MODEL,
   
   # --- 2.2. Fill up
   for(m in m_names){
-    qc_matrix[m,] <- MODEL[[m]][["eval"]] %>% unlist()
+    tmp <- MODEL[[m]][["eval"]] %>% unlist()
+    while(length(tmp) < length(qc_names)){tmp <- c(tmp, NA)}
+    qc_matrix[m,] <- tmp
   }
   
   # --- 2.3. Transform to 0 and 1 according to predefined criterias
