@@ -5,9 +5,10 @@
 #' will be used for projections
 #' @param FOLDER_NAME name of the corresponding folder
 #' @param SUBFOLDER_NAME list of sub_folders to parallelize on.
-#' @return X: a data frame of environmental values at the sampling stations and 
-#' @return ENV_PATH: the path to the environmental .nc or raster
-#' @return Updates the output in a QUERY.RData and CALL.Rdata files
+#' @return X: a data frame of environmental values at the sampling stations
+#' @return Y and S updated with duplicate stations removed
+#' @return Updates the output in a QUERY.RData file
+#' @return an updated list of subfolders according to the minimum number of occurrence criteria
 
 query_env <- function(FOLDER_NAME = NULL,
                       SUBFOLDER_NAME = NULL){
@@ -32,58 +33,52 @@ query_env <- function(FOLDER_NAME = NULL,
   # (2) /!\ Depth is not taken into account for now, neither year (1990-2016 = WOA)
   res <- res(features)[[1]]
   digit <- nchar(sub('^0+','',sub('\\.','',res)))-1
-  sample <- QUERY$S %>% 
-    cbind(QUERY$Y) %>% 
-    mutate(decimallatitude = round(decimallatitude+0.5*res, digits = digit)-0.5*res) %>% 
-    mutate(decimallongitude = round(decimallongitude+0.5*res, digits = digit)-0.5*res) 
-  
+  sample <- QUERY$S %>%
+    cbind(QUERY$Y) %>%
+    mutate(decimallatitude = round(decimallatitude+0.5*res, digits = digit)-0.5*res) %>%
+    mutate(decimallongitude = round(decimallongitude+0.5*res, digits = digit)-0.5*res)
+
   # --- 4. Select one sample per group of identical coordinates x month
   # Among each group of identical lat, long and month, one random point is selected
-  S <- sample %>% 
-    dplyr::select(-names(QUERY$Y)) %>% 
-    group_by(decimallongitude, decimallatitude, month) %>% 
-    slice_sample(n = 1) %>% 
-    dplyr::ungroup() 
-  
+  S <- sample %>%
+    dplyr::select(-names(QUERY$Y)) %>%
+    group_by(decimallongitude, decimallatitude, month) %>%
+    slice_sample(n = 1) %>%
+    dplyr::ungroup()
+
   # --- 5. Average measurement value per group of identical coordinates x month
-  Y <- sample %>% 
-    dplyr::select(decimallongitude, decimallatitude, month, names(QUERY$Y)) %>% 
-    group_by(decimallongitude, decimallatitude, month) %>% 
-    summarize_at(names(QUERY$Y), mean) %>% 
-    dplyr::ungroup() %>% 
-    dplyr::select(names(QUERY$Y))
+  # Summarize(across()) is not working in mcmapply... going the ugly way
+  Y0 <- sample %>% 
+    dplyr::select(decimallongitude, decimallatitude, month, names(QUERY$Y)) 
   
+  Y <- NULL
+  for(n in 1:nrow(S)){
+    tmp <- Y0 %>% 
+      inner_join(S[n,], by = c("decimallongitude", "decimallatitude", "month")) %>% 
+      dplyr::select(names(QUERY$Y))
+    tmp <- apply(tmp, 2, mean)
+    Y <- rbind(Y, tmp)
+  }
+  Y <- as.data.frame(Y)
+
   # --- 6. Extract the environmental data in the data frame
   # If there is an NA, extract from nearest non-NA cells
   X <- NULL
-  on.exit(expr = message(paste("Exit at row", j, "/", nrow(S))))
   for(j in 1:nrow(S)){
     id <- grep(pattern = S$month[j], names(features))
     xy <- S[j,] %>% dplyr::select(x = decimallongitude, y = decimallatitude)
-    
-    tmp <- raster::extract(features[[id]], xy) %>% 
+
+    # toto <- brick(features[[id]]) # features[[id]] changes the class to stack
+    tmp <- raster::extract(features[[id]], xy) %>%
       as.data.frame()
-    
+
     if(is.na(sum(tmp))){
       r_dist <- distanceFromPoints(features[[id]], xy) # Compute distance to NA point
       r_dist <- synchroniseNA(stack(r_dist, features[[1]]))[[1]] # Synchronize NA
       min_dist <- which.min(getValues(r_dist)) # Get closest non-NA point ID
       tmp <- features[[id]][min_dist] %>%
         as.data.frame()
-      # tmp <- raster::extract(features[[id]], min_dist) %>% 
-      #   as.data.frame()
     }
-    # 
-    # # if(is.na(sum(tmp))){
-    # #   tmp <- mclapply(features[[id]]@layers, function(a_layer) sample_raster_NA(a_layer, xy), mc.cores = 1) %>% 
-    # #     lapply(mean) %>% # average between two points if a coordinate is EXACTLY at an integer value (i.e., between two cells)
-    # #     as.data.frame()
-    # # } # If extract is NA
-    # if(is.na(sum(tmp))){
-    #   tmp <- lapply(features[[id]]@layers, function(a_layer) sample_raster_NA(a_layer, xy)) %>%
-    #     lapply(mean) %>%
-    #     as.data.frame()
-    # }
 
     colnames(tmp) <- features_name
     X <- rbind(X, tmp)
@@ -91,7 +86,7 @@ query_env <- function(FOLDER_NAME = NULL,
   
   # --- 7. Wrap up and save
   # --- 7.1. Append QUERY with the environmental values and save
-  # And updated Y and S tables with dupplicate coordinate removed
+  # And updated Y and S tables with duplicate coordinate removed
   QUERY[["Y"]] <- Y
   QUERY[["S"]] <- S
   QUERY[["X"]] <- X
@@ -99,5 +94,12 @@ query_env <- function(FOLDER_NAME = NULL,
   
   # --- 7.2. Stop logs
   log_sink(FILE = sinkfile, START = FALSE)
+  
+  # --- 7.3. Update list of SUBFOLDER_NAME
+  if(nrow(S) >= CALL$SAMPLE_SELECT$MIN_SAMPLE){
+    return(SUBFOLDER_NAME)
+  } else {
+    return(NA)
+  }
   
 } # END FUNCTION

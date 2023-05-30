@@ -15,7 +15,7 @@ rm(list=ls())
 closeAllConnections()
 setwd("/net/meso/work/aschickele/Bluecloud_WB_local")
 source(file = "./code/00_config.R")
-run_name <- "calanus_all"
+run_name <- "query_env_test"
 
 # --- 1a. List the available species
 # Within the user defined selection criteria
@@ -54,14 +54,15 @@ mcmapply(FUN = query_bio_wrapper,
          mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
 # --- 2b. Query environmental data
-# *** MCMAPPLY WORKERS DO NOT PROPERLY CLOSE FOR SOME REASON... WORKS WITH A LOOP
-# *** It has probably something to do with the raster connection + extract
-for(i in subfolder_list){
-mcmapply(FUN = query_env,
-         FOLDER_NAME = run_name,
-         SUBFOLDER_NAME = i,
-         mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
-}
+# This functions returns an updated subfolder_list object to avoid computing
+# species with less than the user defined minimum occurrence number
+
+subfolder_list <- mcmapply(FUN = query_env,
+                  FOLDER_NAME = run_name,
+                  SUBFOLDER_NAME = subfolder_list,
+                  mc.cores = min(length(subfolder_list), MAX_CLUSTERS)) %>% 
+  na.omit(subfolder_list) %>% 
+  as.vector()
 
 # --- 3. Outliers and MESS check
 mcmapply(FUN = query_check,
