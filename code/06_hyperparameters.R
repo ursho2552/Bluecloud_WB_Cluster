@@ -32,8 +32,8 @@ hyperparameter <- function(FOLDER_NAME = NULL,
   
   # --- 2.1.2. Define the grid according to built in functions
   HP$RF$model_grid <- grid_regular(mtry(range = c(1, length(CALL$ENV_VAR))),
-                                   trees(),
-                                   min_n(),
+                                   trees(range = c(200, 1000)),
+                                   min_n(range = c(5, ceiling(CALL$SAMPLE_SELECT$MIN_SAMPLE*0.3))),
                                    levels = LEVELS)
   
   # --- 2.2. GENERALIZED ADDITIVE MODELS 
@@ -41,7 +41,7 @@ hyperparameter <- function(FOLDER_NAME = NULL,
   if(CALL$DATA_TYPE == "pres"){
     HP$GAM$model_spec <- gen_additive_mod(mode = "regression",
                                           adjust_deg_free = tune(),
-                                          select_features = tune()) %>% 
+                                          select_features = TRUE) %>% 
       set_engine("mgcv",
                  family = stats::binomial(link = "logit")) %>% 
       translate()
@@ -49,12 +49,11 @@ hyperparameter <- function(FOLDER_NAME = NULL,
     HP$GAM$model_spec <- gen_additive_mod(mode = "regression",
                                           engine = "mgcv",
                                           adjust_deg_free = tune(),
-                                          select_features = tune())
+                                          select_features = TRUE)
   }
   
   # --- 2.2.2. Define the grid according to built in functions
   HP$GAM$model_grid <- grid_regular(adjust_deg_free(),
-                                    select_features(),
                                     levels = LEVELS)
   
   # --- 2.3. GENERALIZED LINEAR MODELS
