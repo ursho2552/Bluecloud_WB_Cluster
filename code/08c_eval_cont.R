@@ -64,11 +64,17 @@ eval_cont <- function(QUERY,
       dplyr::filter(variable != "_full_model_")
     
     # --- 2.4.2. Further compute it as percentage for model-level plot
-    var_imp[[i]][["Percent"]] <- var_imp[[i]][["Raw"]] %>% 
-      mutate(value = value / sum(value) * 100)  %>% 
-      ungroup() %>% 
-      dplyr::select(variable, value) %>% 
-      mutate(variable = fct_reorder(variable, value, .desc = TRUE))
+    # Security if a model did not fit, hence var_imp = 0 for all predictors
+    # Avoids an error leading to a function stop, while other models could be OK
+    if(sum(var_imp[[i]][["Raw"]][["value"]]) > 0){
+      var_imp[[i]][["Percent"]] <- var_imp[[i]][["Raw"]] %>% 
+        mutate(value = value / sum(value) * 100)  %>% 
+        ungroup() %>% 
+        dplyr::select(variable, value) %>% 
+        mutate(variable = fct_reorder(variable, value, .desc = TRUE, .na_rm = TRUE))
+    } else {
+      var_imp[[i]][["Percent"]] <- var_imp[[i]][["Raw"]]
+    }
     
     # --- 2.4.3. Compute cumulative variable importance
     MODEL[[i]][["eval"]][["CUM_VIP"]] <- var_imp[[i]][["Percent"]] %>% 
