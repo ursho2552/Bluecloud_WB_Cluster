@@ -15,7 +15,7 @@ rm(list=ls())
 closeAllConnections()
 setwd("/net/meso/work/aschickele/Bluecloud_WB_local")
 source(file = "./code/00_config.R")
-run_name <- "query_env_test"
+run_name <- "calanus_all_new_hp"
 
 # --- 1a. List the available species
 # Within the user defined selection criteria
@@ -56,7 +56,6 @@ mcmapply(FUN = query_bio_wrapper,
 # --- 2b. Query environmental data
 # This functions returns an updated subfolder_list object to avoid computing
 # species with less than the user defined minimum occurrence number
-
 subfolder_list <- mcmapply(FUN = query_env,
                   FOLDER_NAME = run_name,
                   SUBFOLDER_NAME = subfolder_list,
@@ -117,7 +116,6 @@ mcmapply(FUN = standard_maps,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
          ENSEMBLE = TRUE,
-         MESS = FALSE,
          mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
 # --- 10.2. Partial dependency plots - TAKES AGES FOR LARGE OCCURRENCE NUMBER

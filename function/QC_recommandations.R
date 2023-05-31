@@ -46,7 +46,9 @@ qc_recommandations <- function(MODEL,
   }
   
   # --- 3. Build output matrix
-  rec <- merge(qc_matrix_01, RECOMMANDATIONS_DF)
+  # rec <- as.data.frame(qc_matrix_01) %>% 
+  #   left_join(RECOMMANDATIONS_DF)
+  rec <- merge(qc_matrix_01, RECOMMANDATIONS_DF, sort = FALSE)
   rownames(rec) <- m_names
   
   # --- 4. Wrap up and save
