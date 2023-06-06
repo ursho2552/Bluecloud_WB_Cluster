@@ -15,7 +15,7 @@ rm(list=ls())
 closeAllConnections()
 setwd("/net/meso/work/aschickele/Bluecloud_WB_local")
 source(file = "./code/00_config.R")
-run_name <- "calanus_all_new_hp"
+run_name <- "test3"
 
 # --- 1a. List the available species
 # Within the user defined selection criteria
@@ -24,9 +24,9 @@ list_bio <- list_bio_wrapper(FOLDER_NAME = run_name,
                              SAMPLE_SELECT = list(MIN_SAMPLE = 50, MIN_DEPTH = 0, MAX_DEPTH = 50, START_YEAR = 1990, STOP_YEAR = 2016))
 
 # Define the list of species to consider
-sp_list <- c("5820", "9760") # random OTU short selection
+# sp_list <- c("5820", "9760") # random OTU short selection
 sp_list <- list_bio %>% 
-  dplyr::filter(grepl("Calanus |Calanoides ", scientificname)) %>% 
+  dplyr::filter(grepl("Thalassiosira ", scientificname)) %>% 
   dplyr::select(worms_id) %>% 
   unique() %>% pull() # get all calanus like species
 
@@ -111,6 +111,9 @@ mcmapply(FUN = proj_wrapper,
          mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
 # --- 10. Output plots
+# Catch up the output list
+subfolder_list <- list.files(paste0(project_wd, "/output/", run_name), recursive = TRUE, pattern = "standard_maps") %>% str_sub(1, -19)
+
 # --- 10.1. Standard maps per algorithms
 mcmapply(FUN = standard_maps,
          FOLDER_NAME = run_name,
@@ -126,4 +129,9 @@ mcmapply(FUN = pdp,
          ENSEMBLE = TRUE,
          mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
+# --- 10.3 Diversity
+diversity_maps(FOLDER_NAME = run_name,
+               SUBFOLDER_NAME = subfolder_list,
+               BUFFER = 1,
+               N_BOOTSTRAP = 10)
 # --- END --- 
