@@ -40,9 +40,11 @@ run_init <- function(FOLDER_NAME = "test_run",
   
   # --- 1. Initialize function
   # --- 1.1. Start logs - create file
-  sinkfile <- log_sink(FILE = file(paste0(project_wd, "/output/", FOLDER_NAME, "/log.txt"), open = "wt"),
-                       START = TRUE)
-  message(paste(Sys.time(), "******************** START : run_init ********************"))
+  if(is.null(LOAD_FROM)){
+    sinkfile <- log_sink(FILE = file(paste0(project_wd, "/output/", FOLDER_NAME, "/log.txt"), open = "wt"),
+                         START = TRUE)
+    message(paste(Sys.time(), "******************** START : run_init ********************"))
+  }
   
   # --- 1.2. Define the different folder path
   # --- 1.2.1. Work in an existing directory
@@ -64,6 +66,9 @@ run_init <- function(FOLDER_NAME = "test_run",
       stop("--- This new foldername is already used")
     } else {
       dir.create(out_path)
+      sinkfile <- log_sink(FILE = file(paste0(project_wd, "/output/", FOLDER_NAME, "/log.txt"), open = "wt"),
+                           START = TRUE)
+      message(paste(Sys.time(), "******************** START : run_init ********************"))
     } # if exists
   } # if LOAD_FROM
   
