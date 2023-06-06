@@ -27,7 +27,7 @@ query_mgnify <- function(FOLDER_NAME = NULL,
   # --- 3. Propagate selection to the Y table
   # --- 3.1. Propagate selection on columns
   Y <- CALL$LIST_BIO$Y %>% 
-    dplyr::select(matches(paste(SP_SELECT, collapse = "|"))) %>% 
+    dplyr::select(all_of(SP_SELECT)) %>% 
     as.data.frame()
   # --- 3.2. Remove stations with no observations
   # We duplicate the first column to be able to apply() both in multi- univariate
