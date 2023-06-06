@@ -45,7 +45,7 @@ query_check <- function(FOLDER_NAME = NULL,
       raster::subset(CALL$ENV_VAR)
     
     # --- 3.2. Compute the mess analysis
-    tmp <- QUERY$X %>% dplyr::select(CALL$ENV_VAR)
+    tmp <- QUERY$X %>% dplyr::select(all_of(CALL$ENV_VAR))
     r_mess <- dismo::mess(x = features, v = tmp, full = FALSE)
     
     # --- 3.3. Append to query
