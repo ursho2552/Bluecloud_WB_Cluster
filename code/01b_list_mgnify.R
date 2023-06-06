@@ -19,22 +19,25 @@ list_mgnify <- function(SAMPLE_SELECT){
                              qtype = "studies",
                              biome_name = "Marine") %>% 
     mutate(`samples-count` = as.numeric(`samples-count`)) %>% 
-    dplyr::filter(`samples-count` >= SAMPLE_SELECT$MIN_SAMPLE) # Studies with less than the minimum sample per OTU are out
+    dplyr::filter(`samples-count` >= SAMPLE_SELECT$MIN_SAMPLE) %>% # Studies with less than the minimum sample per OTU are out
+    dplyr::filter(grepl("Tara", `study-name`)) # Only taking Tara samples for now (OTU extraction is veeery long)
   
   # --- 3. Download the raw data
   # --- 3.1. Analysis accession ID
   # Analysis identifier used to retrieve metadata and phyloseq object later
   message("--- LIST BIO : retrieving accession ID from MGnify")
-  analysis_accession_ID <- mgnify_analyses_from_studies(mg, study_list$accession[c(1,2,4)]) # SUBSET FOR EXAMPLE
+  analysis_accession_ID <- mgnify_analyses_from_studies(mg, study_list$accession) # SUBSET FOR EXAMPLE
   
   # --- 3.1.2. Retrieve metadata for each accession ID
   # We only keep the metagenomic data and latest pipeline version
   message("--- LIST BIO : retrieving studies metadata from MGnify")
   sample_metadata <- mgnify_get_analyses_metadata(mg, analysis_accession_ID) %>% 
     data.frame() %>% 
+    # dplyr::filter(`analysis_experiment.type` == "metagenomic" |
+    #                 `analysis_experiment.type` == "assembly" &
+    #                 `analysis_pipeline.version` == "5.0")
     dplyr::filter(`analysis_experiment.type` == "metagenomic" |
-                    `analysis_experiment.type` == "assembly" &
-                    `analysis_pipeline.version` == "5.0")
+                  `analysis_experiment.type` == "assembly")
   
   # --- 3.1.3. Retrieve the corresponding phyloseq objects
   message("--- LIST BIO : retrieving studies phyloseq from MGnify")
