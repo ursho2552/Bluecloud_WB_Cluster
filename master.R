@@ -15,7 +15,7 @@ rm(list=ls())
 closeAllConnections()
 setwd("/net/meso/work/aschickele/Bluecloud_WB_local")
 source(file = "./code/00_config.R")
-run_name <- "test3"
+run_name <- "PA_test"
 
 # --- 1a. List the available species
 # Within the user defined selection criteria
@@ -63,7 +63,7 @@ subfolder_list <- mcmapply(FUN = query_env,
   na.omit(subfolder_list) %>% 
   as.vector()
 
-# --- 3. Outliers and MESS check
+# --- 3. Outliers and MESS check - to put as mandatory checks ?
 mcmapply(FUN = query_check,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
@@ -75,7 +75,7 @@ mcmapply(FUN = query_check,
 mcmapply(FUN = pseudo_abs,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
-         METHOD_PA = "env",
+         METHOD_PA = "bias_random",
          mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
 # --- 5. Generate split and re sampling folds
@@ -112,7 +112,7 @@ mcmapply(FUN = proj_wrapper,
 
 # --- 10. Output plots
 # Catch up the output list
-subfolder_list <- list.files(paste0(project_wd, "/output/", run_name), recursive = TRUE, pattern = "standard_maps") %>% str_sub(1, -19)
+# subfolder_list <- list.files(paste0(project_wd, "/output/", run_name), recursive = TRUE, %>%  pattern = "standard_maps") %>% str_sub(1, -19)
 
 # --- 10.1. Standard maps per algorithms
 mcmapply(FUN = standard_maps,

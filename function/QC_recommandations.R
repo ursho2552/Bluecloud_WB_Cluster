@@ -44,11 +44,15 @@ qc_recommandations <- function(MODEL,
     if(qc_matrix[m,2] > 30 & !is.na(qc_matrix[m,2])){qc_matrix_01[m,2] <- 1} else {qc_matrix_01[m,2] <- 0}
     if(qc_matrix[m,3] < 50 & !is.na(qc_matrix[m,3])){qc_matrix_01[m,3] <- 1} else {qc_matrix_01[m,3] <- 0}
   }
+  qc_matrix_01 <- as.data.frame(qc_matrix_01) %>% 
+    mutate(ID = row_number())
   
   # --- 3. Build output matrix
   # rec <- as.data.frame(qc_matrix_01) %>% 
   #   left_join(RECOMMANDATIONS_DF)
-  rec <- merge(qc_matrix_01, RECOMMANDATIONS_DF, sort = FALSE)
+  rec <- merge(x = qc_matrix_01, y = RECOMMANDATIONS_DF, sort = FALSE) %>% 
+    arrange(ID) %>% 
+    dplyr::select(-ID)
   rownames(rec) <- m_names
   
   # --- 4. Wrap up and save

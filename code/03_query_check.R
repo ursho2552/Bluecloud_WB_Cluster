@@ -29,9 +29,12 @@ query_check <- function(FOLDER_NAME = NULL,
       message("--- Cannot perform outlier analysis on presence - pseudo absence data ---")
     } else {
       to_remove <- outlier_iqr_col(QUERY$Y, n = 2.5)
-      QUERY$Y <- QUERY$Y[-to_remove,]
-      QUERY$X <- QUERY$X[-to_remove,]
-      QUERY$S <- QUERY$S[-to_remove,]
+      if(length(to_remove > 0)){
+        QUERY$Y <- QUERY$Y %>% slice(-to_remove)
+        QUERY$X <- QUERY$X %>% slice(-to_remove)
+        QUERY$S <- QUERY$S %>% slice(-to_remove)
+      } # if to remove !NULL
+      
       message(paste("--- OUTLIERS : Removed row number", to_remove, "\n"))
     }
   } # END if outlier TRUE

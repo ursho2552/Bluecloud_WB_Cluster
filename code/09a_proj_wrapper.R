@@ -46,7 +46,7 @@ proj_wrapper <- function(FOLDER_NAME = NULL,
   # --- 3. Redirection to the CONTINUOUS model projections
   if(CALL$DATA_TYPE == "cont"){
     # --- 3.1. Load function
-    source(file = paste0(project_wd, "/code/09b_proj_cont.R"))
+    source(file = paste0(project_wd, "/code/09c_proj_cont.R"))
     
     # --- 3.2. Run function
     MODEL <- proj_cont(QUERY = QUERY,

@@ -17,14 +17,19 @@ standard_maps <- function(FOLDER_NAME = NULL,
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/MODEL.RData"))
   
-  # --- 1.2. Create PDF saving
+  # --- 1.2. Check for projections
+  if(length(MODEL$CALL$MODEL_LIST) == 0){
+    stop("No validated algorithms to display projections from")
+  }
+  
+  # --- 1.3. Create PDF saving
   pdf(paste0(project_wd,"/output/",FOLDER_NAME,"/",SUBFOLDER_NAME,"/standard_maps.pdf"))
   
-  # --- 1.3. Set initial plot layout & requirements
+  # --- 1.4. Set initial plot layout & requirements
   par(mfrow = c(4,3), mar = c(2,2,4,1))
   r0 <- raster(paste0(project_wd, "/data/features_mean_from_monthly"))
   
-  # --- 1.4 Land mask
+  # --- 1.5 Land mask
   land <- r0
   land[is.na(land)] <- 9999
   land[land != 9999] <- NA
