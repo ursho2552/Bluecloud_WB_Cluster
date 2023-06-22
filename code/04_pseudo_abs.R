@@ -20,8 +20,8 @@
 pseudo_abs <- function(FOLDER_NAME = NULL,
                        SUBFOLDER_NAME = NULL,
                        METHOD_PA = "env",
-                       NB_PA = NULL,
-                       DIST_PA = 100e3,
+                       NB_PA = 1000,
+                       DIST_PA = 1000e3,
                        BACKGROUND_FILTER = NULL){
   
   # --- 1. Initialize function
@@ -75,28 +75,77 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
     # --- 4.2.2. Calculate distance to presences in raster object
     background <- rasterize(val, r, update=TRUE)
     background[background < 1] <- NA
-    background <- distance(background)
+    background <- raster::distance(background)
     
     background <- synchroniseNA(stack(background, r))[[1]] %>% 
       rasterToPoints() %>% 
       as.data.frame() %>% 
-      dplyr::filter(layer > DIST_PA & !is.na(layer)) %>% 
+      dplyr::filter(layer < DIST_PA & !is.na(layer)) %>% 
       dplyr::select(x, y)
   } # End if geo
+  
+  # --- 4.3. Based on environmental enveloppe but biased by distance to presence
+  if(METHOD_PA == "bias_env"){
+    if(is.null(QUERY$MESS)){
+      stop("env Pseudo-Absence generation requires a MESS analysis in the previous step \n")
+    } else {
+      background <- QUERY$MESS
+      background[background > -5] <- NA
+      
+      val <- QUERY$S %>% 
+        dplyr::select(decimallongitude, decimallatitude)
+      weight <- rasterize(val, r, update=TRUE)
+      weight[weight < 1] <- NA
+      weight <- raster::distance(weight)
+      weight <- (weight/max(getValues(weight))-1)*-1
+      
+      background <- synchroniseNA(stack(weight, background))[[1]] %>% 
+        rasterToPoints() %>% 
+        as.data.frame()
+    }
+  } # End if bias_env
+  
+  # 4.4. Random but biased by distance to presence
+  if(METHOD_PA == "bias_random"){
+    if(is.null(QUERY$MESS)){
+      stop("env Pseudo-Absence generation requires a MESS analysis in the previous step \n")
+    } else {
+      val <- QUERY$S %>% 
+        dplyr::select(decimallongitude, decimallatitude)
+      background <- rasterize(val, r, update=TRUE)
+      background[background < 1] <- NA
+      background <- raster::distance(background)
+      background <- (background/max(getValues(background))-1)*-1
+      
+      background <- synchroniseNA(stack(background, r))[[1]] %>% 
+        rasterToPoints() %>% 
+        as.data.frame()
+    }
+  } # End if bias_env
   
   # --- 5. Additional background filter
   # TO UPDATE LATER
 
   # --- 6. Sample within the background data
   # Add a resample option if there is not enough background available
-  if(nrow(background) < NB_PA){
-    message(" PSEUDO-ABS : background too small, selection with replacement !")
-    tmp <- sample(x = 1:nrow(background), size = NB_PA, replace = TRUE)
+  if(ncol(background == 3)){
+    if(nrow(background) < NB_PA){
+      message(" PSEUDO-ABS : background too small, selection with replacement !")
+      tmp <- sample(x = 1:nrow(background), size = NB_PA, replace = TRUE, prob = background$layer)
+    } else {
+      tmp <- sample(x = 1:nrow(background), size = NB_PA, prob = background$layer)
+    } 
   } else {
-    tmp <- sample(x = 1:nrow(background), size = NB_PA)
+    if(nrow(background) < NB_PA){
+      message(" PSEUDO-ABS : background too small, selection with replacement !")
+      tmp <- sample(x = 1:nrow(background), size = NB_PA, replace = TRUE, prob = background$layer)
+    } else {
+      tmp <- sample(x = 1:nrow(background), size = NB_PA, prob = background$layer)
+    } 
   }
+
   # Subset the background coordinates
-  xy <- background[tmp,]
+  xy <- background[tmp,1:2]
   
   # --- 7. Append the query
   # --- 7.1. Feature table
