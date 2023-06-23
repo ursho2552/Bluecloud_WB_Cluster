@@ -5,13 +5,11 @@
 #' @param FOLDER_NAME name of the corresponding folder
 #' @param SUBFOLDER_NAME list of sub_folders to parallelize on.
 #' @param OUTLIER if TRUE, remove outliers
-#' @param MESS if TRUE, performs a MESS analysis that is stored in the query
 #' @return Updates the output in a QUERY.RData and CALL.Rdata files
 
 query_check <- function(FOLDER_NAME = NULL,
                         SUBFOLDER_NAME = NULL,
-                        OUTLIER = TRUE,
-                        MESS = TRUE){
+                        OUTLIER = TRUE){
   
   # --- 1. Initialize function
   # --- 1.1. Start logs - append file
@@ -40,20 +38,17 @@ query_check <- function(FOLDER_NAME = NULL,
   } # END if outlier TRUE
   
   # --- 3. MESS analysis
-  # TO FIX : probably have to move that to the training set to be more accurate ?
-  if(MESS == TRUE){
-    # --- 3.1. Load necessary data
-    features <- stack(paste0(project_wd, "/data/features_mean_from_monthly")) %>% 
-      readAll() %>% 
-      raster::subset(CALL$ENV_VAR)
-    
-    # --- 3.2. Compute the mess analysis
-    tmp <- QUERY$X %>% dplyr::select(all_of(CALL$ENV_VAR))
-    r_mess <- dismo::mess(x = features, v = tmp, full = FALSE)
-    
-    # --- 3.3. Append to query
-    QUERY$MESS <- r_mess
-  } # END if mess TRUE
+  # --- 3.1. Load necessary data
+  features <- stack(paste0(project_wd, "/data/features_mean_from_monthly")) %>% 
+    readAll() %>% 
+    raster::subset(CALL$ENV_VAR)
+  
+  # --- 3.2. Compute the mess analysis
+  tmp <- QUERY$X %>% dplyr::select(all_of(CALL$ENV_VAR))
+  r_mess <- dismo::mess(x = features, v = tmp, full = FALSE)
+  
+  # --- 3.3. Append to query
+  QUERY$MESS <- r_mess
   
   # --- 4. Wrap up and save
   # --- 4.1. Save file(s)

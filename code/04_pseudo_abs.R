@@ -53,16 +53,12 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
   # Here, we are using the MESS analysis to approximate environmental background
   # outside the environmental space of presence
   if(METHOD_PA == "env"){
-    if(is.null(QUERY$MESS)){
-      stop("env Pseudo-Absence generation requires a MESS analysis in the previous step \n")
-    } else {
       background <- QUERY$MESS
       background <- synchroniseNA(stack(background, r))[[1]] %>% 
         rasterToPoints() %>% 
         as.data.frame() %>% 
         dplyr::filter(mess < 0 & !is.na(mess)) %>% 
         dplyr::select(x, y)
-    }
   } # End if env
 
   # --- 4.2. Based on a geographical distance
@@ -86,9 +82,6 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
   
   # --- 4.3. Based on environmental enveloppe but biased by distance to presence
   if(METHOD_PA == "bias_env"){
-    if(is.null(QUERY$MESS)){
-      stop("env Pseudo-Absence generation requires a MESS analysis in the previous step \n")
-    } else {
       background <- QUERY$MESS
       background[background > -5] <- NA
       
@@ -102,14 +95,10 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
       background <- synchroniseNA(stack(weight, background))[[1]] %>% 
         rasterToPoints() %>% 
         as.data.frame()
-    }
   } # End if bias_env
   
   # 4.4. Random but biased by distance to presence
   if(METHOD_PA == "bias_random"){
-    if(is.null(QUERY$MESS)){
-      stop("env Pseudo-Absence generation requires a MESS analysis in the previous step \n")
-    } else {
       val <- QUERY$S %>% 
         dplyr::select(decimallongitude, decimallatitude)
       background <- rasterize(val, r, update=TRUE)
@@ -120,7 +109,6 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
       background <- synchroniseNA(stack(background, r))[[1]] %>% 
         rasterToPoints() %>% 
         as.data.frame()
-    }
   } # End if bias_env
   
   # 4.5. Random but biased by cumulative-distance to presence

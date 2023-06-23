@@ -15,7 +15,7 @@ rm(list=ls())
 closeAllConnections()
 setwd("/net/meso/work/aschickele/Bluecloud_WB_local")
 source(file = "./code/00_config.R")
-run_name <- "PA_test"
+run_name <- "PA_HP_test"
 
 # --- 1a. List the available species
 # Within the user defined selection criteria
@@ -41,7 +41,7 @@ run_init(FOLDER_NAME = run_name,
          ENV_PATH = "/net/meso/work/aschickele/Bluecloud_WB_local/data/features_monthly",
          ENV_COR = 0.8,
          NFOLD = 3,
-         FOLD_METHOD = "lon")
+         FOLD_METHOD = "kfold")
 
 # Define the list of sub folders to parallelize on
 subfolder_list <- list.dirs(paste0(project_wd, "/output/", run_name), full.names = FALSE, recursive = FALSE)
@@ -68,14 +68,13 @@ mcmapply(FUN = query_check,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
          OUTLIER = TRUE,
-         MESS = TRUE,
          mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
 # --- 4. Generate pseudo-absences if necessary -- BUG FIX : throw an error on some identical runs...
 mcmapply(FUN = pseudo_abs,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
-         METHOD_PA = "bias_random",
+         METHOD_PA = "cumdist_random",
          mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
 # --- 5. Generate split and re sampling folds
