@@ -4,7 +4,6 @@
 #' and selection criteria) in which the output will be saved.
 #' @description (2) initialize the global parameters of the run and stores them in
 #' a CALL object
-#' @description (3) checks for correlated environmental variables
 #' @param FOLDER_NAME name of the run folder we want to work in
 #' @param LOAD_FROM load a previous list_bio object from another folder to be
 #' duplicated in the new FOLDER_NAME. It avoids re-doing the initial list_bio step
@@ -91,46 +90,6 @@ run_init <- function(FOLDER_NAME = "test_run",
       save(QUERY, file = paste0(out_path, "/", i, "/QUERY.RData"))
     }
   } # if DATA_TYPE and SOURCE
-  
-  # --- 4. Environmental variable correlation check
-  # Removing correlated environmental variables to avoid correlated model features
-  if(is.numeric(ENV_COR) == TRUE){
-    # --- 5.1. Open raster as data frame
-    features <- stack(paste0(project_wd, "/data/features_mean_from_monthly")) %>% 
-      readAll() %>% 
-      rasterToPoints() %>% 
-      as.data.frame() %>% 
-      dplyr::select(-c(x, y)) %>% 
-      tidyr::drop_na()
-    
-    # --- 5.2. Check correlation/distance between variables
-    features_dist <- cor(features) %>% as.dist()
-    
-    # --- 5.3. Do a clustering and cut
-    features_clust <- hclust(-features_dist) # dist = 1/cor
-    features_group <- cutree(features_clust, h = -ENV_COR)
-    
-    # --- 5.4. Plot the corresponding dentrogram
-    pdf(paste0(project_wd, "/output/", FOLDER_NAME, "/env_cor.pdf"))
-    plot(features_clust)
-    abline(h = -ENV_COR, col = "red")
-    dev.off()
-    
-    # --- 5.5. Randomly choose one variable within each inter-correlated clusters
-    features_keep <- features_group
-    for(i in 1:max(features_group)){
-      tmp <- which(features_group == i)
-      if(length(tmp) > 1){
-        message(paste("--- ENV_COR : Cluster", i, ": Keeping", names(tmp[1])))
-        tmp <- tmp[-1]
-        message(paste("--- ENV_COR : Cluster", i, ": Removing", names(tmp)))
-        features_keep <- features_keep[-tmp]
-      }
-    }
-    
-    # --- 5.6. Update ENV_VAR
-    ENV_VAR <- names(features_keep)
-  } # END if env_cor TRUE
   
   # --- 6. Update CALL object
   # --- 6.1. Append CALL with DATA_TYPE

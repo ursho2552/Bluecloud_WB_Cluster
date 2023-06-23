@@ -31,7 +31,7 @@ hyperparameter <- function(FOLDER_NAME = NULL,
                                   min_n = tune())
   
   # --- 2.1.2. Define the grid according to built in functions
-  HP$RF$model_grid <- grid_regular(mtry(range = c(1, length(CALL$ENV_VAR))),
+  HP$RF$model_grid <- grid_regular(mtry(range = c(1, length(QUERY$SUBFOLDER_INFO$ENV_VAR))),
                                    trees(range = c(200, 1000)),
                                    min_n(range = c(5, ceiling(CALL$SAMPLE_SELECT$MIN_SAMPLE*0.3))),
                                    levels = LEVELS)

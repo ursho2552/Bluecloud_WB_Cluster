@@ -18,7 +18,7 @@ model_pres <- function(CALL,
                        MODEL_LIST){
   
   # --- 1. Define formula common to the model workflows
-  tmp <- CALL$ENV_VAR %>% paste(collapse = " + ")
+  tmp <- QUERY$SUBFOLDER_INFO$ENV_VAR %>% paste(collapse = " + ")
   formula <- paste0("measurementvalue ~ ", tmp) %>% as.formula()
   
   # --- 2. Loop with all selected models

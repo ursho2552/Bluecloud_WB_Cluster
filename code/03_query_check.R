@@ -37,14 +37,55 @@ query_check <- function(FOLDER_NAME = NULL,
     }
   } # END if outlier TRUE
   
+  # --- 2. Environmental variable correlation check
+  # Removing correlated environmental variables to avoid correlated model features
+  if(is.numeric(CALL$ENV_COR) == TRUE){
+    # --- 2.1. Opening environmental value at presence points
+    features <- QUERY$X
+    
+    # --- 2.2. Check correlation/distance between variables
+    features_dist <- cor(features, method = "pearson")
+    features_dist <- as.dist(1-abs(features_dist))
+    
+    # --- 2.3. Do a clustering and cut
+    features_clust <- hclust(features_dist) %>% as.dendrogram()
+    features_group <- cutree(features_clust, h = 1-CALL$ENV_COR)
+    
+    # --- 2.6. Randomly choose one variable within each inter-correlated clusters
+    features_keep <- features_group
+    for(i in 1:max(features_group)){
+      tmp <- which(features_group == i)
+      if(length(tmp) > 1){
+        message(paste("--- ENV_COR : Cluster", i, ": Keeping", names(tmp[1]), "\n"))
+        tmp <- tmp[-1]
+        message(paste("--- ENV_COR : Cluster", i, ": Removing", names(tmp), "\n"))
+        features_keep <- features_keep[-tmp]
+      }
+    }
+    
+    # --- 2.5. Plot the corresponding dentrogram
+    pdf(paste0(project_wd, "/output/", FOLDER_NAME, "/", SUBFOLDER_NAME,"/env_cor.pdf"))
+    pal <- rep("red", length(features))
+    pal[get_leaves_attr(features_clust, "label") %in% names(features_keep)] <- "green"
+    labels_colors(features_clust) = pal
+    plot(features_clust, axes = FALSE, main = "Env. variable Pearson's correlation (r) at the sampling stations")
+    axis(side = 2, at = seq(0,1,0.2), labels = seq(1,0,-0.2), las = 1)
+    abline(h = seq(0,1,0.2), col = "gray50", lty = "dashed")
+    abline(h = 1-CALL$ENV_COR, col = "red")
+    dev.off()
+    
+    # --- 2.6. Update ENV_VAR
+    QUERY$SUBFOLDER_INFO$ENV_VAR <- names(features_keep)
+  } # END if env_cor TRUE
+  
   # --- 3. MESS analysis
   # --- 3.1. Load necessary data
   features <- stack(paste0(project_wd, "/data/features_mean_from_monthly")) %>% 
     readAll() %>% 
-    raster::subset(CALL$ENV_VAR)
+    raster::subset(QUERY$SUBFOLDER_INFO$ENV_VAR)
   
   # --- 3.2. Compute the mess analysis
-  tmp <- QUERY$X %>% dplyr::select(all_of(CALL$ENV_VAR))
+  tmp <- QUERY$X %>% dplyr::select(all_of(QUERY$SUBFOLDER_INFO$ENV_VAR))
   r_mess <- dismo::mess(x = features, v = tmp, full = FALSE)
   
   # --- 3.3. Append to query

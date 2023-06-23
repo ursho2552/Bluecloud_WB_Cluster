@@ -20,7 +20,7 @@ proj_cont <- function(QUERY,
   # --- 1. Load environmental data - TO FIX DYNAMICALLY
   features <- stack(paste0(project_wd, "/data/features_mean_from_monthly")) %>% 
     readAll() %>% 
-    raster::subset(CALL$ENV_VAR) %>% 
+    raster::subset(QUERY$SUBFOLDER_INFO$ENV_VAR) %>% 
     rasterToPoints() %>% 
     as.data.frame() %>% 
     dplyr::select(-c(x, y))
