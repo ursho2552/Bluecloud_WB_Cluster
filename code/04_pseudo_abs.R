@@ -20,7 +20,7 @@
 pseudo_abs <- function(FOLDER_NAME = NULL,
                        SUBFOLDER_NAME = NULL,
                        METHOD_PA = "env",
-                       NB_PA = 1000,
+                       NB_PA = NULL,
                        DIST_PA = 1000e3,
                        BACKGROUND_FILTER = NULL){
   
@@ -123,29 +123,56 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
     }
   } # End if bias_env
   
+  # 4.5. Random but biased by cumulative-distance to presence
+  if(METHOD_PA == "cumdist_random"){
+    presence <- QUERY$S %>% 
+      dplyr::select(decimallongitude, decimallatitude)
+    background <- r %>% rasterToPoints() %>% .[,1:2]
+    
+    cumdist <- pointDistance(presence, background, lonlat = TRUE) %>% 
+      apply(2, sum)
+    background <- r
+    background[!is.na(background)] <- cumdist
+    background <- (background/max(getValues(background), na.rm = TRUE)-1)*-1
+    
+    background <- synchroniseNA(stack(background, r))[[1]] %>% 
+      rasterToPoints() %>% 
+      as.data.frame()
+  } # End if bias_env
+  
   # --- 5. Additional background filter
   # TO UPDATE LATER
 
   # --- 6. Sample within the background data
+  # --- 6.1. Conditional sampling
   # Add a resample option if there is not enough background available
   if(ncol(background == 3)){
     if(nrow(background) < NB_PA){
       message(" PSEUDO-ABS : background too small, selection with replacement !")
-      tmp <- sample(x = 1:nrow(background), size = NB_PA, replace = TRUE, prob = background$layer)
+      tmp <- sample(x = 1:nrow(background), size = NB_PA, replace = TRUE, prob = background[,3]**2) # sqr the distance to bias more
     } else {
-      tmp <- sample(x = 1:nrow(background), size = NB_PA, prob = background$layer)
+      tmp <- sample(x = 1:nrow(background), size = NB_PA, prob = background[,3]**2) # sqr the distance to bias more
     } 
   } else {
     if(nrow(background) < NB_PA){
       message(" PSEUDO-ABS : background too small, selection with replacement !")
-      tmp <- sample(x = 1:nrow(background), size = NB_PA, replace = TRUE, prob = background$layer)
+      tmp <- sample(x = 1:nrow(background), size = NB_PA, replace = TRUE)
     } else {
-      tmp <- sample(x = 1:nrow(background), size = NB_PA, prob = background$layer)
+      tmp <- sample(x = 1:nrow(background), size = NB_PA)
     } 
   }
 
-  # Subset the background coordinates
+  # --- 6.2. Subset the background coordinates
   xy <- background[tmp,1:2]
+  # --- 6.3. Fast PDF to check the absences location
+  pdf(paste0(project_wd,"/output/",FOLDER_NAME,"/",SUBFOLDER_NAME,"/pseudo_abs.pdf"))
+  land <- r
+  land[is.na(land)] <- 9999
+  land[land != 9999] <- NA
+  plot(land, col = "antiquewhite4", legend=FALSE, main = "Presence - Pseudo Abs")
+  points(xy, col = "red", pch = 3)
+  points(QUERY$S$decimallongitude, QUERY$S$decimallatitude, col = "black", pch = 3)
+  dev.off()
   
   # --- 7. Append the query
   # --- 7.1. Feature table
