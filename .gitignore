@@ -2,7 +2,7 @@
 .Rhistory
 .RData
 .Ruserdata
-.job.R
+job.R
 *.csv
 *.txt
 *.feather

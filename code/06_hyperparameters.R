@@ -78,7 +78,7 @@ hyperparameter <- function(FOLDER_NAME = NULL,
                            hidden_units = tune(),
                            penalty = tune(),
                            dropout = NULL,
-                           epochs = 5,
+                           epochs = 10,
                            activation = NULL,
                            learn_rate = 1e-2)
   
