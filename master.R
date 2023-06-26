@@ -63,18 +63,18 @@ subfolder_list <- mcmapply(FUN = query_env,
   na.omit(subfolder_list) %>% 
   as.vector()
 
-# --- 3. Outliers and MESS check - to put as mandatory checks ?
+# --- 3. Generate pseudo-absences if necessary
+mcmapply(FUN = pseudo_abs,
+         FOLDER_NAME = run_name,
+         SUBFOLDER_NAME = subfolder_list,
+         METHOD_PA = "cumdist",
+         mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
+
+# --- 4. Outliers, Environmental predictor and MESS check 
 mcmapply(FUN = query_check,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
          OUTLIER = TRUE,
-         mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
-
-# --- 4. Generate pseudo-absences if necessary -- BUG FIX : throw an error on some identical runs...
-mcmapply(FUN = pseudo_abs,
-         FOLDER_NAME = run_name,
-         SUBFOLDER_NAME = subfolder_list,
-         METHOD_PA = "cumdist_random",
          mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
 # --- 5. Generate split and re sampling folds
