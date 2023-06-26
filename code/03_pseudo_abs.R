@@ -96,7 +96,7 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
         rasterToPoints() %>% 
         as.data.frame()
     }
-  }
+  } # END if background_filter TRUE
 
   # --- 5. Sample within the background data
   # --- 5.1. Conditional sampling
@@ -119,12 +119,14 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
 
   # --- 5.2. Subset the background coordinates
   xy <- background[tmp,1:2]
+  
   # --- 5.3. Fast PDF to check the absences location
   pdf(paste0(project_wd,"/output/",FOLDER_NAME,"/",SUBFOLDER_NAME,"/pseudo_abs.pdf"))
   land <- r
   land[is.na(land)] <- 9999
   land[land != 9999] <- NA
-  plot(land, col = "antiquewhite4", legend=FALSE, main = "Presence - Pseudo Abs")
+  plot(land, col = "antiquewhite4", legend=FALSE, main = "Presence - Pseudo Abs", 
+       sub = paste("NB_OBS :",  nrow(QUERY$S),"// NB_PA :", NB_PA, "// METHOD_PA :", METHOD_PA))
   points(xy, col = "red", pch = 3)
   points(QUERY$S$decimallongitude, QUERY$S$decimallatitude, col = "black", pch = 3)
   dev.off()
