@@ -15,7 +15,7 @@ rm(list=ls())
 closeAllConnections()
 setwd("/net/meso/work/aschickele/Bluecloud_WB_local")
 source(file = "./code/00_config.R")
-run_name <- "PA_HP_test"
+run_name <- "test_kfold"
 
 # --- 1a. List the available species
 # Within the user defined selection criteria
@@ -75,6 +75,7 @@ mcmapply(FUN = query_check,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
          OUTLIER = TRUE,
+         UNIVARIATE = TRUE,
          mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
 # --- 5. Generate split and re sampling folds
@@ -85,7 +86,7 @@ mcmapply(FUN = folds,
 
 # --- 6. Hyper parameters to train
 hyperparameter(FOLDER_NAME = run_name,
-               MODEL_LIST = c("GLM","GAM","RF","MLP"),
+               MODEL_LIST = c("GLM","GAM","RF","MLP","BRT","SVM"),
                LEVELS = 3)
 
 # --- 7. Model fit -- FIX : RF is very long for big data

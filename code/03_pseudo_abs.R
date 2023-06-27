@@ -26,6 +26,7 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
                        BACKGROUND_FILTER = NULL){
   
   # --- 1. Initialize function
+  set.seed(123)
   # --- 1.1. Start logs - append file
   sinkfile <- log_sink(FILE = file(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/log.txt"), open = "a"),
                        START = TRUE)

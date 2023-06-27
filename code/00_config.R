@@ -7,6 +7,7 @@ library(DALEXtra)
 library(parallel)
 library(abind) 
 library(caret)
+library(xgboost)
 
 # --- 1.2. Data table opening and storage
 library(RSQLite)
