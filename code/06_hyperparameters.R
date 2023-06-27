@@ -26,13 +26,11 @@ hyperparameter <- function(FOLDER_NAME = NULL,
   # --- 2.1.1. Define the model specifications
   HP$RF$model_spec <- rand_forest(mode = "regression",
                                   engine = "randomForest",
-                                  mtry = tune(),
                                   trees = tune(),
                                   min_n = tune())
   
   # --- 2.1.2. Define the grid according to built in functions
-  HP$RF$model_grid <- grid_regular(mtry(range = c(1, length(QUERY$SUBFOLDER_INFO$ENV_VAR))),
-                                   trees(range = c(200, 1000)),
+  HP$RF$model_grid <- grid_regular(trees(range = c(200, 1000)),
                                    min_n(range = c(5, ceiling(CALL$SAMPLE_SELECT$MIN_SAMPLE*0.3))),
                                    levels = LEVELS)
   
@@ -85,6 +83,32 @@ hyperparameter <- function(FOLDER_NAME = NULL,
   # --- 2.4.2. Define the grid according to built in functions
   HP$MLP$model_grid <- grid_regular(hidden_units(),
                                     penalty(),
+                                    levels = LEVELS)
+  
+  # --- 2.5. Boosted Regression Tree
+  # --- 2.5.1. Define the model specifications
+  HP$BRT$model_spec <- boost_tree(mode = "regression",
+                                  engine = "xgboost",
+                                  min_n = tune(),
+                                  tree_depth = tune(),
+                                  learn_rate = 1e-2,
+                                  stop_iter = 50)
+  
+  # --- 2.5.2. Define the grid according to built in functions
+  HP$BRT$model_grid <- grid_regular(min_n(range = c(5, ceiling(CALL$SAMPLE_SELECT$MIN_SAMPLE*0.3))),
+                                    tree_depth(range = c(3, 10)),
+                                    levels = LEVELS)
+  
+  # --- 2.6. Support Vector Machine
+  # --- 2.6.1. Define the model specifications
+  HP$SVM$model_spec <- svm_rbf(mode = "regression",
+                               engine = "kernlab",
+                               cost = tune(),
+                               rbf_sigma = tune())
+  
+  # --- 2.6.2. Define the grid according to built in functions
+  HP$SVM$model_grid <- grid_regular(cost(),
+                                    rbf_sigma(),
                                     levels = LEVELS)
   
   # --- 3. Hyper parameter selection
