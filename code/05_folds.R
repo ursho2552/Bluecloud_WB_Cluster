@@ -25,15 +25,22 @@ folds <- function(FOLDER_NAME = NULL,
   
   # --- 2.2. Do the initial split
   # --- 2.2.1. For univariate data - strata is possible so we do it
-  if(CALL$DATA_TYPE != "omic"){
+  if(CALL$FOLD_METHOD == "kfold" & CALL$DATA_TYPE != "omic"){
     init_split <- tmp %>% 
       initial_split(prop = 0.8,
                     strata = measurementvalue)
   }
   # --- 2.2.2. For multivariate data - strata is not possible
-  if(CALL$DATA_TYPE == "omic"){
+  if(CALL$FOLD_METHOD == "kfold" & CALL$DATA_TYPE == "omic"){
     init_split <- tmp %>% 
       initial_split(prop = 0.8)
+  }
+  
+  # --- 2.2.3. Longitudinal block re sampling
+  if(CALL$FOLD_METHOD == "lon"){
+    init_split <- tmp %>% 
+      group_initial_split(prop = 0.8,
+                          group = c(decimallongitude))
   }
   
   # --- 2.2.3. Append FOLD object
