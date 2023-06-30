@@ -15,7 +15,7 @@ rm(list=ls())
 closeAllConnections()
 setwd("/net/meso/work/aschickele/Bluecloud_WB_local")
 source(file = "./code/00_config.R")
-run_name <- "test_kfold"
+run_name <- "clump_test"
 
 # --- 1a. List the available species
 # Within the user defined selection criteria
@@ -26,9 +26,11 @@ list_bio <- list_bio_wrapper(FOLDER_NAME = run_name,
 # Define the list of species to consider
 # sp_list <- c("5820", "9760") # random OTU short selection
 sp_list <- list_bio %>% 
-  dplyr::filter(grepl("Thalassiosira ", scientificname)) %>% 
+  # dplyr::filter(grepl("Calanus | Calanoides ", scientificname)) %>%
+  dplyr::filter(grepl("Thalassiosira ", scientificname)) %>%
+  # dplyr::filter(grepl("Tripos ", scientificname)) %>% 
   dplyr::select(worms_id) %>% 
-  unique() %>% pull() # get all calanus like species
+  unique() %>% pull()
 
 # --- 1b. Create the output folder, initialize parallelisation and parameters
 # (1) Create an output folder containing all species-level runs, (2) Stores the 
@@ -41,7 +43,7 @@ run_init(FOLDER_NAME = run_name,
          ENV_PATH = "/net/meso/work/aschickele/Bluecloud_WB_local/data/features_monthly",
          ENV_COR = 0.8,
          NFOLD = 3,
-         FOLD_METHOD = "kfold")
+         FOLD_METHOD = "lon")
 
 # Define the list of sub folders to parallelize on
 subfolder_list <- list.dirs(paste0(project_wd, "/output/", run_name), full.names = FALSE, recursive = FALSE)
@@ -67,7 +69,8 @@ subfolder_list <- mcmapply(FUN = query_env,
 mcmapply(FUN = pseudo_abs,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
-         METHOD_PA = "cumdist",
+         METHOD_PA = "density",
+         PER_RANDOM = 0.25,
          mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
 # --- 4. Outliers, Environmental predictor and MESS check 
@@ -108,11 +111,12 @@ mcmapply(FUN = proj_wrapper,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
          N_BOOTSTRAP = 10,
+         CUT = 0.1,
          mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
 # --- 10. Output plots
 # Catch up the output list
-# subfolder_list <- list.files(paste0(project_wd, "/output/", run_name), recursive = TRUE, %>%  pattern = "standard_maps") %>% str_sub(1, -19)
+# subfolder_list <- list.files(paste0(project_wd, "/output/", run_name), recursive = TRUE, pattern = "standard_maps") %>% str_sub(1, -19)
 
 # --- 10.1. Standard maps per algorithms
 mcmapply(FUN = standard_maps,
