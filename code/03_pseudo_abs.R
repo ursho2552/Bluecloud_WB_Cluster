@@ -23,6 +23,7 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
                        METHOD_PA = "cumdist",
                        NB_PA = NULL,
                        DIST_PA = 1000e3,
+                       PER_RANDOM = 0.25,
                        BACKGROUND_FILTER = NULL){
   
   # --- 1. Initialize function
@@ -87,6 +88,27 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
       rasterToPoints() %>% 
       as.data.frame()
   } # End if bias_env
+  
+  # --- 3.3. Density of presence within a buffer
+  if(METHOD_PA == "density"){
+    # --- 3.3.1. Extract presence points
+    presence <- QUERY$S %>% 
+      dplyr::select(decimallongitude, decimallatitude) %>% 
+      rasterize(r)
+    presence[!is.na(presence)] <- 1
+    
+    # --- 3.3.2. Compute density
+    focal_w <- focalWeight(r, 20, type = "Gauss")
+    dens <- focal(presence, focal_w, fun = function(x){sum(x, na.rm = TRUE)}, pad = TRUE)
+    dens <- (dens/max(getValues(dens), na.rm = TRUE)*(1-PER_RANDOM))+PER_RANDOM # try to get a fix random PA generation
+    dens[!is.na(presence)] <- NA
+    plot(dens)
+    
+    # --- 3.3.3. Define the weighted background raster
+    background <- synchroniseNA(stack(dens, r))[[1]] %>% 
+      rasterToPoints() %>% 
+      as.data.frame()
+  } # End if density
   
   # --- 4. Additional background filter
   if(!is.null(BACKGROUND_FILTER)){
