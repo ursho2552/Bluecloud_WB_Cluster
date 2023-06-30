@@ -93,16 +93,17 @@ standard_maps <- function(FOLDER_NAME = NULL,
     r_cv <- r0 %>%
       setValues(val)
     r_cv[r_cv > 100] <- 100
+    r_cv[r_cv <= 0] <- 1e-10 # temporary fix : modify bivarmap so that 0 is included
 
     # --- 4.1.3. MESS
     r_mess <- QUERY$MESS*-1
-    r_mess[r_mess<0] <- NA
+    r_mess[r_mess<0] <- 1e-10 # temporary fix : modify bivarmap so that 0 is included
     r_mess[r_mess>100] <- 100
 
     # --- 4.2. Plot the corresponding maps
     # --- 4.2.1. Plot the abundance
     # Abundance or habitat suitability values
-    plot(r_m, col = hsi_pal, legend=FALSE,
+    plot(r_m, col = hsi_pal[max(1, floor(r_m@data@min*100)):min(100, ceiling(r_m@data@max*100))], legend=FALSE,
          main = paste("Average proj. for", i, names(MODEL[[i]][["eval"]][[1]])))
     # Land mask
     plot(land, col = "antiquewhite4", legend=FALSE, add = TRUE)
@@ -147,11 +148,12 @@ standard_maps <- function(FOLDER_NAME = NULL,
     r_cv <- r0 %>%
       setValues(val)
     r_cv[r_cv > 100] <- 100
+    r_cv[r_cv <= 0] <- 1e-10 # temporary fix : modify bivarmap so that 0 is included
 
     # --- 5.3. Plot the corresponding maps
     # --- 5.3.1. Plot the abundance
     # Abundance or habitat suitability values
-    plot(r_m, col = hsi_pal, legend=FALSE,
+    plot(r_m, col = hsi_pal[max(1, floor(r_m@data@min*100)):min(100, ceiling(r_m@data@max*100))], legend=FALSE,
          main = "Average Ensemble proj.")
     # Land mask
     plot(land, col = "antiquewhite4", legend=FALSE, add = TRUE)
