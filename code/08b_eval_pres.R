@@ -93,16 +93,16 @@ eval_pres <- function(QUERY,
   for(i in MODEL$CALL$MODEL_LIST){
     # --- 3.1. Based on model performance
     # Fixed at 0.3 for CBI value or NA (in case of a 0 & 1 binary model prediction)
-    if(MODEL[[i]][["eval"]][["CBI"]] < 0.3 | is.na(MODEL[[i]][["eval"]][["CBI"]])){
+    if(MODEL[[i]][["eval"]][["CBI"]] < 0.5 | is.na(MODEL[[i]][["eval"]][["CBI"]])){
       MODEL$CALL$MODEL_LIST <- MODEL$CALL$MODEL_LIST[MODEL$CALL$MODEL_LIST != i]
-      message(paste("--- EVAL : discarded", i, "due to CBI =", MODEL[[i]][["eval"]][["CBI"]], "< 0.3 \n"))
+      message(paste("--- EVAL : discarded", i, "due to CBI =", MODEL[[i]][["eval"]][["CBI"]], "< 0.5 \n"))
     }
     
     # --- 3.2. Based on cumulative variable importance
     # Fixed at 30% cumulative importance for the top three predictors
-    if(MODEL[[i]][["eval"]][["CUM_VIP"]] < 30 | is.na(MODEL[[i]][["eval"]][["CUM_VIP"]])){
+    if(MODEL[[i]][["eval"]][["CUM_VIP"]] < 50 | is.na(MODEL[[i]][["eval"]][["CUM_VIP"]])){
       MODEL$CALL$MODEL_LIST <- MODEL$CALL$MODEL_LIST[MODEL$CALL$MODEL_LIST != i]
-      message(paste("--- EVAL : discarded", i, "due to CUM_VIP =", MODEL[[i]][["eval"]][["CBI"]], "< 50% \n"))
+      message(paste("--- EVAL : discarded", i, "due to CUM_VIP =", MODEL[[i]][["eval"]][["CUM_VIP"]], "< 50% \n"))
     }
   } # for each model loop
   
