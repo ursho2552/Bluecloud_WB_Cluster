@@ -18,7 +18,8 @@
 proj_wrapper <- function(FOLDER_NAME = NULL,
                          SUBFOLDER_NAME = NULL,
                          N_BOOTSTRAP = 10,
-                         PROJ_PATH = NULL){
+                         PROJ_PATH = NULL,
+                         CUT = NULL){
   
   # --- 1. Initialize function
   # --- 1.1. Start logs - append file
@@ -40,7 +41,8 @@ proj_wrapper <- function(FOLDER_NAME = NULL,
     MODEL <- proj_pres(QUERY = QUERY,
                        MODEL = MODEL,
                        CALL = CALL,
-                       N_BOOTSTRAP = N_BOOTSTRAP)
+                       N_BOOTSTRAP = N_BOOTSTRAP,
+                       CUT = CUT)
   } # END if pres
   
   # --- 3. Redirection to the CONTINUOUS model projections
