@@ -78,7 +78,7 @@ hyperparameter <- function(FOLDER_NAME = NULL,
                            dropout = NULL,
                            epochs = 10,
                            activation = NULL,
-                           learn_rate = 1e-2)
+                           learn_rate = 1e-1)
   
   # --- 2.4.2. Define the grid according to built in functions
   HP$MLP$model_grid <- grid_regular(hidden_units(),
@@ -91,7 +91,7 @@ hyperparameter <- function(FOLDER_NAME = NULL,
                                   engine = "xgboost",
                                   min_n = tune(),
                                   tree_depth = tune(),
-                                  learn_rate = 1e-2,
+                                  learn_rate = 1e-1,
                                   stop_iter = 50)
   
   # --- 2.5.2. Define the grid according to built in functions
