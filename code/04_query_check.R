@@ -128,7 +128,16 @@ query_check <- function(FOLDER_NAME = NULL,
     raster::subset(QUERY$SUBFOLDER_INFO$ENV_VAR)
   
   # --- 4.2. Compute the mess analysis
+  # --- 4.2.1. Load environmental samples data
   tmp <- QUERY$X %>% dplyr::select(all_of(QUERY$SUBFOLDER_INFO$ENV_VAR))
+  
+  # --- 4.2.2. Remove the pseudo-absences from the analysis
+  # We should not consider them as true input data as they are user defined
+  if(CALL$DATA_TYPE == "pres"){
+    tmp <- tmp[which(QUERY$Y != 0),]
+  } # if pres remove pseudo abs
+  
+  # --- 4.2.3. Analysis
   r_mess <- dismo::mess(x = features, v = tmp, full = FALSE)
   
   # --- 4.3. Append to query
