@@ -104,7 +104,9 @@ standard_maps <- function(FOLDER_NAME = NULL,
     # --- 4.2.1. Plot the abundance
     # Abundance or habitat suitability values
     plot(r_m, col = hsi_pal[max(1, floor(r_m@data@min*100)):min(100, ceiling(r_m@data@max*100))], legend=FALSE,
-         main = paste("Average proj. for", i, names(MODEL[[i]][["eval"]][[1]])))
+         main = paste("Average proj. for", i, names(MODEL[[i]][["eval"]][[1]]), "\n", 
+                      names(MODEL[[i]][["eval"]])[1], "=", MODEL[[i]][["eval"]][[1]]))
+    
     # Land mask
     plot(land, col = "antiquewhite4", legend=FALSE, add = TRUE)
 
@@ -134,9 +136,8 @@ standard_maps <- function(FOLDER_NAME = NULL,
     y_ens <- NULL
     for(i in MODEL$CALL$MODEL_LIST){
       y_ens <- cbind(y_ens,
-                     MODEL[[i]][["proj"]][["y_hat"]]*MODEL[[i]][["eval"]][[1]])
+                     MODEL[[i]][["proj"]][["y_hat"]])
     }
-    y_ens <- y_ens/max(y_ens, na.rm = TRUE)
     # --- 5.2. Compute the different layers
     # --- 5.2.1. Mean value
     val <- apply(y_ens, 1, function(x)(x = mean(x, na.rm = TRUE)))

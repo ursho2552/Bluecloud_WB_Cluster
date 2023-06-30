@@ -112,9 +112,7 @@ eval_cont <- function(QUERY,
     
     for(i in MODEL$CALL$MODEL_LIST){
       # Concatenate eval-weighted raw variable importance
-      tmp <- var_imp[[i]][["Raw"]] %>% 
-        mutate(value = value * MODEL[[i]][["eval"]][[1]])
-      ens_imp <- rbind(ens_imp, tmp)
+      ens_imp <- rbind(ens_imp, var_imp[[i]][["Raw"]])
     } # End i model loop
     
     # --- 4.2. Further compute it as percentage

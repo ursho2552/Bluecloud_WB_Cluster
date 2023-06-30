@@ -24,9 +24,13 @@ eval_pres <- function(QUERY,
     y_hat <- final_fit$.pred
     
     # --- 1.3. Compute Continuous Boyce Index into MODELS object
+    # pearson and keeping duplicates seems more discriminating QC
     MODEL[[i]][["eval"]][["CBI"]] <- ecospat.boyce(fit = y_hat,
                                                    obs = y_hat[which(y == 1)],
-                                                   PEplot = FALSE) %>% 
+                                                   PEplot = FALSE,
+                                                   method = "spearman",
+                                                   rm.duplicate = TRUE,
+                                                   res = 1000) %>% 
       .$cor
   } # for each model loop
   
@@ -111,9 +115,7 @@ eval_pres <- function(QUERY,
     
     for(i in MODEL$CALL$MODEL_LIST){
       # Concatenate eval-weighted raw variable importance
-      tmp <- var_imp[[i]][["Raw"]] %>% 
-        mutate(value = value * MODEL[[i]][["eval"]][[1]])
-      ens_imp <- rbind(ens_imp, tmp)
+      ens_imp <- rbind(ens_imp, var_imp[[i]][["Raw"]])
     } # End i model loop
     
     # --- 4.2. Further compute it as percentage
