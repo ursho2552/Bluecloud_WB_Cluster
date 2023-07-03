@@ -42,12 +42,17 @@ hyperparameter <- function(FOLDER_NAME = NULL,
                                           select_features = TRUE) %>% 
       set_engine("mgcv",
                  family = stats::binomial(link = "logit")) %>% 
+      step_scale() %>% 
+      step_normalize() %>% 
       translate()
   } else {
     HP$GAM$model_spec <- gen_additive_mod(mode = "regression",
                                           engine = "mgcv",
                                           adjust_deg_free = tune(),
-                                          select_features = TRUE)
+                                          select_features = TRUE) %>% 
+      step_scale() %>% 
+      step_normalize() %>% 
+      translate()
   }
   
   # --- 2.2.2. Define the grid according to built in functions
@@ -60,10 +65,15 @@ hyperparameter <- function(FOLDER_NAME = NULL,
     HP$GLM$model_spec <- linear_reg(mode = "regression") %>% 
       set_engine("glm", 
                  family = stats::binomial(link = "logit")) %>% 
+      step_scale() %>% 
+      step_normalize() %>% 
       translate()
   } else {
     HP$GLM$model_spec <- linear_reg(mode = "regression",
-                                    engine = "glm")
+                                    engine = "glm") %>% 
+      step_scale() %>% 
+      step_normalize() %>% 
+      translate()
   }
 
   # --- 2.3.2. Define the grid according to built in functions
@@ -74,15 +84,17 @@ hyperparameter <- function(FOLDER_NAME = NULL,
   HP$MLP$model_spec <- mlp(mode = "regression",
                            engine = "nnet",
                            hidden_units = tune(),
-                           penalty = tune(),
-                           dropout = NULL,
-                           epochs = 10,
+                           penalty = 0.01,
+                           dropout = 0,
+                           epochs = 100,
                            activation = NULL,
-                           learn_rate = 1e-1)
+                           learn_rate = 1e-1) %>% 
+    step_scale() %>% 
+    step_normalize() %>% 
+    translate()
   
   # --- 2.4.2. Define the grid according to built in functions
   HP$MLP$model_grid <- grid_regular(hidden_units(),
-                                    penalty(),
                                     levels = LEVELS)
   
   # --- 2.5. Boosted Regression Tree
@@ -95,7 +107,7 @@ hyperparameter <- function(FOLDER_NAME = NULL,
                                   stop_iter = 50)
   
   # --- 2.5.2. Define the grid according to built in functions
-  HP$BRT$model_grid <- grid_regular(min_n(range = c(5, ceiling(CALL$SAMPLE_SELECT$MIN_SAMPLE*0.3))),
+  HP$BRT$model_grid <- grid_regular(min_n(range = c(2, ceiling(CALL$SAMPLE_SELECT$MIN_SAMPLE*0.3))),
                                     tree_depth(range = c(3, 10)),
                                     levels = LEVELS)
   
@@ -104,11 +116,16 @@ hyperparameter <- function(FOLDER_NAME = NULL,
   HP$SVM$model_spec <- svm_rbf(mode = "regression",
                                engine = "kernlab",
                                cost = tune(),
-                               rbf_sigma = tune())
+                               rbf_sigma = tune(),
+                               margin = tune()) %>% 
+    step_scale() %>% 
+    step_normalize() %>% 
+    translate()
   
   # --- 2.6.2. Define the grid according to built in functions
   HP$SVM$model_grid <- grid_regular(cost(),
                                     rbf_sigma(),
+                                    svm_margin(),
                                     levels = LEVELS)
   
   # --- 3. Hyper parameter selection
