@@ -63,22 +63,23 @@ pdp <- function(FOLDER_NAME = NULL,
       # --- 5.1. Compute
       tmp <- model_profile(explainer = explainer,
                            variables = names(features),
-                           N = NULL,
+                           N = 100,
                            type = "partial") 
       tmp <- tmp[["agr_profiles"]] %>% 
         dplyr::select(-"_label_", -"_ids_")
       
       # --- 5.2. Save in the model-level object
       names(tmp) <- c("var","x","yhat") # Clean naming
-      pdp_m <- rbind(pdp_m, tmp)
+      if(j == 1){pdp_m <- tmp} 
+      else {pdp_m <- cbind(pdp_m, tmp$yhat)}
     } # End j bootstrap loop
     
     # --- 6. Compute mean and coefficient of variation
     # --- 6.1. Compute
-    pdp_m <- pdp_m %>% 
-      group_by(var, x) %>% 
-      summarise(y_hat_m = mean(yhat),
-                y_hat_cv = cv(yhat))
+    tmp_m <- apply(pdp_m[,-c(1,2)], 1, mean)
+    tmp_cv <- apply(pdp_m[,-c(1,2)], 1, cv)
+    pdp_m <- cbind(pdp_m[,c(1,2)], tmp_m, tmp_cv)
+    names(pdp_m) <- c("var","x","y_hat_m","y_hat_cv")
     
     # --- 6.2. Save in an all_pdp object
     pdp_all[[i]] <- pdp_m
@@ -95,27 +96,27 @@ pdp <- function(FOLDER_NAME = NULL,
   pal <- c(brewer.pal(length(MODEL$CALL$MODEL_LIST), "Spectral"), "black")
   
   # --- 8.2. Iteratively compute the plots itself
-  for(i in 1:length(features)){
+  for(i in names(features)){
     for(j in 1:length(MODEL$CALL$MODEL_LIST)){
       # --- 8.2.1. Prepare data table
       tmp <- pdp_all[[MODEL$CALL$MODEL_LIST[j]]] %>% 
-        dplyr::filter(var == names(features)[i])
+        dplyr::filter(var == i)
       
       # --- 8.2.2. Plot
       if(j == 1){
         plot(tmp$x, tmp$y_hat_m, type = 'l', ylim = c(0,1), lwd = 1, col = pal[j],
-             xlab = "", ylab = "", main = names(features)[i])
+             xlab = "", ylab = "", main = i)
         polygon(x = c(tmp$x, rev(tmp$x)),
                 y = c(tmp$y_hat_m-tmp$y_hat_m*tmp$y_hat_cv/100, rev(tmp$y_hat_m+tmp$y_hat_m*tmp$y_hat_cv/100)),
-                col = alpha(pal[j], 0.3), border = NA)
+                col = scales::alpha(pal[j], 0.3), border = NA)
         mtext(side = 4, at = tail(tmp$y_hat_m, 1), text = MODEL$CALL$MODEL_LIST[j], col = pal[j], padj = 0.5, las = 1, cex = 0.6)
         grid(col = "gray20")
       } else {
         lines(tmp$x, tmp$y_hat_m, type = 'l', ylim = c(0,1), lwd = 1, col = pal[j],
-             xlab = "", ylab = "", main = names(features)[i])
+             xlab = "", ylab = "", main = i)
         polygon(x = c(tmp$x, rev(tmp$x)),
                 y = c(tmp$y_hat_m-tmp$y_hat_m*tmp$y_hat_cv/100, rev(tmp$y_hat_m+tmp$y_hat_m*tmp$y_hat_cv/100)),
-                col = alpha(pal[j], 0.3), border = NA)
+                col = scales::alpha(pal[j], 0.3), border = NA)
         mtext(side = 4, at = tail(tmp$y_hat_m, 1), text = MODEL$CALL$MODEL_LIST[j], col = pal[j], padj = 0.5, las = 1, cex = 0.6)
       } # End if
     } # End j model loop
