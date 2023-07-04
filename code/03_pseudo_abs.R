@@ -144,7 +144,7 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
   xy <- background[tmp,1:2]
   
   # --- 5.3. Fast PDF to check the absences location
-  pdf(paste0(project_wd,"/output/",FOLDER_NAME,"/",SUBFOLDER_NAME,"/pseudo_abs.pdf"))
+  pdf(paste0(project_wd,"/output/",FOLDER_NAME,"/",SUBFOLDER_NAME,"/01_pseudo_abs.pdf"))
   land <- r
   land[is.na(land)] <- 9999
   land[land != 9999] <- NA

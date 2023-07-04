@@ -62,7 +62,7 @@ query_check <- function(FOLDER_NAME = NULL,
         dplyr::select(var, Overall) %>% 
         mutate(var = fct_reorder(as.factor(var), Overall, .desc = TRUE))
       
-      pdf(paste0(project_wd, "/output/", FOLDER_NAME, "/", SUBFOLDER_NAME,"/univariate_predictor_selection.pdf"))
+      pdf(paste0(project_wd, "/output/", FOLDER_NAME, "/", SUBFOLDER_NAME,"/02_univariate_predictor_selection.pdf"))
       par(mfrow = c(2,1))
       # --- Variable importance
       boxplot(rfe_vip$Overall ~ rfe_vip$var, main = "Univariate predictor importance", 
@@ -107,7 +107,7 @@ query_check <- function(FOLDER_NAME = NULL,
     }
     
     # --- 3.5. Plot the corresponding dentrogram
-    pdf(paste0(project_wd, "/output/", FOLDER_NAME, "/", SUBFOLDER_NAME,"/env_cor.pdf"))
+    pdf(paste0(project_wd, "/output/", FOLDER_NAME, "/", SUBFOLDER_NAME,"/03_env_cor.pdf"))
     pal <- rep("red", length(features))
     pal[get_leaves_attr(features_clust, "label") %in% names(features_keep)] <- "green"
     labels_colors(features_clust) = pal

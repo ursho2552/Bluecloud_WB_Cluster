@@ -24,14 +24,14 @@ eval_pres <- function(QUERY,
     y_hat <- final_fit$.pred
     
     # --- 1.3. Compute Continuous Boyce Index into MODELS object
-    # pearson and keeping duplicates seems more discriminating QC
     MODEL[[i]][["eval"]][["CBI"]] <- ecospat.boyce(fit = y_hat,
                                                    obs = y_hat[which(y == 1)],
                                                    PEplot = FALSE,
                                                    method = "spearman",
                                                    rm.duplicate = TRUE,
-                                                   res = 1000) %>% 
+                                                   res = 100) %>%
       .$cor
+    
   } # for each model loop
   
   # --- 2. Variable importance - algorithm level

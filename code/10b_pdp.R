@@ -19,7 +19,7 @@ pdp <- function(FOLDER_NAME = NULL,
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/MODEL.RData"))
   
   # --- 1.2. Create PDF saving
-  pdf(paste0(project_wd,"/output/",FOLDER_NAME,"/",SUBFOLDER_NAME,"/pdp.pdf"))
+  pdf(paste0(project_wd,"/output/",FOLDER_NAME,"/",SUBFOLDER_NAME,"/06_pdp.pdf"))
   
   # --- 2. Define bootstraps
   # --- 2.1. Re-assemble all query tables

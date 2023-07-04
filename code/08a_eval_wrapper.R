@@ -26,7 +26,7 @@ eval_wrapper <- function(FOLDER_NAME = NULL,
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/MODEL.RData"))
   
   # --- 1.3. Start PDF saving - variable importance
-  pdf(paste0(project_wd,"/output/",FOLDER_NAME,"/",SUBFOLDER_NAME,"/variable_importance.pdf"))
+  pdf(paste0(project_wd,"/output/",FOLDER_NAME,"/",SUBFOLDER_NAME,"/04_variable_importance.pdf"))
   
   # --- 2. Redirection to PRESENCE model evaluation
   if(CALL$DATA_TYPE == "pres"){

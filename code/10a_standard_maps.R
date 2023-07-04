@@ -23,7 +23,7 @@ standard_maps <- function(FOLDER_NAME = NULL,
   }
   
   # --- 1.3. Create PDF saving
-  pdf(paste0(project_wd,"/output/",FOLDER_NAME,"/",SUBFOLDER_NAME,"/standard_maps.pdf"))
+  pdf(paste0(project_wd,"/output/",FOLDER_NAME,"/",SUBFOLDER_NAME,"/05_standard_maps.pdf"))
   
   # --- 1.4. Set initial plot layout & requirements
   par(mfrow = c(4,3), mar = c(2,2,4,1))
