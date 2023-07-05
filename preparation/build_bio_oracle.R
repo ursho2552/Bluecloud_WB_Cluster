@@ -17,6 +17,7 @@ build_bio_oracle <- function(OUT_PATH = "/net/meso/work/aschickele/Bluecloud_WB_
   library(sdmpredictors)
   library(tidyverse)
   library(raster)
+  library(virtualspecies)
   
   # --- 2. List all available layer names in Bio-ORACLE
   # Further selection can be done in the pipeline with ENV_VAR
@@ -34,6 +35,7 @@ build_bio_oracle <- function(OUT_PATH = "/net/meso/work/aschickele/Bluecloud_WB_
   # --- 4. Re-grid to the desired resolution
   message(paste(Sys.time(), "--- Bio-ORACLE : Re-gridding the raster"))
   env_r <- aggregate(env_r, fact = c(RES/res(env_r), 1), fun = mean, na.rm = TRUE)
+  env_r <- synchroniseNA(env_r)
   
   # --- 5. Save in the desired output
   writeRaster(env_r, OUT_PATH, overwrite = FALSE)
