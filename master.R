@@ -15,7 +15,7 @@ rm(list=ls())
 closeAllConnections()
 setwd("/net/meso/work/aschickele/Bluecloud_WB_local")
 source(file = "./code/00_config.R")
-run_name <- "clump_test"
+run_name <- "bio_oracle_test"
 
 # --- 1a. List the available species
 # Within the user defined selection criteria
@@ -28,7 +28,7 @@ list_bio <- list_bio_wrapper(FOLDER_NAME = run_name,
 sp_list <- list_bio %>% 
   # dplyr::filter(grepl("Calanus | Calanoides ", scientificname)) %>%
   dplyr::filter(grepl("Thalassiosira ", scientificname)) %>%
-  # dplyr::filter(grepl("Tripos ", scientificname)) %>% 
+  # dplyr::filter(grepl("Tripos ", scientificname)) %>%
   dplyr::select(worms_id) %>% 
   unique() %>% pull()
 
@@ -40,7 +40,7 @@ run_init(FOLDER_NAME = run_name,
          LOAD_FROM = NULL,
          DATA_TYPE = "pres",
          ENV_VAR = NULL,
-         ENV_PATH = "/net/meso/work/aschickele/Bluecloud_WB_local/data/features_monthly",
+         ENV_PATH = "/net/meso/work/aschickele/Bluecloud_WB_local/data/bio_oracle",
          ENV_COR = 0.8,
          NFOLD = 3,
          FOLD_METHOD = "lon")
@@ -89,7 +89,7 @@ mcmapply(FUN = folds,
 
 # --- 6. Hyper parameters to train
 hyperparameter(FOLDER_NAME = run_name,
-               MODEL_LIST = c("GLM","GAM","RF","MLP","BRT","SVM"),
+               MODEL_LIST = c("GLM","GAM","RF","MLP","SVM"),
                LEVELS = 3)
 
 # --- 7. Model fit -- FIX : RF is very long for big data
@@ -115,9 +115,6 @@ mcmapply(FUN = proj_wrapper,
          mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
 # --- 10. Output plots
-# Catch up the output list
-# subfolder_list <- list.files(paste0(project_wd, "/output/", run_name), recursive = TRUE, pattern = "standard_maps") %>% str_sub(1, -19)
-
 # --- 10.1. Standard maps per algorithms
 mcmapply(FUN = standard_maps,
          FOLDER_NAME = run_name,
