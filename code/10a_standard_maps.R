@@ -27,7 +27,7 @@ standard_maps <- function(FOLDER_NAME = NULL,
   
   # --- 1.4. Set initial plot layout & requirements
   par(mfrow = c(4,3), mar = c(2,2,4,1))
-  r0 <- raster(paste0(project_wd, "/data/features_mean_from_monthly"))
+  r0 <- raster(CALL$ENV_PATH)
   
   # --- 1.5 Land mask
   land <- r0

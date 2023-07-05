@@ -23,10 +23,8 @@ query_env <- function(FOLDER_NAME = NULL,
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))
   
   # --- 2. Open features gridded data and names
-  # /!\ To change later for a direct query in a .nc file : avoid 2 different raster files
-  features <- brick(CALL$ENV_PATH) %>% readAll()
-  features_name <- brick(paste0(project_wd, "/data/features_mean_from_monthly")) %>% 
-    names()
+  features <- stack(CALL$ENV_PATH) %>% readAll()
+  features_name <- features %>% names()
 
   # --- 3. Re-grid sample on the raster resolution and filter
   # (1) The cell centers are at .5, thus it is re-gridded to the nearest .5 value
@@ -39,22 +37,23 @@ query_env <- function(FOLDER_NAME = NULL,
     mutate(decimallongitude = round(decimallongitude+0.5*res, digits = digit)-0.5*res)
 
   # --- 4. Select one sample per group of identical coordinates x month
-  # Among each group of identical lat, long and month, one random point is selected
+  # Among each group of identical lat and long, concatenates description
+  # Updates the ID as the previous one is overwritten (we do not keep the raw data)
   S <- sample %>%
     dplyr::select(-names(QUERY$Y)) %>%
-    group_by(decimallongitude, decimallatitude, month) %>%
-    slice_sample(n = 1) %>%
-    dplyr::ungroup()
-
+    group_by(decimallongitude, decimallatitude) %>%
+    reframe(across(everything(), ~ str_flatten(unique(.x), collapse = ";"))) %>% 
+    mutate(ID = row_number())
+  
   # --- 5. Average measurement value per group of identical coordinates x month
-  # Summarize(across()) is not working in mcmapply... going the ugly way
+  # The corresponding biological value is averaged across all samples of identical lat and long
   Y0 <- sample %>% 
-    dplyr::select(decimallongitude, decimallatitude, month, names(QUERY$Y)) 
+    dplyr::select(decimallongitude, decimallatitude, names(QUERY$Y)) 
   
   Y <- NULL
   for(n in 1:nrow(S)){
     tmp <- Y0 %>% 
-      inner_join(S[n,], by = c("decimallongitude", "decimallatitude", "month")) %>% 
+      inner_join(S[n,], by = c("decimallongitude", "decimallatitude")) %>% 
       dplyr::select(names(QUERY$Y))
     tmp <- apply(tmp, 2, mean)
     Y <- rbind(Y, tmp)
@@ -65,18 +64,16 @@ query_env <- function(FOLDER_NAME = NULL,
   # If there is an NA, extract from nearest non-NA cells
   X <- NULL
   for(j in 1:nrow(S)){
-    id <- grep(pattern = S$month[j], names(features))
     xy <- S[j,] %>% dplyr::select(x = decimallongitude, y = decimallatitude)
 
-    # toto <- brick(features[[id]]) # features[[id]] changes the class to stack
-    tmp <- raster::extract(features[[id]], xy) %>%
+    tmp <- raster::extract(features, xy) %>%
       as.data.frame()
 
     if(is.na(sum(tmp))){
-      r_dist <- distanceFromPoints(features[[id]], xy) # Compute distance to NA point
+      r_dist <- distanceFromPoints(features, xy) # Compute distance to NA point
       r_dist <- synchroniseNA(stack(r_dist, features[[1]]))[[1]] # Synchronize NA
       min_dist <- which.min(getValues(r_dist)) # Get closest non-NA point ID
-      tmp <- features[[id]][min_dist] %>%
+      tmp <- features[min_dist] %>%
         as.data.frame()
     }
 

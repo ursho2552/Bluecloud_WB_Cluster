@@ -39,7 +39,7 @@ eval_cont <- function(QUERY,
   
   # --- 2.1.2. Model related data
   features <- QUERY$FOLDS$train %>% 
-    dplyr::select(all_of(names(QUERY$X)))
+    dplyr::select(all_of(QUERY$SUBFOLDER_INFO$ENV_VAR))
   target <- QUERY$FOLDS$train %>% 
     dplyr::select(measurementvalue)
   

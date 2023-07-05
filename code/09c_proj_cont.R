@@ -15,10 +15,11 @@ proj_cont <- function(QUERY,
                       MODEL,
                       CALL,
                       N_BOOTSTRAP,
-                      PROJ_PATH = NULL){
+                      PROJ_PATH = NULL,
+                      CUT = NULL){
   
   # --- 1. Load environmental data - TO FIX DYNAMICALLY
-  features <- stack(paste0(project_wd, "/data/features_mean_from_monthly")) %>% 
+  features <- stack(CALL$ENV_PATH) %>% 
     readAll() %>% 
     raster::subset(QUERY$SUBFOLDER_INFO$ENV_VAR) %>% 
     rasterToPoints() %>% 
@@ -61,7 +62,7 @@ proj_cont <- function(QUERY,
       dplyr::select(-row)
     
     # Open a raster to have the list of cells
-    r_val <- raster(paste0(project_wd, "/data/features_mean_from_monthly")) %>% 
+    r_val <- raster(CALL$ENV_PATH) %>% 
       getValues()
     
     # Assign the desired values to the non-NA cells in the list
@@ -71,11 +72,42 @@ proj_cont <- function(QUERY,
       x <- r
     })
     
-    # --- 6. Compute the average CV across bootstrap runs as a QC
+    
+    # --- 6. Cut spatial discontinuities
+    if(!is.null(CUT)){
+      r0 <- raster(CALL$ENV_PATH)
+      tmp <- apply(y_hat, 2, function(x){
+        # --- 6.1. Open presence data
+        xy <- QUERY$S %>% 
+          dplyr::select(decimallongitude, decimallatitude)
+        xy <- xy[which(QUERY$Y != 0),] # specific to presence data
+        
+        # --- 6.2. Cut y_hat
+        x[x < CUT] <- 0
+        r <- setValues(r0, x)
+        
+        # --- 6.3. Define patches and overlap with presence points
+        r_patch <- clump(r)
+        id_patch <- r_patch %>% 
+          raster::extract(xy) %>% unique() %>% 
+          .[!is.na(.)]
+        
+        # --- 6.4. Subset values from a patch overlapping with presences
+        r_patch[!(r_patch %in% id_patch)] <- 0
+        r_patch <- getValues(r_patch)
+        r_patch[r_patch > 0] <- 1
+        x <- x*r_patch
+        return(x)
+      })
+      y_hat <- tmp
+      
+    } # if CUT
+    
+    # --- 7. Compute the average CV across bootstrap runs as a QC
     AVG_CV <- apply(y_hat, 1, function(x)(x = cv(x, na.rm = TRUE))) %>% 
       mean(na.rm = TRUE)
     
-    # --- 7. Append the MODEL object
+    # --- 8. Append the MODEL object
     MODEL[[i]][["proj"]][["y_hat"]] <- y_hat
     MODEL[[i]][["eval"]][["AVG_CV"]] <- AVG_CV
     

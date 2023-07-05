@@ -19,7 +19,7 @@ proj_pres <- function(QUERY,
                       CUT = NULL){
   
   # --- 1. Load environmental data - TO FIX DYNAMICALLY
-  features <- stack(paste0(project_wd, "/data/features_mean_from_monthly")) %>% 
+  features <- stack(CALL$ENV_PATH) %>% 
     readAll() %>% 
     raster::subset(QUERY$SUBFOLDER_INFO$ENV_VAR) %>% 
     rasterToPoints() %>% 
@@ -62,7 +62,7 @@ proj_pres <- function(QUERY,
       dplyr::select(-row)
     
     # Open a raster to have the list of cells
-    r_val <- raster(paste0(project_wd, "/data/features_mean_from_monthly")) %>% 
+    r_val <- raster(CALL$ENV_PATH) %>% 
       getValues()
     
     # Assign the desired values to the non-NA cells in the list
@@ -74,7 +74,7 @@ proj_pres <- function(QUERY,
     
     # --- 6. Cut spatial discontinuities
     if(!is.null(CUT)){
-      r0 <- raster(paste0(project_wd, "/data/features_mean_from_monthly"))
+      r0 <- raster(CALL$ENV_PATH)
       tmp <- apply(y_hat, 2, function(x){
         # --- 6.1. Open presence data
         xy <- QUERY$S %>% 

@@ -44,8 +44,8 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
   } 
 
   # --- 2. Load features and create base raster
-  features <- stack(paste0(project_wd, "/data/features_mean_from_monthly")) %>% readAll()
-  r <- raster(paste0(project_wd, "/data/features_mean_from_monthly"))
+  features <- stack(CALL$ENV_PATH) %>% readAll()
+  r <- features[[1]]
   r[!is.na(r)] <- 0
   
   # --- 3. Background definition

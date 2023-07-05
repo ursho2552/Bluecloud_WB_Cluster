@@ -31,7 +31,7 @@ pdp <- function(FOLDER_NAME = NULL,
   
   # --- 2.3. Specify target and features names
   features <- QUERY$FOLDS$train %>% 
-    dplyr::select(all_of(names(QUERY$X)))
+    dplyr::select(all_of(QUERY$SUBFOLDER_INFO$ENV_VAR))
   target <- QUERY$FOLDS$train %>% 
     dplyr::select(measurementvalue)
   

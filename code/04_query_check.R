@@ -23,6 +23,10 @@ query_check <- function(FOLDER_NAME = NULL,
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))
   
+  # --- 1.3. Moving average function
+  # Short and only used here, thats why it is not in the function folder
+  ma <- function(x, n = 10){stats::filter(x, rep(1 / n, n), sides = 2)}
+  
   # --- 2. Outlier analysis
   # Outlier check on the query based on z-score (from Nielja code)
   if(OUTLIER == TRUE){
@@ -49,30 +53,43 @@ query_check <- function(FOLDER_NAME = NULL,
     } else{
       # --- 2.1. Initialize data and control parameters
       rfe_df <- cbind(QUERY$Y, QUERY$X)
-      rfe_control <- rfeControl(functions=rfFuncs, method="cv", number=10)
+      # Modify rfFuncs : we modify the selectSize code to use pickSizeBest instead of a 1.5 tolerance around the best
+      rfFuncs$selectSize <- function(...) pickSizeBest(...) # weird functioning :-)
+      rfe_control <- rfeControl(functions=rfFuncs, method="cv", number=10, rerank = TRUE)
       # --- 2.2. Run the RFE algorithm
       message(paste(Sys.time(), "--- UNIVARIATE : Fitting the RFE algorithm \n"))
       rfe_fit <- rfe(rfe_df[,-1], rfe_df[,1], sizes = c(1:ncol(rfe_df[,-1])), rfeControl = rfe_control)
-      # --- 2.3. Extract the relevant predictors
-      ENV_VAR <- caret::predictors(rfe_fit)
-      message(paste("--- UNIVARIATE : Selecting", ENV_VAR, "\n"))
       
-      # --- 2.4. Produce an information plot
+      # --- 2.3. Extract the relevant predictors
+      # --- 2.3.1. Compute the moving average loss
+      loss_ma <- ma(rfe_fit$results$RMSE, n = 10)
+      # --- 2.3.2. Compute the percentage loss
+      loss_ma_pct <- (loss_ma[-1] - loss_ma[-length(loss_ma)])/loss_ma[-length(loss_ma)]*100
+      # --- 2.3.3. Find the first minimum or <1% loss percentage
+      id <- which(loss_ma_pct > -1)[1]
+      
+      # --- 2.4. Compute variable importance
       rfe_vip <- rfe_fit$variables %>% 
         dplyr::select(var, Overall) %>% 
         mutate(var = fct_reorder(as.factor(var), Overall, .desc = TRUE))
       
+      # --- 2.5. Extract the environmental variables
+      ENV_VAR <- rfe_vip$var[1:id]
+      message(paste("--- UNIVARIATE : Selecting", ENV_VAR, "\n"))
+      
+      # --- 2.6. Produce an information plot
       pdf(paste0(project_wd, "/output/", FOLDER_NAME, "/", SUBFOLDER_NAME,"/02_univariate_predictor_selection.pdf"))
       par(mfrow = c(2,1))
       # --- Variable importance
       boxplot(rfe_vip$Overall ~ rfe_vip$var, main = "Univariate predictor importance", 
-              ylim = c(0,100), xlab = "", ylab = "", axes = FALSE)
-      axis(side = 1, at = 1:ncol(QUERY$X), labels = levels(rfe_vip$var), las = 2)
-      axis(side = 2, at = seq(0, 100, 20), labels = seq(0, 100, 20), las = 2)
-      abline(h = c(0, 20, 40, 60, 80, 100), lty = "longdash", col = "gray50")
+              xlab = "", ylab = "", axes = FALSE, outline = FALSE,
+              col = c(rep("green", id), rep("red", ncol(QUERY$X)-id)))
+      axis(side = 1, at = 1:ncol(QUERY$X), labels = levels(rfe_vip$var), las = 2, cex.axis = 0.5)
+      axis(side = 2, at = c(seq(0, 15, 5), seq(0, 100, 20)), labels = c(seq(0, 15, 5), seq(0, 100, 20)), las = 2)
+      abline(h = c(seq(0, 15, 5), seq(0, 100, 20)), lty = "longdash", col = "gray50")
       # --- Number of variables
       plot(rfe_fit$results$Variables, rfe_fit$results$RMSE, pch = 20, lwd = 3,
-           col = c(rep("green", rfe_fit$optsize), rep("red", ncol(QUERY$X)-rfe_fit$optsize)),
+           col = c(rep("green", id), rep("red", ncol(QUERY$X)-id)),
            main = "Optimal predictor number", xlab = "Nb. of predictors", ylab = "RMSE")
       grid(col = "gray50")
       dev.off()
@@ -123,7 +140,7 @@ query_check <- function(FOLDER_NAME = NULL,
 
   # --- 4. MESS analysis
   # --- 4.1. Load necessary data
-  features <- stack(paste0(project_wd, "/data/features_mean_from_monthly")) %>% 
+  features <- stack(CALL$ENV_PATH) %>% 
     readAll() %>% 
     raster::subset(QUERY$SUBFOLDER_INFO$ENV_VAR)
   

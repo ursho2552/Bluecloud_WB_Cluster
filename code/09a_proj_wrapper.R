@@ -54,7 +54,8 @@ proj_wrapper <- function(FOLDER_NAME = NULL,
     MODEL <- proj_cont(QUERY = QUERY,
                        MODEL = MODEL,
                        CALL = CALL,
-                       N_BOOTSTRAP = N_BOOTSTRAP)
+                       N_BOOTSTRAP = N_BOOTSTRAP,
+                       CUT = CUT)
   } # END if pres
   
   # --- 4. Redirection to the PROPORTION model projections
