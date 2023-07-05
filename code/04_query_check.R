@@ -74,7 +74,7 @@ query_check <- function(FOLDER_NAME = NULL,
         mutate(var = fct_reorder(as.factor(var), Overall, .desc = TRUE))
       
       # --- 2.5. Extract the environmental variables
-      ENV_VAR <- rfe_vip$var[1:id]
+      ENV_VAR <- rfe_vip$var[1:id] %>% as.character()
       message(paste("--- UNIVARIATE : Selecting", ENV_VAR, "\n"))
       
       # --- 2.6. Produce an information plot
@@ -112,14 +112,14 @@ query_check <- function(FOLDER_NAME = NULL,
     features_group <- cutree(features_clust, h = 1-CALL$ENV_COR)
     
     # --- 3.4. Randomly choose one variable within each inter-correlated clusters
-    features_keep <- features_group
+    features_keep <- NULL
     for(i in 1:max(features_group)){
       tmp <- which(features_group == i)
+      message(paste("--- ENV_COR : Cluster", i, ": Keeping", names(tmp[1]), "\n"))
+      features_keep <- c(features_keep, features_group[tmp[1]])
       if(length(tmp) > 1){
-        message(paste("--- ENV_COR : Cluster", i, ": Keeping", names(tmp[1]), "\n"))
-        tmp <- tmp[-1]
-        message(paste("--- ENV_COR : Cluster", i, ": Removing", names(tmp), "\n"))
-        features_keep <- features_keep[-tmp]
+        out <- tmp[-1]
+        message(paste("--- ENV_COR : Cluster", i, ": Removing", names(out), "\n"))
       }
     }
     
