@@ -93,7 +93,10 @@ pdp <- function(FOLDER_NAME = NULL,
   # --- 8. Plotting PDPs
   # --- 8.1. Initial plot settings
   par(mfrow = c(4,4), mar = c(2,2,4,5))
-  pal <- c("black", brewer.pal(length(MODEL$CALL$MODEL_LIST), "Paired"))
+  m_names <- names(MODEL) %>% 
+    .[. != "ENSEMBLE" & . !=  "CALL"]
+  pal <- c("black", brewer.pal(length(m_names), "Paired"))
+  pal <- pal[which(m_names %in% MODEL$CALL$MODEL_LIST)]
   
   # --- 8.2. Iteratively compute the plots itself
   for(i in names(features)){
