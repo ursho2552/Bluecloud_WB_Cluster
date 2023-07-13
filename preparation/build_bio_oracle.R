@@ -25,6 +25,7 @@ build_bio_oracle <- function(OUT_PATH = "/net/meso/work/aschickele/Bluecloud_WB_
     dplyr::filter(dataset_code == "Bio-ORACLE") %>% 
     dplyr::filter(version == "22") %>% 
     dplyr::filter(is_surface == "TRUE") %>% 
+    # dplyr::filter(grepl("_ss", layer_code)) %>% # filter out some layers
     dplyr::select(layer_code)
   
   # --- 3. Download all layers

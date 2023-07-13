@@ -91,6 +91,17 @@ run_init <- function(FOLDER_NAME = "test_run",
     }
   } # if DATA_TYPE and SOURCE
   
+  # --- 4. Check for environmental data homogeneity
+  # If a vector is provided in ENV_PATH, we need to make sure all layers have
+  # the same extent, resolution and NA's.
+  if(length(ENV_PATH) > 1){
+    ENV_PATH <- regrid_env(FOLDER_NAME = FOLDER_NAME,
+                           ENV_PATH = ENV_PATH)
+  }
+  
+  # --- 5. Check for biological data homogeneity ?
+  # To be implemented ?
+  
   # --- 6. Update CALL object
   # --- 6.1. Append CALL with DATA_TYPE
   # Define it the same as DATA_SOURCE if left blank

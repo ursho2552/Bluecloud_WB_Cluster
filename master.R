@@ -15,12 +15,12 @@ rm(list=ls())
 closeAllConnections()
 setwd("/net/meso/work/aschickele/Bluecloud_WB_local")
 source(file = "./code/00_config.R")
-run_name <- "bio_oracle_test"
+run_name <- "mbtr_test"
 
 # --- 1a. List the available species
 # Within the user defined selection criteria
 list_bio <- list_bio_wrapper(FOLDER_NAME = run_name,
-                             DATA_SOURCE = "pres",
+                             DATA_SOURCE = "cont",
                              SAMPLE_SELECT = list(MIN_SAMPLE = 50, MIN_DEPTH = 0, MAX_DEPTH = 50, START_YEAR = 1990, STOP_YEAR = 2016))
 
 # Define the list of species to consider
@@ -28,25 +28,23 @@ list_bio <- list_bio_wrapper(FOLDER_NAME = run_name,
 sp_list <- list_bio %>% 
   # dplyr::filter(grepl("Calanus | Calanoides ", scientificname)) %>%
   dplyr::filter(grepl("Thalassiosira ", scientificname)) %>%
-  # dplyr::filter(grepl("Tripos ", scientificname)) %>%
+  # dplyr::filter(grepl("Chaetoceros ", scientificname)) %>%
   dplyr::select(worms_id) %>% 
   unique() %>% pull()
 
 # --- 1b. Create the output folder, initialize parallelisation and parameters
 # (1) Create an output folder containing all species-level runs, (2) Stores the 
 # global parameters in an object, (3) Checks for environmental correlated variables
-run_init(FOLDER_NAME = run_name,
-         SP_SELECT = sp_list,
-         LOAD_FROM = NULL,
-         DATA_TYPE = "pres",
-         ENV_VAR = NULL,
-         ENV_PATH = "/net/meso/work/aschickele/Bluecloud_WB_local/data/bio_oracle",
-         ENV_COR = 0.8,
-         NFOLD = 3,
-         FOLD_METHOD = "lon")
-
-# Define the list of sub folders to parallelize on
-subfolder_list <- list.dirs(paste0(project_wd, "/output/", run_name), full.names = FALSE, recursive = FALSE)
+subfolder_list <- run_init(FOLDER_NAME = run_name,
+                           SP_SELECT = sp_list,
+                           LOAD_FROM = NULL,
+                           DATA_TYPE = "cont",
+                           ENV_VAR = NULL,
+                           ENV_PATH = c("/net/meso/work/aschickele/Bluecloud_WB_local/data/bio_oracle", 
+                                        "/net/meso/work/aschickele/Bluecloud_WB_local/data/features_mean_from_monthly"),
+                           ENV_COR = 0.8,
+                           NFOLD = 3,
+                           FOLD_METHOD = "lon")
 
 # --- 2a. Query biological data
 # Get the biological data of the species we wish to model
@@ -89,7 +87,7 @@ mcmapply(FUN = folds,
 
 # --- 6. Hyper parameters to train
 hyperparameter(FOLDER_NAME = run_name,
-               MODEL_LIST = c("GLM","GAM","RF","MLP","SVM"),
+               MODEL_LIST = c("GLM","GAM","RF","MLP","SVM","BRT"),
                LEVELS = 3)
 
 # --- 7. Model fit -- FIX : RF is very long for big data

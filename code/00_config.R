@@ -61,6 +61,7 @@ source("./function/log_sink.R")
 source("./function/QC_recommandations.R")
 source("./function/bivar_raster_plot.R")
 source("./function/get_cell_neighbors.R")
+source("./function/regrid_env.R")
 
 # --- Other custom arguments
 Sys.setenv(HDF5_USE_FILE_LOCKING="FALSE") # to be able to open .nc from complex
