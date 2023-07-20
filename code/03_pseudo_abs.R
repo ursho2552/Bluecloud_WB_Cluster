@@ -4,9 +4,9 @@
 #' query_env and bio according to various background selection methods.
 #' @param FOLDER_NAME name of the corresponding folder
 #' @param SUBFOLDER_NAME list of sub_folders to parallelize on.
-#' @param METHOD_PA method of pseudo-absence, either "env" or "geo"
+#' @param METHOD_PA method of pseudo-absence, either "mindist" or "cumdist" or "density"
 #' @param NB_PA number of pseudo-absences to generate
-#' @param DIST_PA if METHOD_PA = "geo", distance from presences (in meters),
+#' @param DIST_PA if METHOD_PA = "mindist", distance from presences (in meters),
 #'  from which to define the background data. Expert use only.
 #' @param BACKGROUND_FILTER additional background filter for finer tuning, such
 #' as selecting pseudo-absences within the sampled background of a given campaign
@@ -39,8 +39,10 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
   if(is.null(NB_PA)){NB_PA = nrow(QUERY$S)}
   
   # --- 1.3. Double check data type
-  if(CALL$DATA_TYPE != "pres"){
-    stop("No Pseudo-absence generation necessary for this data type")
+  if(CALL$DATA_TYPE != "binary"){
+    message("No Pseudo-absence generation necessary for this data type")
+    log_sink(FILE = sinkfile, START = FALSE)
+    return(NULL)
   } 
 
   # --- 2. Load features and create base raster

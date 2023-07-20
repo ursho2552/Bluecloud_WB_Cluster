@@ -57,9 +57,17 @@ model_wrapper <- function(FOLDER_NAME = NULL,
                         MODEL_LIST = MODEL_LIST)
   } # END if pres
   
-  
   # --- 4. Redirection to PROPORTION model
-  # TO BE IMPLEMENTED
+  if(CALL$DATA_TYPE == "proportions"){
+    # --- 3.1. Load function
+    source(file = paste0(project_wd, "/code/07d_model_proportions.R"))
+    
+    # --- 3.2. Run function
+    MODEL <- model_proportions(CALL,
+                               QUERY = QUERY,
+                               HP = HP,
+                               MODEL_LIST = MODEL_LIST)
+  } # END if proportions
   
   # --- 5. Wrap up and save
   # --- 5.1. Save file(s)

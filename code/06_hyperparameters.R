@@ -128,10 +128,23 @@ hyperparameter <- function(FOLDER_NAME = NULL,
                                     svm_margin(),
                                     levels = LEVELS)
   
+  # --- 2.7. Multivariate Boosted Regression Tree
+  # Specific to proportions data
+  HP$MBTR$model_grid <- data.frame(LEARNING_RATE = seq(1e-1, 5e-3, length.out = LEVELS),
+                                   N_Q = 10,
+                                   MEAN_LEAF = seq(5, ceiling(CALL$SAMPLE_SELECT$MIN_SAMPLE*0.3), length.out = LEVELS)) %>% 
+    expand.grid() %>% 
+    unique()
+  
   # --- 3. Hyper parameter selection
-  # According to the specified model list
-  HP <- HP[MODEL_LIST]
-  HP$CALL$MODEL_LIST <- MODEL_LIST
+  # --- 3.1. For univariate data : According to the specified model list
+  if(CALL$DATA_TYPE != "proportions"){
+    HP <- HP[MODEL_LIST]
+    HP$CALL$MODEL_LIST <- MODEL_LIST
+  } else {
+    HP <- HP["MBTR"]
+    HP$CALL$MODEL_LIST <- "MBTR"
+  }
   
   # --- 4. Append CALL and save
   CALL[["HP"]] <- HP

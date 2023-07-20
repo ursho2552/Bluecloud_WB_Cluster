@@ -375,14 +375,13 @@ class MBT:
     :param loss_kwargs: possible additional arguments for the loss function
     """
     def __init__(self, n_boosts: int = 20, early_stopping_rounds: int = 3, learning_rate: float = 0.1,
-                 val_ratio: int = 0, val_path: str = '~/workspace/bluecloud descriptor/data',
+                 val_ratio: int = 0,
                  n_q: int = 10, min_leaf: int = 100, loss_type: str = "mse",
                  lambda_weights: float = 0.1, lambda_leaves: float = 0.1, verbose: int = 0, refit=True, **loss_kwargs):
         self.n_boosts = n_boosts
         self.early_stopping_rounds = early_stopping_rounds
         self.learning_rate = learning_rate
         self.val_ratio = val_ratio
-        self.val_path = val_path
         self.refit = refit
         self.tree_pars = {**{'n_q': n_q,'min_leaf': min_leaf, 'loss_type': loss_type, 'lambda_weights': lambda_weights,
                              'lambda_leaves': lambda_leaves}, **loss_kwargs}
@@ -391,7 +390,7 @@ class MBT:
         self.y_0 = None
         self.verbose = verbose
 
-    def fit(self, x, y, do_plot=False, x_lr=None):
+    def fit(self, x, y, xval, yval, do_plot=False, x_lr=None):
         """
          Fits an MBT using the features specified in the matrix :math:`x\\in\\mathbb{R}^{n_{obs} \\times n_{f}}`, in
          order to predict the targets in the matrix :math:`y\\in\\mathbb{R}^{n_{obs} \\times n_{t}}`,
@@ -404,7 +403,7 @@ class MBT:
                       is being used.
         """
         # divide in training and validation sets (has effect only if pars['val_ratio'] or ['val_id'] was set
-        x_tr, x_val, y_tr, y_val, x_lr_tr, x_lr_val = self._validation_split(x, y, x_lr)
+        x_tr, x_val, y_tr, y_val, x_lr_tr, x_lr_val = self._validation_split(x, y, xval, yval, x_lr)
         lowest_loss = np.inf
         best_iter = 0
         self.trees = []
@@ -532,10 +531,10 @@ class MBT:
         self.y_0 = y_0
         return y_0
 
-    def _validation_split(self,x,y,x_lr):
-        if self.val_path is not None:
-            x_val = read_feather(self.val_path+'_X_val.feather').to_numpy()
-            y_val = read_feather(self.val_path+'_Y_val.feather').to_numpy()
+    def _validation_split(self,x,y,xval,yval,x_lr):
+        if xval is not None:
+            x_val = xval
+            y_val = yval
             x_lr_val = read_feather(self.val_path+'_X_lr_val.feather').to_numpy() if x_lr is not None else None
             x_tr, x_val = [x, x_val]
             y_tr, y_val = [y, y_val]

@@ -59,7 +59,16 @@ proj_wrapper <- function(FOLDER_NAME = NULL,
   } # END if pres
   
   # --- 4. Redirection to the PROPORTION model projections
-  # TO BE IMPLEMENTED
+  if(CALL$DATA_TYPE == "proportions"){
+    # --- 3.1. Load function
+    source(file = paste0(project_wd, "/code/09d_proj_proportions.R"))
+    
+    # --- 3.2. Run function
+    MODEL <- proj_proportions(QUERY = QUERY,
+                              MODEL = MODEL,
+                              CALL = CALL,
+                              N_BOOTSTRAP = N_BOOTSTRAP)
+  } # END if proportions
   
   # --- 5. Wrap up and save
   # --- 5.1. Save file(s)

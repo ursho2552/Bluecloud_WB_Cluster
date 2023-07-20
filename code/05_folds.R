@@ -26,13 +26,13 @@ folds <- function(FOLDER_NAME = NULL,
   
   # --- 2.2. Do the initial split
   # --- 2.2.1. For univariate data - strata is possible so we do it
-  if(CALL$FOLD_METHOD == "kfold" & CALL$DATA_TYPE != "omic"){
+  if(CALL$FOLD_METHOD == "kfold" & CALL$DATA_TYPE != "proportions"){
     init_split <- tmp %>% 
       initial_split(prop = 0.8,
                     strata = measurementvalue)
   }
   # --- 2.2.2. For multivariate data - strata is not possible
-  if(CALL$FOLD_METHOD == "kfold" & CALL$DATA_TYPE == "omic"){
+  if(CALL$FOLD_METHOD == "kfold" & CALL$DATA_TYPE == "proportions"){
     init_split <- tmp %>% 
       initial_split(prop = 0.8)
   }
@@ -57,22 +57,22 @@ folds <- function(FOLDER_NAME = NULL,
   
   # --- 3.2. Normal k-fold re sampling
   # --- 3.2.1. For univariate data - strata is possible so we do it
-  if(CALL$FOLD_METHOD == "kfold" & CALL$DATA_TYPE != "omic"){
+  if(CALL$FOLD_METHOD == "kfold" & CALL$DATA_TYPE != "proportions"){
     folds <- vfold_cv(data = QUERY$FOLDS$train,
                       strata = measurementvalue,
                       v = CALL$NFOLD)
   }
   # --- 3.2.2. For multivariate data - strata is not possible
-  if(CALL$FOLD_METHOD == "kfold" & CALL$DATA_TYPE == "omic"){
+  if(CALL$FOLD_METHOD == "kfold" & CALL$DATA_TYPE == "proportions"){
     folds <- vfold_cv(data = QUERY$FOLDS$train,
                       v = CALL$NFOLD)
   }
   
   # --- 3.3. Longitudinal block re sampling
   if(CALL$FOLD_METHOD == "lon"){
-    folds <- clustering_cv(data = QUERY$FOLDS$train,
-                           vars = c(decimallongitude),
-                           v = CALL$NFOLD)
+    folds <- group_vfold_cv(data = QUERY$FOLDS$train,
+                            group = c(decimallongitude),
+                            v = CALL$NFOLD)
   }
   
   # --- 4. Append QUERY and CALL objects 

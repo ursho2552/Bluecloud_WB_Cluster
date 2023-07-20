@@ -43,7 +43,7 @@ query_mgnify <- function(FOLDER_NAME = NULL,
   }
 
   # --- 4.2. Transform to presence data
-  if(CALL$DATA_TYPE == "pres"){
+  if(CALL$DATA_TYPE == "binary"){
     Y <- Y/Y %>% 
       as.data.frame()
     names(Y) <- "measurementvalue"
@@ -51,7 +51,7 @@ query_mgnify <- function(FOLDER_NAME = NULL,
 
   # --- 4.3. Transform to richness
   # In form of a Shannon index for now but we would compute more
-  if(CALL$DATA_TYPE == "cont"){
+  if(CALL$DATA_TYPE == "continuous"){
     Y <- apply(Y, 1, function(x)(x = vegan::diversity(x, "shannon"))) %>% 
       as.data.frame()
     names(Y) <- "measurementvalue"

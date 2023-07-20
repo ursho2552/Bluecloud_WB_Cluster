@@ -14,17 +14,21 @@
 #' architecture. See details.
 #' @param ENV_VAR vector of names of environmental variables available within
 #' the climatologies available in Blue Cloud. If null all variables are taken.
-#' @param ENV_PATH string, path to the .nc or raster of environmental variables
+#' @param ENV_PATH string or vector of path to the .nc or raster of environmental variables
 #' @param ENV_COR numeric, removes the correlated environmental values from the
 #' query objects and CALL according to the defined threshold. Else NULL.
 #' @param NFOLD number of folds, used defined integer
 #' @param FOLD_METHOD method used to create the folds, integer between "kfold"
 #' and "lon"
 #' @details Different data transformation between DATA_SOURCE and DATA_TYPE are implemented, including:
-#' - "omics" to "pres"
-#' - "omics" to "cont" in form of richness
+#' - "occurrence" to "binary" (default)
+#' - "abundance" to "continuous" (default, not recommended for more than 50 targets)
+#' - "abundance" to "proportions" (not recommended if the sampling stations are not the same)
+#' - "omic" to "proportions" (default, not recommended for more than 50 targets)
+#' - "omic" to "continuous" in form of richness
+#' - "omic" to "binary" in form of presence-only
 #' @return creates one subfolder per SP_SELECT and a vector of sub-directories names 
-#' used as an argument for parallel computing latera
+#' used as an argument for parallel computing later
 #' @return all global parameters in a CALL.RData object
 
 run_init <- function(FOLDER_NAME = "test_run",
@@ -75,11 +79,11 @@ run_init <- function(FOLDER_NAME = "test_run",
   # Named by their Worms ID, OTU ID, or named proportion or richness depending on
   # the data source and type. Contains a QUERY object with the corresponding
   # species selection to consider in each sub folder.
-  if(DATA_TYPE == "omic"){
+  if(DATA_TYPE == "proportions"){
     dir.create(paste0(out_path, "/proportions"))
     QUERY <- list(SUBFOLDER_INFO = list(SP_SELECT = SP_SELECT))
     save(QUERY, file = paste0(out_path, "/proportions/QUERY.RData"))
-  } else if(DATA_TYPE == "cont" & CALL$DATA_SOURCE == "omic"){
+  } else if(DATA_TYPE == "continuous" & CALL$DATA_SOURCE == "omic"){
     dir.create(paste0(out_path, "/richness"))
     QUERY <- list(SUBFOLDER_INFO = list(SP_SELECT = SP_SELECT))
     save(QUERY, file = paste0(out_path, "/richness/QUERY.RData"))
@@ -125,7 +129,13 @@ run_init <- function(FOLDER_NAME = "test_run",
   
   # --- 7.3. List sub-directories to return
   # To be returned as a vector, further used to define parallel runs
-  parallel <- CALL$SP_SELECT
+  if(DATA_TYPE == "proportions"){
+    parallel <- "proportions"
+  } else if(DATA_TYPE == "continuous" & CALL$DATA_SOURCE == "omic"){
+    parallel <- "richness"
+  } else {
+    parallel <- CALL$SP_SELECT
+  }
   return(parallel)
   
 } # END FUNCTOIN

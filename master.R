@@ -20,8 +20,8 @@ run_name <- "mbtr_test"
 # --- 1a. List the available species
 # Within the user defined selection criteria
 list_bio <- list_bio_wrapper(FOLDER_NAME = run_name,
-                             DATA_SOURCE = "cont",
-                             SAMPLE_SELECT = list(MIN_SAMPLE = 50, MIN_DEPTH = 0, MAX_DEPTH = 50, START_YEAR = 1990, STOP_YEAR = 2016))
+                             DATA_SOURCE = "abundance",
+                             SAMPLE_SELECT = list(MIN_SAMPLE = 20, MIN_DEPTH = 0, MAX_DEPTH = 50, START_YEAR = 1990, STOP_YEAR = 2016))
 
 # Define the list of species to consider
 # sp_list <- c("5820", "9760") # random OTU short selection
@@ -38,7 +38,7 @@ sp_list <- list_bio %>%
 subfolder_list <- run_init(FOLDER_NAME = run_name,
                            SP_SELECT = sp_list,
                            LOAD_FROM = NULL,
-                           DATA_TYPE = "cont",
+                           DATA_TYPE = "proportions",
                            ENV_VAR = NULL,
                            ENV_PATH = c("/net/meso/work/aschickele/Bluecloud_WB_local/data/bio_oracle", 
                                         "/net/meso/work/aschickele/Bluecloud_WB_local/data/features_mean_from_monthly"),

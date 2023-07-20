@@ -30,14 +30,14 @@ query_check <- function(FOLDER_NAME = NULL,
   # --- 2. Outlier analysis
   # Outlier check on the query based on z-score (from Nielja code)
   if(OUTLIER == TRUE){
-    if(CALL$DATA_TYPE == "pres"){
+    if(CALL$DATA_TYPE == "binary"){
       message("--- Cannot perform outlier analysis on presence - pseudo absence data ---")
     } else {
       to_remove <- outlier_iqr_col(QUERY$Y, n = 2.5)
       if(length(to_remove > 0)){
-        QUERY$Y <- QUERY$Y %>% slice(-to_remove)
-        QUERY$X <- QUERY$X %>% slice(-to_remove)
-        QUERY$S <- QUERY$S %>% slice(-to_remove)
+        QUERY$Y <- QUERY$Y[-to_remove,]
+        QUERY$X <- QUERY$X[-to_remove,]
+        QUERY$S <- QUERY$S[-to_remove,]
       } # if to remove !NULL
       
       message(paste("--- OUTLIERS : Removed row number", to_remove, "\n"))
@@ -47,8 +47,8 @@ query_check <- function(FOLDER_NAME = NULL,
   # --- 2. Univariate variable importance analysis
   # Done with a Random forest using the method developed in the "Caret" library
   if(UNIVARIATE == TRUE){
-    if(CALL$DATA_TYPE == "omic"){
-      message("A univariate predictor selection is not possible for omic-proportion data,
+    if(CALL$DATA_TYPE == "proportions"){
+      message("A univariate predictor selection is not possible for proportion data,
               please select carefully your predictors")
     } else{
       # --- 2.1. Initialize data and control parameters
@@ -100,8 +100,11 @@ query_check <- function(FOLDER_NAME = NULL,
   # Removing correlated environmental variables to avoid correlated model features
   if(is.numeric(CALL$ENV_COR) == TRUE){
     # --- 3.1. Opening environmental value at presence points
-    if(UNIVARIATE == TRUE){features <- QUERY$X[,ENV_VAR]
-    } else {features <- QUERY$X}
+    if(UNIVARIATE == TRUE & CALL$DATA_TYPE != "proportions"){
+      features <- QUERY$X[,ENV_VAR]
+    } else {
+      features <- QUERY$X
+    }
     
     # --- 3.2. Check correlation/distance between variables
     features_dist <- cor(features, method = "pearson")

@@ -82,17 +82,34 @@ query_env <- function(FOLDER_NAME = NULL,
   } # End for j
   
   # --- 7. Wrap up and save
-  # --- 7.1. Append QUERY with the environmental values and save
+  # --- 7.1. Remove rare targets and update sample list
+  # Designed to clean the input table of proportion data (i.e. avoid sum lines = 0 in test of train sets)
+  if(CALL$DATA_TYPE == "proportions"){
+    target_filter <- apply(Y, 2, function(x)(x = sum(x/x, na.rm = TRUE)))
+    sample_filter <- Y %>% dplyr::select(which(target_filter >= CALL$SAMPLE_SELECT$MIN_SAMPLE)) %>% 
+      apply(1, sum)
+    Y <- Y[which(sample_filter > 0), which(target_filter >= CALL$SAMPLE_SELECT$MIN_SAMPLE)] %>% 
+      apply(1, function(x)(x = x/sum(x))) %>% 
+      aperm(c(2,1)) %>% 
+      as.data.frame()
+    X <- X[which(sample_filter > 0),]
+    S <- S[which(sample_filter > 0),]
+  # Necessary to update SP_SELECT in the CALL object for later...  
+  CALL$SP_SELECT <- names(Y)  
+  save(CALL, file = paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
+  }
+  
+  # --- 7.2. Append QUERY with the environmental values and save
   # And updated Y and S tables with duplicate coordinate removed
   QUERY[["Y"]] <- Y
   QUERY[["S"]] <- S
   QUERY[["X"]] <- X
   save(QUERY, file = paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))
   
-  # --- 7.2. Stop logs
+  # --- 7.3. Stop logs
   log_sink(FILE = sinkfile, START = FALSE)
   
-  # --- 7.3. Update list of SUBFOLDER_NAME
+  # --- 7.4. Update list of SUBFOLDER_NAME
   if(nrow(S) >= CALL$SAMPLE_SELECT$MIN_SAMPLE){
     return(SUBFOLDER_NAME)
   } else {

@@ -51,7 +51,15 @@ eval_wrapper <- function(FOLDER_NAME = NULL,
   } # END if pres
   
   # --- 4. Redirection to PROPORTION model evaluation
-  # TO BE IMPLEMENTED
+  if(CALL$DATA_TYPE == "proportions"){
+    # --- 3.1. Load function
+    source(file = paste0(project_wd, "/code/08d_eval_proportions.R"))
+    
+    # --- 3.2. Run function
+    MODEL <- eval_proportions(CALL = CALL,
+                              QUERY = QUERY,
+                              MODEL = MODEL)
+  } # END if pres
   
   # --- 5. Wrap up and save
   # --- 5.1. Save file(s)

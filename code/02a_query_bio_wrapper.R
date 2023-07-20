@@ -27,7 +27,7 @@ query_bio_wrapper <- function(FOLDER_NAME = NULL,
   
   # --- 2. Redirection to the ATLANTECO query
   # For continuous and presence source data
-  if(CALL$DATA_SOURCE == "cont" | CALL$DATA_SOURCE == "pres"){
+  if(CALL$DATA_SOURCE == "abundance" | CALL$DATA_SOURCE == "occurrence"){
     # --- 2.1. Load function
     source(file = paste0(project_wd, "/code/02c_query_atlanteco.R"))
     

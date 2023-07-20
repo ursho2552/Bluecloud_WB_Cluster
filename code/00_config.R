@@ -30,6 +30,7 @@ library(pastecs)
 library(ecospat)
 library(reticulate) 
 library(dendextend)
+library(mvrsquared) 
 
 # --- Seed
 set.seed(123)
