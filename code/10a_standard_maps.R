@@ -19,7 +19,8 @@ standard_maps <- function(FOLDER_NAME = NULL,
   
   # --- 1.2. Check for projections
   if(length(MODEL$CALL$MODEL_LIST) == 0){
-    stop("No validated algorithms to display projections from")
+    message("No validated algorithms to display projections from")
+    return(NULL)
   }
   
   # --- 1.3. Create PDF saving
