@@ -25,31 +25,42 @@ query_bio_wrapper <- function(FOLDER_NAME = NULL,
   # --- 1.4. Load the parallel node metadata in the QUERY.RData object
   load(paste0(project_wd, "/output/", FOLDER_NAME, "/", SUBFOLDER_NAME, "/QUERY.RData"))
   
-  # --- 2. Redirection to the ATLANTECO query
-  # For continuous and presence source data
-  if(CALL$DATA_SOURCE == "abundance" | CALL$DATA_SOURCE == "occurrence"){
+  # --- 2. Redirection to the OBIS query
+  # For occurrence source data
+  if(CALL$DATA_SOURCE == "occurrence"){
     # --- 2.1. Load function
-    source(file = paste0(project_wd, "/code/02c_query_atlanteco.R"))
+    source(file = paste0(project_wd, "/code/02d_query_occurrence.R"))
     
     # --- 2.2. Run function
+    QUERY <- query_occurrence(FOLDER_NAME = FOLDER_NAME,
+                              QUERY = QUERY)
+  } # End ATLANTECO redirection
+  
+  # --- 3. Redirection to the ATLANTECO query
+  # For continuous  source data
+  if(CALL$DATA_SOURCE == "abundance"){
+    # --- 3.1. Load function
+    source(file = paste0(project_wd, "/code/02c_query_atlanteco.R"))
+    
+    # --- 3.2. Run function
     QUERY <- query_atlanteco(FOLDER_NAME = FOLDER_NAME,
                              QUERY = QUERY)
   } # End ATLANTECO redirection
   
-  # --- 3. Redirection to the MGNIFY query
+  # --- 4. Redirection to the MGNIFY query
   if(CALL$DATA_SOURCE == "omic"){
-    # --- 3.1. Load function
+    # --- 4.1. Load function
     source(file = paste0(project_wd, "/code/02b_query_mgnify.R"))
     
-    # --- 3.2. Run function
+    # --- 4.2. Run function
     QUERY <- query_mgnify(FOLDER_NAME = FOLDER_NAME,
                           QUERY = QUERY)
   } # End MGNIFY redirection
   
-  # --- 4. Wrap up and save
-  # --- 4.1 Save file(s)
+  # --- 5. Wrap up and save
+  # --- 5.1 Save file(s)
   save(QUERY, file = paste0(project_wd, "/output/", FOLDER_NAME, "/", SUBFOLDER_NAME,"/QUERY.RData"))
-  # --- 4.2. Stop logs
+  # --- 5.2. Stop logs
   log_sink(FILE = sinkfile, START = FALSE)
   
 } # END FUNCTION

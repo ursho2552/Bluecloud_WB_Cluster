@@ -39,7 +39,7 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
   if(is.null(NB_PA)){NB_PA = nrow(QUERY$S)}
   
   # --- 1.3. Double check data type
-  if(CALL$DATA_TYPE != "binary"){
+  if(CALL$DATA_TYPE != "pres"){
     message("No Pseudo-absence generation necessary for this data type")
     log_sink(FILE = sinkfile, START = FALSE)
     return(NULL)

@@ -22,6 +22,7 @@ library(ncdf4)
 # --- 1.3. Data access service
 library(phyloseq)
 library(MGnifyR)
+library(robis)
 
 # --- 1.4. Others
 library(RColorBrewer) 

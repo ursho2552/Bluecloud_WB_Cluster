@@ -36,28 +36,39 @@ list_bio_wrapper <- function(FOLDER_NAME = "test_run",
     dir.create(folderpath)
   }
   
-  # --- 2. Redirection to ATLANTECO data access
+  # --- 2. Redirection to OBIS data access
   # For abundance and occurrence source data
-  if(DATA_SOURCE == "abundance" | DATA_SOURCE == "occurrence"){
+  if(DATA_SOURCE == "occurrence"){
     # --- 2.1. Load function
-    source(file = paste0(project_wd, "/code/01c_list_atlanteco.R"))
+    source(file = paste0(project_wd, "/code/01d_list_occurrence.R"))
     
     # --- 2.2. Run function
+    LIST_BIO <- list_occurrence(DATA_SOURCE = DATA_SOURCE,
+                                SAMPLE_SELECT = SAMPLE_SELECT)
+  } # End ATLANTECO redirection
+  
+  # --- 3. Redirection to ATLANTECO data access
+  # For abundance and occurrence source data
+  if(DATA_SOURCE == "abundance"){
+    # --- 3.1. Load function
+    source(file = paste0(project_wd, "/code/01c_list_atlanteco.R"))
+    
+    # --- 3.2. Run function
     LIST_BIO <- list_atlanteco(DATA_SOURCE = DATA_SOURCE,
                                SAMPLE_SELECT = SAMPLE_SELECT)
   } # End ATLANTECO redirection
   
-  # --- 3. Redirection to MGNIFY data access
+  # --- 4. Redirection to MGNIFY data access
   # For omic source data
   if(DATA_SOURCE == "omic"){
-    # --- 3.1. Load function
+    # --- 4.1. Load function
     source(file = paste0(project_wd, "/code/01b_list_mgnify.R"))
     
-    # --- 3.2. Run function
+    # --- 4.2. Run function
     LIST_BIO <- list_mgnify(SAMPLE_SELECT = SAMPLE_SELECT)
   } # End MGNIFY redirection
   
-  # --- 4. Wrap up and save
+  # --- 5. Wrap up and save
   CALL <- list(DATA_SOURCE = DATA_SOURCE, 
                SAMPLE_SELECT = SAMPLE_SELECT, 
                LIST_BIO = LIST_BIO)

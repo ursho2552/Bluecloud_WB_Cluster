@@ -27,6 +27,7 @@ query_env <- function(FOLDER_NAME = NULL,
   features_name <- features %>% names()
 
   # --- 3. Re-grid sample on the raster resolution and filter
+  # --- 3.1. Do the corresponding data computing
   # (1) The cell centers are at .5, thus it is re-gridded to the nearest .5 value
   # (2) /!\ Depth is not taken into account for now, neither year (1990-2016 = WOA)
   res <- res(features)[[1]]
@@ -36,6 +37,12 @@ query_env <- function(FOLDER_NAME = NULL,
     mutate(decimallatitude = round(decimallatitude+0.5*res, digits = digit)-0.5*res) %>%
     mutate(decimallongitude = round(decimallongitude+0.5*res, digits = digit)-0.5*res)
 
+  # --- 3.2. Early return in case of no biological data
+  if(nrow(sample) <= CALL$SAMPLE_SELECT$MIN_SAMPLE){
+    log_sink(FILE = sinkfile, START = FALSE)
+    return(NULL)
+  } 
+  
   # --- 4. Select one sample per group of identical coordinates x month
   # Among each group of identical lat and long, concatenates description
   # Updates the ID as the previous one is overwritten (we do not keep the raw data)
