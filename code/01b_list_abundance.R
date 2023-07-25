@@ -1,5 +1,5 @@
 #' =============================================================================
-#' @name list_atlanteco
+#' @name list_abundance
 #' @description extracts available Aphia_ID corresponding to user defined criteria
 #' among the available data within the Atlanteco database, build locally.
 #' @param DATA_SOURCE parameter passed from the wrapper function
@@ -7,7 +7,7 @@
 #' @return a list of available Worms ID or Aphia ID and number of occurrences
 #' within the data type and sample criteria
 
-list_atlanteco <- function(DATA_SOURCE,
+list_abundance <- function(DATA_SOURCE,
                            SAMPLE_SELECT){
   
   # --- 1. Connect to database
@@ -20,7 +20,6 @@ list_atlanteco <- function(DATA_SOURCE,
   # type and sample criteria
   message("--- LIST BIO : retrieving species available in ATLANTECO")
   data_list <- tbl(db, paste0(DATA_SOURCE,"_data")) %>% 
-    # dplyr::select(worms_id, decimallongitude, decimallatitude, depth, year, measurementvalue) %>%
     dplyr::filter(depth >= !!SAMPLE_SELECT$MIN_DEPTH & 
                     depth <= !!SAMPLE_SELECT$MAX_DEPTH & 
                     year >= !!SAMPLE_SELECT$START_YEAR & 
@@ -33,9 +32,6 @@ list_atlanteco <- function(DATA_SOURCE,
     distinct() %>% 
     dplyr::filter(nb_occ >= !!SAMPLE_SELECT$MIN_SAMPLE) %>% 
     collect()
-    # summarise(nb_occ = n()) %>% 
-    # dplyr::filter(nb_occ >= !!SAMPLE_SELECT$MIN_SAMPLE) %>% 
-    # collect()
   
   return(data_list)
   

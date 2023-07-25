@@ -1,5 +1,5 @@
 #' =============================================================================
-#' @name eval_cont
+#' @name eval_continuous
 #' @description sub-pipeline for model evaluation corresponding to continuous data
 #' @param QUERY the query object from the master pipeline
 #' @param MODEL the models object from the master pipeline
@@ -9,9 +9,9 @@
 #' metric and variable importance metric)
 #' @return variable importance plots as PDF file
 
-eval_cont <- function(QUERY,
-                      MODEL,
-                      ENSEMBLE = TRUE){
+eval_continuous <- function(QUERY,
+                            MODEL,
+                            ENSEMBLE = TRUE){
   
   # --- 1. Model performance assessment
   for(i in MODEL$CALL$MODEL_LIST){

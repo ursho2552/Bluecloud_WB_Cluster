@@ -29,37 +29,37 @@ eval_wrapper <- function(FOLDER_NAME = NULL,
   pdf(paste0(project_wd,"/output/",FOLDER_NAME,"/",SUBFOLDER_NAME,"/04_variable_importance.pdf"))
   
   # --- 2. Redirection to PRESENCE model evaluation
-  if(CALL$DATA_TYPE == "pres"){
+  if(CALL$DATA_TYPE == "binary"){
     # --- 2.1. Load function
-    source(file = paste0(project_wd, "/code/08b_eval_pres.R"))
+    source(file = paste0(project_wd, "/code/10a_eval_binary.R"))
     
     # --- 2.2. Run function
-    MODEL<- eval_pres(QUERY = QUERY,
-                      MODEL = MODEL,
-                      ENSEMBLE = ENSEMBLE)
-  } # END if pres
+    MODEL<- eval_binary(QUERY = QUERY,
+                        MODEL = MODEL,
+                        ENSEMBLE = ENSEMBLE)
+  } # END if biinary
   
   # --- 3. Redirection to CONTINUOUS model evaluation
-  if(CALL$DATA_TYPE == "cont"){
+  if(CALL$DATA_TYPE == "continuous"){
     # --- 3.1. Load function
-    source(file = paste0(project_wd, "/code/08c_eval_cont.R"))
+    source(file = paste0(project_wd, "/code/10b_eval_continuous.R"))
     
     # --- 3.2. Run function
-    MODEL <- eval_cont(QUERY = QUERY,
-                       MODEL = MODEL,
-                       ENSEMBLE = ENSEMBLE)
-  } # END if pres
+    MODEL <- eval_continuous(QUERY = QUERY,
+                             MODEL = MODEL,
+                             ENSEMBLE = ENSEMBLE)
+  } # END if continuous
   
-  # --- 4. Redirection to PROPORTION model evaluation
+  # --- 4. Redirection to PROPORTIONS model evaluation
   if(CALL$DATA_TYPE == "proportions"){
     # --- 3.1. Load function
-    source(file = paste0(project_wd, "/code/08d_eval_proportions.R"))
+    source(file = paste0(project_wd, "/code/10c_eval_proportions.R"))
     
     # --- 3.2. Run function
     MODEL <- eval_proportions(CALL = CALL,
                               QUERY = QUERY,
                               MODEL = MODEL)
-  } # END if pres
+  } # END if proportions
   
   # --- 5. Wrap up and save
   # --- 5.1. Save file(s)

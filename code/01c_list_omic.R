@@ -1,5 +1,5 @@
 #' =============================================================================
-#' @name list_mgnify
+#' @name list_omic
 #' @description extracts available metadata, taxonomy and read counts per OTU
 #' corresponding to user defined criteria, among the available data within the 
 #' MGnify data access service
@@ -7,7 +7,7 @@
 #' @return a complete list of metadata, samples, taxonomic
 #' annotations available.
 
-list_mgnify <- function(SAMPLE_SELECT){
+list_omic <- function(SAMPLE_SELECT){
   
   # --- 1. Initialize
   # Create MGnify cache

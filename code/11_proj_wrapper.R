@@ -33,35 +33,35 @@ proj_wrapper <- function(FOLDER_NAME = NULL,
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/MODEL.RData"))
   
   # --- 2. Redirection to the PRESENCE model projections
-  if(CALL$DATA_TYPE == "pres"){
+  if(CALL$DATA_TYPE == "binary"){
     # --- 2.1. Load function
-    source(file = paste0(project_wd, "/code/09b_proj_pres.R"))
+    source(file = paste0(project_wd, "/code/11a_proj_binary.R"))
     
     # --- 2.2. Run function
-    MODEL <- proj_pres(QUERY = QUERY,
-                       MODEL = MODEL,
-                       CALL = CALL,
-                       N_BOOTSTRAP = N_BOOTSTRAP,
-                       CUT = CUT)
-  } # END if pres
+    MODEL <- proj_binary(QUERY = QUERY,
+                         MODEL = MODEL,
+                         CALL = CALL,
+                         N_BOOTSTRAP = N_BOOTSTRAP,
+                         CUT = CUT)
+  } # END if binary
   
   # --- 3. Redirection to the CONTINUOUS model projections
-  if(CALL$DATA_TYPE == "cont"){
+  if(CALL$DATA_TYPE == "continuous"){
     # --- 3.1. Load function
-    source(file = paste0(project_wd, "/code/09c_proj_cont.R"))
+    source(file = paste0(project_wd, "/code/11b_proj_continuous.R"))
     
     # --- 3.2. Run function
-    MODEL <- proj_cont(QUERY = QUERY,
-                       MODEL = MODEL,
-                       CALL = CALL,
-                       N_BOOTSTRAP = N_BOOTSTRAP,
-                       CUT = CUT)
-  } # END if pres
+    MODEL <- proj_continuous(QUERY = QUERY,
+                             MODEL = MODEL,
+                             CALL = CALL,
+                             N_BOOTSTRAP = N_BOOTSTRAP,
+                             CUT = CUT)
+  } # END if continuous
   
-  # --- 4. Redirection to the PROPORTION model projections
+  # --- 4. Redirection to the PROPORTIONS model projections
   if(CALL$DATA_TYPE == "proportions"){
     # --- 3.1. Load function
-    source(file = paste0(project_wd, "/code/09d_proj_proportions.R"))
+    source(file = paste0(project_wd, "/code/11c_proj_proportions.R"))
     
     # --- 3.2. Run function
     MODEL <- proj_proportions(QUERY = QUERY,

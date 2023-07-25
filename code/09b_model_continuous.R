@@ -1,7 +1,7 @@
 #' =============================================================================
-#' @name model_pres
+#' @name model_continuous
 #' @description sub-pipeline corresponding to the model fitting procedure for
-#' presence data. Called via the model_wrapper.R function, thus no default
+#' continuous data. Called via the model_wrapper.R function, thus no default
 #' parameter values are defined.
 #' @param QUERY the query object from the master pipeline
 #' @param HP the hyperparameter object from the master pipeline. In case of no
@@ -12,10 +12,10 @@
 #' @return returns a list object containing the best model, associated hyper
 #' parameters and predicted values per re sampling folds
 
-model_pres <- function(CALL,
-                       QUERY,
-                       HP,
-                       MODEL_LIST){
+model_continuous <- function(CALL,
+                             QUERY,
+                             HP,
+                             MODEL_LIST){
   
   # --- 1. Define formula common to the model workflows
   tmp <- QUERY$SUBFOLDER_INFO$ENV_VAR %>% paste(collapse = " + ")
@@ -32,7 +32,7 @@ model_pres <- function(CALL,
     model_wf <- workflow() %>% 
       add_model(HP[[MODEL_LIST[i]]][["model_spec"]], formula = formula) %>% 
       add_formula(formula)
-
+    
     # --- 2.2. Run the model for each fold x (hyper parameter grid rows)
     # Runs hyper parameter tuning if a grid is present in the HP (e.g. no GLM tune)
     if(!is.null(HP[[MODEL_LIST[i]]][["model_grid"]])){
@@ -44,7 +44,7 @@ model_pres <- function(CALL,
       model_res <- model_wf %>% 
         fit_resamples(resamples = QUERY$FOLDS$resample_split)
     }
-
+    
     # --- 2.3. Select best hyper parameter set
     # Based on RMSE values per model run (rsq does not work with 0's)
     model_best <- model_res %>% 
@@ -65,7 +65,7 @@ model_pres <- function(CALL,
     # --- Display information
     message(paste(Sys.time(), "--- DONE ---"))
   }
-
+  
   return(HP)
   
 } # END FUNCTION

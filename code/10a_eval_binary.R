@@ -1,6 +1,6 @@
 #' =============================================================================
-#' @name eval_pres
-#' @description sub-pipeline for model evaluation corresponding to presence data
+#' @name eval_binary
+#' @description sub-pipeline for model evaluation corresponding to binary data
 #' @param QUERY the query object from the master pipeline
 #' @param MODEL the models object from the master pipeline#'
 #' @param ENSEMBLE if TRUE, computes variable importance metrics for the ensemble 
@@ -9,9 +9,9 @@
 #' metric and variable importance metric)
 #' @return variable importance plots as PDF file
 
-eval_pres <- function(QUERY,
-                      MODEL,
-                      ENSEMBLE = TRUE){
+eval_binary <- function(QUERY,
+                        MODEL,
+                        ENSEMBLE = TRUE){
 
   # --- 1. Model performance assessment
   for(i in MODEL$CALL$MODEL_LIST){

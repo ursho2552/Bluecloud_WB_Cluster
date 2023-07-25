@@ -1,5 +1,5 @@
 #' =============================================================================
-#' @name query_mgnify
+#' @name query_omic
 #' @description extracts biological from the MGNIFY data downloaded in list_bio, 
 #' according to a user provided list of species, time and depth range. 
 #' The extracted data is formatted to be directly usable by the models available
@@ -13,7 +13,7 @@
 #' for each target species.
 #' @return output in a QUERY object
 
-query_mgnify <- function(FOLDER_NAME = NULL,
+query_omic <- function(FOLDER_NAME = NULL,
                          QUERY = NULL){
   
   # --- 1. Parameter loading

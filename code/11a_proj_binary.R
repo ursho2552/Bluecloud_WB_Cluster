@@ -1,6 +1,6 @@
 #' =============================================================================
-#' @name proj_pres
-#' @description computes spatial projections for the presence data sub-pipeline
+#' @name proj_binary
+#' @description computes spatial projections for the binary data sub-pipeline
 #' @param QUERY the query object from the master pipeline
 #' @param MODELS the models object from the master pipeline
 #' @param N_BOOTSTRAP number of bootstrap to do for the projections
@@ -11,12 +11,12 @@
 #' @return an updated model list object containing the projections objects
 #' embedded in each model sub-list.
 
-proj_pres <- function(QUERY,
-                      MODEL,
-                      CALL,
-                      N_BOOTSTRAP,
-                      PROJ_PATH = NULL,
-                      CUT = NULL){
+proj_binary <- function(QUERY,
+                        MODEL,
+                        CALL,
+                        N_BOOTSTRAP,
+                        PROJ_PATH = NULL,
+                        CUT = NULL){
   
   # --- 1. Load environmental data - TO FIX DYNAMICALLY
   features <- stack(CALL$ENV_PATH) %>% 

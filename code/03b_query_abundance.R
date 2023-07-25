@@ -1,5 +1,5 @@
 #' =============================================================================
-#' @name query_atlanteco
+#' @name query_abundance
 #' @description extracts biological from the Atlanteco database, according to a
 #' user provided list of species, time and depth range. The extracted data is
 #' formatted to be directly usable by the models available in this workbench.
@@ -12,7 +12,7 @@
 #' for each target species.
 #' @return the output in a QUERY object
 
-query_atlanteco <- function(FOLDER_NAME = NULL,
+query_abundance <- function(FOLDER_NAME = NULL,
                             QUERY = NULL){
   
   # --- 1. Parameter loading

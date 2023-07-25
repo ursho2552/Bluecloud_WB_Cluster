@@ -15,30 +15,28 @@ rm(list=ls())
 closeAllConnections()
 setwd("/net/meso/work/aschickele/Bluecloud_WB_local")
 source(file = "./code/00_config.R")
-run_name <- "obis_test"
+run_name <- "test"
 
-# --- 1a. List the available species
+# --- 1. List the available species
 # Within the user defined selection criteria
 list_bio <- list_bio_wrapper(FOLDER_NAME = run_name,
                              DATA_SOURCE = "occurrence",
-                             SAMPLE_SELECT = list(MIN_SAMPLE = 50, MIN_DEPTH = 0, MAX_DEPTH = 50, START_YEAR = 1990, STOP_YEAR = 2016))
+                             SAMPLE_SELECT = list(MIN_SAMPLE = 30, MIN_DEPTH = 0, MAX_DEPTH = 50, START_YEAR = 1990, STOP_YEAR = 2016))
 
 # Define the list of species to consider
-# sp_list <- c("5820", "9760") # random OTU short selection
+sp_list <- "microplastic"
 sp_list <- list_bio %>% 
-  # dplyr::filter(grepl("Calanus | Calanoides ", scientificname)) %>%
   dplyr::filter(grepl("Thalassiosira ", scientificname)) %>%
-  # dplyr::filter(grepl("Chaetoceros ", scientificname)) %>%
   dplyr::select(worms_id) %>% 
   unique() %>% pull()
 
-# --- 1b. Create the output folder, initialize parallelisation and parameters
+# --- 2. Create the output folder, initialize parallelisation and parameters
 # (1) Create an output folder containing all species-level runs, (2) Stores the 
 # global parameters in an object, (3) Checks for environmental correlated variables
 subfolder_list <- run_init(FOLDER_NAME = run_name,
                            SP_SELECT = sp_list,
                            LOAD_FROM = NULL,
-                           DATA_TYPE = "pres",
+                           DATA_TYPE = "binary",
                            ENV_VAR = NULL,
                            ENV_PATH = c("/net/meso/work/aschickele/Bluecloud_WB_local/data/bio_oracle", 
                                         "/net/meso/work/aschickele/Bluecloud_WB_local/data/features_mean_from_monthly"),
@@ -46,14 +44,14 @@ subfolder_list <- run_init(FOLDER_NAME = run_name,
                            NFOLD = 3,
                            FOLD_METHOD = "lon")
 
-# --- 2a. Query biological data
+# --- 3. Query biological data
 # Get the biological data of the species we wish to model
 mcmapply(FUN = query_bio_wrapper,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
          mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
-# --- 2b. Query environmental data
+# --- 4. Query environmental data
 # This functions returns an updated subfolder_list object to avoid computing
 # species with less than the user defined minimum occurrence number
 subfolder_list <- mcmapply(FUN = query_env,
@@ -64,7 +62,7 @@ subfolder_list <- mcmapply(FUN = query_env,
   na.omit(subfolder_list) %>% 
   as.vector()
 
-# --- 3. Generate pseudo-absences if necessary
+# --- 5. Generate pseudo-absences if necessary
 mcmapply(FUN = pseudo_abs,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
@@ -72,7 +70,7 @@ mcmapply(FUN = pseudo_abs,
          PER_RANDOM = 0.25,
          mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
-# --- 4. Outliers, Environmental predictor and MESS check 
+# --- 6. Outliers, Environmental predictor and MESS check 
 mcmapply(FUN = query_check,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
@@ -80,24 +78,24 @@ mcmapply(FUN = query_check,
          UNIVARIATE = TRUE,
          mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
-# --- 5. Generate split and re sampling folds
+# --- 7. Generate split and re sampling folds
 mcmapply(FUN = folds,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
          mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
-# --- 6. Hyper parameters to train
+# --- 8. Hyper parameters to train
 hyperparameter(FOLDER_NAME = run_name,
                MODEL_LIST = c("GLM","GAM","RF","MLP","SVM","BRT"),
                LEVELS = 3)
 
-# --- 7. Model fit -- FIX : RF is very long for big data
+# --- 9. Model fit -- FIX : RF is very long for big data
 mcmapply(FUN = model_wrapper,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
          mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
-# --- 8. Model evaluation
+# --- 10. Model evaluation
 # Performance metric and variable importance
 mcmapply(FUN = eval_wrapper,
          FOLDER_NAME = run_name,
@@ -105,7 +103,7 @@ mcmapply(FUN = eval_wrapper,
          ENSEMBLE = TRUE,
          mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
-# --- 9. Model projections
+# ---11. Model projections
 mcmapply(FUN = proj_wrapper,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
@@ -113,15 +111,15 @@ mcmapply(FUN = proj_wrapper,
          CUT = 0.1,
          mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
-# --- 10. Output plots
-# --- 10.1. Standard maps per algorithms
+# --- 12. Output plots
+# --- 12.1. Standard maps per algorithms
 mcmapply(FUN = standard_maps,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
          ENSEMBLE = TRUE,
          mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
-# --- 10.2. Partial dependency plots - TAKES AGES FOR LARGE OCCURRENCE NUMBER
+# --- 12.2. Partial dependency plots - TAKES AGES FOR LARGE OCCURRENCE NUMBER
 mcmapply(FUN = pdp,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
@@ -129,7 +127,7 @@ mcmapply(FUN = pdp,
          ENSEMBLE = TRUE,
          mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
-# --- 10.3 Diversity
+# --- 12.3 Diversity
 diversity_maps(FOLDER_NAME = run_name,
                SUBFOLDER_NAME = subfolder_list,
                BUFFER = 1,

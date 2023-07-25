@@ -33,34 +33,34 @@ model_wrapper <- function(FOLDER_NAME = NULL,
     MODEL_LIST <- HP$CALL$MODEL_LIST
   }
   
-  # --- 2. Redirection to PRESENCE model
-  if(CALL$DATA_TYPE == "pres"){
+  # --- 2. Redirection to BINARY model
+  if(CALL$DATA_TYPE == "binary"){
     # --- 2.1. Load function
-    source(file = paste0(project_wd, "/code/07b_model_pres.R"))
+    source(file = paste0(project_wd, "/code/09a_model_binary.R"))
     
     # --- 2.2. Run function
-    MODEL <- model_pres(CALL,
-                        QUERY = QUERY,
-                        HP = HP,
-                        MODEL_LIST = MODEL_LIST)
-  } # END if pres
+    MODEL <- model_binary(CALL,
+                          QUERY = QUERY,
+                          HP = HP,
+                          MODEL_LIST = MODEL_LIST)
+  } # END if binary
   
   # --- 3. Redirection to CONTINUOUS model
-  if(CALL$DATA_TYPE == "cont"){
+  if(CALL$DATA_TYPE == "continuous"){
     # --- 3.1. Load function
-    source(file = paste0(project_wd, "/code/07c_model_cont.R"))
+    source(file = paste0(project_wd, "/code/09b_model_continuous.R"))
     
     # --- 3.2. Run function
-    MODEL <- model_cont(CALL,
-                        QUERY = QUERY,
-                        HP = HP,
-                        MODEL_LIST = MODEL_LIST)
-  } # END if pres
+    MODEL <- model_continuous(CALL,
+                              QUERY = QUERY,
+                              HP = HP,
+                              MODEL_LIST = MODEL_LIST)
+  } # END if continuous
   
-  # --- 4. Redirection to PROPORTION model
+  # --- 4. Redirection to PROPORTIONS model
   if(CALL$DATA_TYPE == "proportions"){
     # --- 3.1. Load function
-    source(file = paste0(project_wd, "/code/07d_model_proportions.R"))
+    source(file = paste0(project_wd, "/code/09c_model_proportions.R"))
     
     # --- 3.2. Run function
     MODEL <- model_proportions(CALL,

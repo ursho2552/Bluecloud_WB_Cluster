@@ -1,5 +1,5 @@
 #' =============================================================================
-#' @name proj_cont
+#' @name proj_continuous
 #' @description computes spatial projections for the continuous data sub-pipeline
 #' @param QUERY the query object from the master pipeline
 #' @param MODELS the models object from the master pipeline
@@ -11,12 +11,12 @@
 #' @return an updated model list object containing the projections objects
 #' embedded in each model sub-list.
 
-proj_cont <- function(QUERY,
-                      MODEL,
-                      CALL,
-                      N_BOOTSTRAP,
-                      PROJ_PATH = NULL,
-                      CUT = NULL){
+proj_continuous <- function(QUERY,
+                            MODEL,
+                            CALL,
+                            N_BOOTSTRAP,
+                            PROJ_PATH = NULL,
+                            CUT = NULL){
   
   # --- 1. Load environmental data - TO FIX DYNAMICALLY
   features <- stack(CALL$ENV_PATH) %>% 

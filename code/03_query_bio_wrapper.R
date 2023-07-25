@@ -29,7 +29,7 @@ query_bio_wrapper <- function(FOLDER_NAME = NULL,
   # For occurrence source data
   if(CALL$DATA_SOURCE == "occurrence"){
     # --- 2.1. Load function
-    source(file = paste0(project_wd, "/code/02d_query_occurrence.R"))
+    source(file = paste0(project_wd, "/code/03a_query_occurrence.R"))
     
     # --- 2.2. Run function
     QUERY <- query_occurrence(FOLDER_NAME = FOLDER_NAME,
@@ -40,27 +40,27 @@ query_bio_wrapper <- function(FOLDER_NAME = NULL,
   # For continuous  source data
   if(CALL$DATA_SOURCE == "abundance"){
     # --- 3.1. Load function
-    source(file = paste0(project_wd, "/code/02c_query_atlanteco.R"))
+    source(file = paste0(project_wd, "/code/03b_query_abundance.R"))
     
     # --- 3.2. Run function
-    QUERY <- query_atlanteco(FOLDER_NAME = FOLDER_NAME,
+    QUERY <- query_abundance(FOLDER_NAME = FOLDER_NAME,
                              QUERY = QUERY)
   } # End ATLANTECO redirection
   
   # --- 4. Redirection to the MGNIFY query
   if(CALL$DATA_SOURCE == "omic"){
     # --- 4.1. Load function
-    source(file = paste0(project_wd, "/code/02b_query_mgnify.R"))
+    source(file = paste0(project_wd, "/code/03c_query_omic.R"))
     
     # --- 4.2. Run function
-    QUERY <- query_mgnify(FOLDER_NAME = FOLDER_NAME,
+    QUERY <- query_omic(FOLDER_NAME = FOLDER_NAME,
                           QUERY = QUERY)
   } # End MGNIFY redirection
   
   # --- 5. Redirection to the CUSTOM query
   if(CALL$DATA_SOURCE != "omic" & CALL$DATA_SOURCE != "abundance" & CALL$DATA_SOURCE != "occurrence"){
     # --- 5.1. Load function
-    source(file = paste0(project_wd, "/code/02e_query_custom.R"))
+    source(file = paste0(project_wd, "/code/03d_query_custom.R"))
     
     # --- 5.2. Run function
     QUERY <- query_custom(FOLDER_NAME = FOLDER_NAME,

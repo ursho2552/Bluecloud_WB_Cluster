@@ -30,7 +30,7 @@ query_check <- function(FOLDER_NAME = NULL,
   # --- 2. Outlier analysis
   # Outlier check on the query based on z-score (from Nielja code)
   if(OUTLIER == TRUE){
-    if(CALL$DATA_TYPE == "pres"){
+    if(CALL$DATA_TYPE == "binary"){
       message("--- Cannot perform outlier analysis on presence - pseudo absence data ---")
     } else {
       to_remove <- outlier_iqr_col(QUERY$Y, n = 2.5)

@@ -36,7 +36,7 @@ hyperparameter <- function(FOLDER_NAME = NULL,
   
   # --- 2.2. GENERALIZED ADDITIVE MODELS 
   # --- 2.2.1. Define the model specifications
-  if(CALL$DATA_TYPE == "pres"){
+  if(CALL$DATA_TYPE == "binary"){
     HP$GAM$model_spec <- gen_additive_mod(mode = "regression",
                                           adjust_deg_free = tune(),
                                           select_features = TRUE) %>% 
@@ -61,7 +61,7 @@ hyperparameter <- function(FOLDER_NAME = NULL,
   
   # --- 2.3. GENERALIZED LINEAR MODELS
   # --- 2.3.1. Define the model specifications
-  if(CALL$DATA_TYPE == "pres"){
+  if(CALL$DATA_TYPE == "binary"){
     HP$GLM$model_spec <- linear_reg(mode = "regression") %>% 
       set_engine("glm", 
                  family = stats::binomial(link = "logit")) %>% 
