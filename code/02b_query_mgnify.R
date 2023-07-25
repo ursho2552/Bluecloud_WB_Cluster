@@ -36,7 +36,7 @@ query_mgnify <- function(FOLDER_NAME = NULL,
   
   # --- 4. Compute richness, presence abs, or prop
   # --- 4.1. Transform to proportion data
-  if(CALL$DATA_TYPE == "omic"){
+  if(CALL$DATA_TYPE == "proportions"){
     Y <- apply(Y, 1, function(x)(x = x/sum(x))) %>% 
       aperm(c(2,1)) %>% 
       as.data.frame()

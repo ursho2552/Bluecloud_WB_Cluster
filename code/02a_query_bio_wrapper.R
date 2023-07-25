@@ -57,10 +57,20 @@ query_bio_wrapper <- function(FOLDER_NAME = NULL,
                           QUERY = QUERY)
   } # End MGNIFY redirection
   
-  # --- 5. Wrap up and save
-  # --- 5.1 Save file(s)
+  # --- 5. Redirection to the CUSTOM query
+  if(CALL$DATA_SOURCE != "omic" & CALL$DATA_SOURCE != "abundance" & CALL$DATA_SOURCE != "occurrence"){
+    # --- 5.1. Load function
+    source(file = paste0(project_wd, "/code/02e_query_custom.R"))
+    
+    # --- 5.2. Run function
+    QUERY <- query_custom(FOLDER_NAME = FOLDER_NAME,
+                          QUERY = QUERY)
+  } # End MGNIFY redirection
+  
+  # --- 6. Wrap up and save
+  # --- 6.1 Save file(s)
   save(QUERY, file = paste0(project_wd, "/output/", FOLDER_NAME, "/", SUBFOLDER_NAME,"/QUERY.RData"))
-  # --- 5.2. Stop logs
+  # --- 6.2. Stop logs
   log_sink(FILE = sinkfile, START = FALSE)
   
 } # END FUNCTION
