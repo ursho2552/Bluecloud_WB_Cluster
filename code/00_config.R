@@ -1,5 +1,9 @@
-# --- 1. R Packages
-# --- 1.1. Tidy environment-related
+# --- 1. System arguments
+Sys.setenv(HDF5_USE_FILE_LOCKING="FALSE") # to be able to open .nc from complex
+Sys.setenv(RETICULATE_PYTHON = "/UP_home/aschickele/.virtualenvs/r-reticulate/bin/python")
+
+# --- 2. R Packages
+# --- 2.1. Tidy environment-related
 library(tidyverse)
 library(tidymodels)
 library(DALEX)
@@ -9,22 +13,22 @@ library(abind)
 library(caret)
 library(xgboost)
 
-# --- 1.2. Data table opening and storage
+# --- 2.2. Data table opening and storage
 library(RSQLite)
 library(feather) 
 library(vroom)
 
-# --- 1.2. Spatial data and object
+# --- 2.2. Spatial data and object
 library(raster)
 library(virtualspecies) 
 library(ncdf4)
 
-# --- 1.3. Data access service
+# --- 2.3. Data access service
 library(phyloseq)
 library(MGnifyR)
 library(robis)
 
-# --- 1.4. Others
+# --- 2.4. Others
 library(RColorBrewer) 
 library(fields)
 library(pastecs)
@@ -64,9 +68,6 @@ source("./function/QC_recommandations.R")
 source("./function/bivar_raster_plot.R")
 source("./function/get_cell_neighbors.R")
 source("./function/regrid_env.R")
-
-# --- Other custom arguments
-Sys.setenv(HDF5_USE_FILE_LOCKING="FALSE") # to be able to open .nc from complex
 
 # --- Data specific parameters
 
