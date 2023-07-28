@@ -38,9 +38,22 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))
   if(is.null(NB_PA)){NB_PA = nrow(QUERY$S)}
   
-  # --- 1.3. Double check data type
+  # --- 1.3. Double check data type - plot observation locations anyway
   if(CALL$DATA_TYPE != "binary"){
     message("No Pseudo-absence generation necessary for this data type")
+    r <- raster(CALL$ENV_PATH)
+    r[!is.na(r)] <- 0
+    
+    land <- r
+    land[is.na(land)] <- 9999
+    land[land != 9999] <- NA
+    
+    pdf(paste0(project_wd,"/output/",FOLDER_NAME,"/",SUBFOLDER_NAME,"/01_observations.pdf"))
+    plot(land, col = "antiquewhite4", legend=FALSE, main = paste("Observation locations for:", SUBFOLDER_NAME), 
+         sub = paste("NB_OBS :",  nrow(QUERY$S)))
+    points(QUERY$S$decimallongitude, QUERY$S$decimallatitude, col = "black", pch = 3)
+    dev.off()
+    
     log_sink(FILE = sinkfile, START = FALSE)
     return(NULL)
   } 
@@ -150,7 +163,7 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
   land <- r
   land[is.na(land)] <- 9999
   land[land != 9999] <- NA
-  plot(land, col = "antiquewhite4", legend=FALSE, main = "Presence - Pseudo Abs", 
+  plot(land, col = "antiquewhite4", legend=FALSE, main = paste("Presence - Pseudo Abs for:", SUBFOLDER_NAME), 
        sub = paste("NB_OBS :",  nrow(QUERY$S),"// NB_PA :", NB_PA, "// METHOD_PA :", METHOD_PA))
   points(xy, col = "red", pch = 3)
   points(QUERY$S$decimallongitude, QUERY$S$decimallatitude, col = "black", pch = 3)

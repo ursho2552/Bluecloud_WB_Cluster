@@ -6,7 +6,6 @@
 #' ============================== TO DO LIST ===================================
 #' - check data access service as input
 #' - check blue cloud data miner compatibility of the functions
-#' - include MBTR in the prototypes for proportion data
 #' =============================================================================
 
 # --- 0. Start up and load functions
@@ -15,18 +14,19 @@ rm(list=ls())
 closeAllConnections()
 setwd("/net/meso/work/aschickele/Bluecloud_WB_local")
 source(file = "./code/00_config.R")
-run_name <- "test"
+run_name <- "nice_pdf"
 
 # --- 1. List the available species
 # Within the user defined selection criteria
 list_bio <- list_bio_wrapper(FOLDER_NAME = run_name,
-                             DATA_SOURCE = "occurrence",
-                             SAMPLE_SELECT = list(MIN_SAMPLE = 30, MIN_DEPTH = 0, MAX_DEPTH = 50, START_YEAR = 1990, STOP_YEAR = 2016))
+                             DATA_SOURCE = "abundance",
+                             SAMPLE_SELECT = list(MIN_SAMPLE = 20, MIN_DEPTH = 0, MAX_DEPTH = 50, START_YEAR = 1990, STOP_YEAR = 2016))
 
 # Define the list of species to consider
 sp_list <- "microplastic"
 sp_list <- list_bio %>% 
   dplyr::filter(grepl("Thalassiosira ", scientificname)) %>%
+  # dplyr::filter(grepl("Tripos ", scientificname)) %>%
   dplyr::select(worms_id) %>% 
   unique() %>% pull()
 
@@ -36,7 +36,7 @@ sp_list <- list_bio %>%
 subfolder_list <- run_init(FOLDER_NAME = run_name,
                            SP_SELECT = sp_list,
                            LOAD_FROM = NULL,
-                           DATA_TYPE = "binary",
+                           DATA_TYPE = "continuous",
                            ENV_VAR = NULL,
                            ENV_PATH = c("/net/meso/work/aschickele/Bluecloud_WB_local/data/bio_oracle", 
                                         "/net/meso/work/aschickele/Bluecloud_WB_local/data/features_mean_from_monthly"),
@@ -132,4 +132,8 @@ diversity_maps(FOLDER_NAME = run_name,
                SUBFOLDER_NAME = subfolder_list,
                BUFFER = 1,
                N_BOOTSTRAP = 10)
+
+# --- 12.4 User synthesis
+user_synthesis(FOLDER_NAME = run_name)
+
 # --- END --- 

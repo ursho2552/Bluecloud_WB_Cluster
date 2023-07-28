@@ -33,11 +33,12 @@ query_check <- function(FOLDER_NAME = NULL,
     if(CALL$DATA_TYPE == "binary"){
       message("--- Cannot perform outlier analysis on presence - pseudo absence data ---")
     } else {
-      to_remove <- outlier_iqr_col(QUERY$Y, n = 2.5)
+      to_remove <- outlier_iqr_col(QUERY$Y, n = 2.5) %>% as.vector()
       if(length(to_remove > 0)){
-        QUERY$Y <- QUERY$Y[-to_remove,]
-        QUERY$X <- QUERY$X[-to_remove,]
-        QUERY$S <- QUERY$S[-to_remove,]
+        # QUERY$Y <- QUERY$Y[-to_remove,]
+        QUERY$Y <- dplyr::slice(QUERY$Y, -to_remove)
+        QUERY$X <- dplyr::slice(QUERY$X, -to_remove)
+        QUERY$S <- dplyr::slice(QUERY$S, -to_remove)
       } # if to remove !NULL
       
       message(paste("--- OUTLIERS : Removed row number", to_remove, "\n"))
@@ -81,16 +82,16 @@ query_check <- function(FOLDER_NAME = NULL,
       pdf(paste0(project_wd, "/output/", FOLDER_NAME, "/", SUBFOLDER_NAME,"/02_univariate_predictor_selection.pdf"))
       par(mfrow = c(2,1))
       # --- Variable importance
-      boxplot(rfe_vip$Overall ~ rfe_vip$var, main = "Univariate predictor importance", 
+      boxplot(rfe_vip$Overall ~ rfe_vip$var, main = paste("Univariate predictor importance for:", SUBFOLDER_NAME), 
               xlab = "", ylab = "", axes = FALSE, outline = FALSE,
               col = c(rep("green", id), rep("red", ncol(QUERY$X)-id)))
-      axis(side = 1, at = 1:ncol(QUERY$X), labels = levels(rfe_vip$var), las = 2, cex.axis = 0.5)
+      axis(side = 1, at = 1:ncol(QUERY$X), labels = levels(rfe_vip$var), las = 2, cex.axis = 0.4)
       axis(side = 2, at = c(seq(0, 15, 5), seq(0, 100, 20)), labels = c(seq(0, 15, 5), seq(0, 100, 20)), las = 2)
       abline(h = c(seq(0, 15, 5), seq(0, 100, 20)), lty = "longdash", col = "gray50")
       # --- Number of variables
       plot(rfe_fit$results$Variables, rfe_fit$results$RMSE, pch = 20, lwd = 3,
            col = c(rep("green", id), rep("red", ncol(QUERY$X)-id)),
-           main = "Optimal predictor number", xlab = "Nb. of predictors", ylab = "RMSE")
+           main = paste("Optimal predictor number for:", SUBFOLDER_NAME), xlab = "Nb. of predictors", ylab = "RMSE")
       grid(col = "gray50")
       dev.off()
     }
@@ -128,11 +129,12 @@ query_check <- function(FOLDER_NAME = NULL,
     
     # --- 3.5. Plot the corresponding dentrogram
     pdf(paste0(project_wd, "/output/", FOLDER_NAME, "/", SUBFOLDER_NAME,"/03_env_cor.pdf"))
+    par(mfrow = c(2,1))
     pal <- rep("red", length(features))
     pal[get_leaves_attr(features_clust, "label") %in% names(features_keep)] <- "green"
     labels_colors(features_clust) = pal
     plot(features_clust, axes = FALSE, main = "Env. variable Pearson's correlation (r) at the sampling stations")
-    axis(side = 2, at = seq(0,1,0.2), labels = seq(1,0,-0.2), las = 1)
+    axis(side = 2, at = seq(0,1,0.2), labels = seq(1,0,-0.2), las = 1, cex.axis = 0.6)
     abline(h = seq(0,1,0.2), col = "gray50", lty = "dashed")
     abline(h = 1-CALL$ENV_COR, col = "red")
     dev.off()
