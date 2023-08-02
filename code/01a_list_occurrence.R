@@ -20,7 +20,8 @@ list_occurrence <- function(DATA_SOURCE,
                         startdepth = SAMPLE_SELECT$MIN_DEPTH,
                         enddepth = SAMPLE_SELECT$MAX_DEPTH) %>% 
     dplyr::filter(records >= SAMPLE_SELECT$MIN_SAMPLE) %>% 
-    dplyr::select(taxonID, taxonRank, scientificName, records)
+    dplyr::select(acceptedNameUsageID, taxonRank, acceptedNameUsage, records) %>% 
+    distinct()
   
   # --- 1.2. Nice names
   colnames(data_list) <- c("worms_id","taxonrank","scientificname","nb_occ")

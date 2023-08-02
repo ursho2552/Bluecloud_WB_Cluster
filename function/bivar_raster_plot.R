@@ -27,8 +27,8 @@
 #' https://gist.github.com/scbrown86/2779137a9378df7b60afd23e0c45c188#file-bivarrasterplot-r
 
 # Function that produces the color matrix
-colmat <- function(xmax = "deepskyblue4",
-                   ymax = "red4",
+colmat <- function(xmax = "#1F867B",
+                   ymax = "#B64A60",
                    nbreaks = 100){
   
   # --- 1. Required Packages
@@ -37,9 +37,7 @@ colmat <- function(xmax = "deepskyblue4",
   
   # --- 2. Build the two extremes color columns
   left_pal <- colorRampPalette(c("white",ymax))(nbreaks)
-  right_pal <- colorRampPalette(c(ymax, xmax))(2*nbreaks-1) %>% 
-    .[-c(1:nbreaks-1)] %>% 
-    rev()
+  right_pal <- colorRampPalette(c(xmax, "black"))(nbreaks)
   
   # --- 3. Interpolate colors in between
   col_matrix <- NULL

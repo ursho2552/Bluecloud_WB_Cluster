@@ -73,7 +73,7 @@ standard_maps <- function(FOLDER_NAME = NULL,
   text(x = 0.2, y = 0.1, "Observation", pos = 4)
   # --- 3.3. MESS x CV 2D color scale
   par(mar = c(5,5,3,2), xpd = FALSE)
-  bivar_pal <- colmat(xmax = "deepskyblue4", ymax = "darkgoldenrod2", nbreaks = 100)
+  bivar_pal <- colmat(nbreaks = 100)
   colmat_plot(bivar_pal, xlab = "Coefficient of variation", ylab = "MESS value")
   axis(side = 1, at = c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = c(0, 0.2, 0.4, 0.6, 0.8, 1))
   axis(side = 2, at = c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = c(0, -20, -40, -60, -80, -100), las = 2)

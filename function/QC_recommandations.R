@@ -16,7 +16,7 @@ qc_recommandations <- function(MODEL,
                                                                                   "Promising. Work on models and data",
                                                                                   "Promising. Work on models and data",
                                                                                   "Write a proposal !"),
-                                                               COL = c("red","red","red","red","yellow","yellow","yellow","green"))){
+                                                               COL = c("#B64A60","#B64A60","#B64A60","#B64A60","#ffc800","#ffc800","#ffc800","#1F867B"))){
   
   # --- 1. Extract labels
   # --- 1.1. Algorithm names

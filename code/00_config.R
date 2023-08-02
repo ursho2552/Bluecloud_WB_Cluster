@@ -58,6 +58,7 @@ source(file = "./code/11_proj_wrapper.R")
 source(file = "./code/12a_standard_maps.R")
 source(file = "./code/12b_pdp.R")
 source(file = "./code/12c_diversity_maps.R")
+source(file = "./code/12d_user_synthesis.R")
 
 # --- Custom functions
 source("./function/sample_raster_NA.R")

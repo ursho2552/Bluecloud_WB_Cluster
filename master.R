@@ -14,12 +14,12 @@ rm(list=ls())
 closeAllConnections()
 setwd("/net/meso/work/aschickele/Bluecloud_WB_local")
 source(file = "./code/00_config.R")
-run_name <- "nice_pdf"
+run_name <- "color_test"
 
 # --- 1. List the available species
 # Within the user defined selection criteria
 list_bio <- list_bio_wrapper(FOLDER_NAME = run_name,
-                             DATA_SOURCE = "abundance",
+                             DATA_SOURCE = "occurrence",
                              SAMPLE_SELECT = list(MIN_SAMPLE = 20, MIN_DEPTH = 0, MAX_DEPTH = 50, START_YEAR = 1990, STOP_YEAR = 2016))
 
 # Define the list of species to consider
@@ -36,7 +36,7 @@ sp_list <- list_bio %>%
 subfolder_list <- run_init(FOLDER_NAME = run_name,
                            SP_SELECT = sp_list,
                            LOAD_FROM = NULL,
-                           DATA_TYPE = "continuous",
+                           DATA_TYPE = "binary",
                            ENV_VAR = NULL,
                            ENV_PATH = c("/net/meso/work/aschickele/Bluecloud_WB_local/data/bio_oracle", 
                                         "/net/meso/work/aschickele/Bluecloud_WB_local/data/features_mean_from_monthly"),

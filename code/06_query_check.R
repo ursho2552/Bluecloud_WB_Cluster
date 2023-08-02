@@ -67,7 +67,7 @@ query_check <- function(FOLDER_NAME = NULL,
       # --- 2.3.2. Compute the percentage loss
       loss_ma_pct <- (loss_ma[-1] - loss_ma[-length(loss_ma)])/loss_ma[-length(loss_ma)]*100
       # --- 2.3.3. Find the first minimum or <1% loss percentage
-      id <- which(loss_ma_pct > -1)[1]
+      id <- which(loss_ma_pct > 0)[1]
       
       # --- 2.4. Compute variable importance
       rfe_vip <- rfe_fit$variables %>% 
@@ -84,13 +84,13 @@ query_check <- function(FOLDER_NAME = NULL,
       # --- Variable importance
       boxplot(rfe_vip$Overall ~ rfe_vip$var, main = paste("Univariate predictor importance for:", SUBFOLDER_NAME), 
               xlab = "", ylab = "", axes = FALSE, outline = FALSE,
-              col = c(rep("green", id), rep("red", ncol(QUERY$X)-id)))
-      axis(side = 1, at = 1:ncol(QUERY$X), labels = levels(rfe_vip$var), las = 2, cex.axis = 0.4)
+              col = c(rep("#1F867B", id), rep("#B64A60", ncol(QUERY$X)-id)))
+      axis(side = 1, at = 1:ncol(QUERY$X), labels = levels(rfe_vip$var), las = 2, cex.axis = 0.3)
       axis(side = 2, at = c(seq(0, 15, 5), seq(0, 100, 20)), labels = c(seq(0, 15, 5), seq(0, 100, 20)), las = 2)
       abline(h = c(seq(0, 15, 5), seq(0, 100, 20)), lty = "longdash", col = "gray50")
       # --- Number of variables
       plot(rfe_fit$results$Variables, rfe_fit$results$RMSE, pch = 20, lwd = 3,
-           col = c(rep("green", id), rep("red", ncol(QUERY$X)-id)),
+           col = c(rep("#1F867B", id), rep("#B64A60", ncol(QUERY$X)-id)),
            main = paste("Optimal predictor number for:", SUBFOLDER_NAME), xlab = "Nb. of predictors", ylab = "RMSE")
       grid(col = "gray50")
       dev.off()
@@ -129,14 +129,14 @@ query_check <- function(FOLDER_NAME = NULL,
     
     # --- 3.5. Plot the corresponding dentrogram
     pdf(paste0(project_wd, "/output/", FOLDER_NAME, "/", SUBFOLDER_NAME,"/03_env_cor.pdf"))
-    par(mfrow = c(2,1))
-    pal <- rep("red", length(features))
-    pal[get_leaves_attr(features_clust, "label") %in% names(features_keep)] <- "green"
+    par(mfrow = c(2,1), mar = c(8,5,5,3), cex = 0.6)
+    pal <- rep("#B64A60", length(features))
+    pal[get_leaves_attr(features_clust, "label") %in% names(features_keep)] <- "#1F867B"
     labels_colors(features_clust) = pal
-    plot(features_clust, axes = FALSE, main = "Env. variable Pearson's correlation (r) at the sampling stations")
+    plot(features_clust, axes = FALSE, main = "Env. variable Pearson's correlation (r) at the sampling stations", cex = 0.5)
     axis(side = 2, at = seq(0,1,0.2), labels = seq(1,0,-0.2), las = 1, cex.axis = 0.6)
     abline(h = seq(0,1,0.2), col = "gray50", lty = "dashed")
-    abline(h = 1-CALL$ENV_COR, col = "red")
+    abline(h = 1-CALL$ENV_COR, col = "#B64A60")
     dev.off()
     
     # --- 3.6. Update ENV_VAR
@@ -148,6 +148,7 @@ query_check <- function(FOLDER_NAME = NULL,
   features <- stack(CALL$ENV_PATH) %>% 
     readAll() %>% 
     raster::subset(QUERY$SUBFOLDER_INFO$ENV_VAR)
+  names(features) <- QUERY$SUBFOLDER_INFO$ENV_VAR
   
   # --- 4.2. Compute the mess analysis
   # --- 4.2.1. Load environmental samples data
@@ -160,7 +161,7 @@ query_check <- function(FOLDER_NAME = NULL,
   } # if pres remove pseudo abs
   
   # --- 4.2.3. Analysis
-  r_mess <- dismo::mess(x = features, v = tmp, full = FALSE)
+  r_mess <- dismo::mess(x = features, v = as.data.frame(tmp), full = FALSE)
   
   # --- 4.3. Append to query
   QUERY$MESS <- r_mess

@@ -22,7 +22,7 @@ query_occurrence <- function(FOLDER_NAME = NULL,
   # --- 2.1. Default univariate target
   target <- occurrence(taxonid = QUERY$SUBFOLDER_INFO$SP_SELECT) %>% 
     dplyr::filter(aphiaID == QUERY$SUBFOLDER_INFO$SP_SELECT) %>% # triple check !
-    dplyr::filter(basisOfRecord == "Occurrence") %>% 
+    dplyr::filter(basisOfRecord == "Occurrence" | basisOfRecord == "HumanObservation" | basisOfRecord == "LivingSpecimen") %>% 
     dplyr::filter(decimalLatitude != 0 | decimalLatitude < -90 | decimalLatitude > 90) %>% 
     dplyr::filter(decimalLongitude != 0 | decimalLongitude < -180 | decimalLongitude > 180) %>% 
     dplyr::filter(occurrenceStatus == "present") %>% 
