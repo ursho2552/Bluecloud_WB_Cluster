@@ -27,6 +27,7 @@ library(ncdf4)
 library(phyloseq)
 library(MGnifyR)
 library(robis)
+library(rgbif)
 
 # --- 2.4. Others
 library(RColorBrewer) 

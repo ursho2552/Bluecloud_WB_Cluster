@@ -117,7 +117,6 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
     dens <- focal(presence, focal_w, fun = function(x){sum(x, na.rm = TRUE)}, pad = TRUE)
     dens <- (dens/max(getValues(dens), na.rm = TRUE)*(1-PER_RANDOM))+PER_RANDOM # try to get a fix random PA generation
     dens[!is.na(presence)] <- NA
-    plot(dens)
     
     # --- 3.3.3. Define the weighted background raster
     background <- synchroniseNA(stack(dens, r))[[1]] %>% 

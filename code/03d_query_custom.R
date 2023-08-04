@@ -22,6 +22,7 @@ query_custom <- function(FOLDER_NAME = NULL,
   # --- 2.1. For presence data
   if(CALL$DATA_TYPE == "binary"){
     Y <- CALL$LIST_BIO %>% 
+      dplyr::filter(worms_id == QUERY$SUBFOLDER_INFO$SP_SELECT) %>% 
       dplyr::select(measurementvalue) %>% 
       apply(2, function(x)(x/x)) %>% 
       data.frame()
@@ -30,6 +31,7 @@ query_custom <- function(FOLDER_NAME = NULL,
   # --- 2.2. For abundance data
   if(CALL$DATA_TYPE == "continuous"){
     Y <- CALL$LIST_BIO %>% 
+      dplyr::filter(worms_id == QUERY$SUBFOLDER_INFO$SP_SELECT) %>% 
       dplyr::select(measurementvalue) 
   }
   
@@ -47,6 +49,7 @@ query_custom <- function(FOLDER_NAME = NULL,
   
   # --- 3. Create S sample table
   S <- CALL$LIST_BIO %>% 
+    dplyr::filter(worms_id == QUERY$SUBFOLDER_INFO$SP_SELECT) %>% 
     dplyr::select(-any_of(c("measurementvalue", "worms_id", "taxonrank", "scientificname", "nb_occ"))) %>% 
     mutate(decimallatitude = as.numeric(decimallatitude),
            decimallongitude = as.numeric(decimallongitude),
@@ -54,6 +57,7 @@ query_custom <- function(FOLDER_NAME = NULL,
   
   # --- 4. Create annotation table
   annotations <- CALL$LIST_BIO %>% 
+    dplyr::filter(worms_id == QUERY$SUBFOLDER_INFO$SP_SELECT) %>% 
     dplyr::select(any_of(c("worms_id", "taxonrank", "scientificname", "nb_occ"))) %>% 
     distinct()
   

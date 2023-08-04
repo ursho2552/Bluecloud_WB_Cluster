@@ -36,17 +36,61 @@ query_occurrence <- function(FOLDER_NAME = NULL,
     target <- mutate(target, taxonrank = NA)
   }
   
-  # --- 2.3. Add number of occurrence
-  target <- mutate(target, nb_occ = n())
-  
   # --- 2.3. Nice names
-  colnames(target) <- c("scientificname","worms_id","decimallatitude","decimallongitude","depth","year","measurementvalue","measurementunit", "taxonrank","nb_occ")
+  colnames(target) <- c("scientificname","worms_id","decimallatitude","decimallongitude","depth","year","measurementvalue","measurementunit", "taxonrank")
   
-  # --- 3. Create Y target table
+  # --- 3. Query GBIF occurrences
+  # --- 3.1. Prepare the scientific name - Aphia ID does not work for GBIF
+  SNAME <- target$scientificname[1] %>% as.character()
+  
+  # --- 3.2. Default univariate target
+  target_gbif <- lapply(CALL$SAMPLE_SELECT$START_YEAR:CALL$SAMPLE_SELECT$STOP_YEAR,
+                 FUN = function(YEAR){
+                   occ_data(scientificName = SNAME,
+                            year = YEAR,
+                            depth = paste0(CALL$SAMPLE_SELECT$MIN_DEPTH, ",", CALL$SAMPLE_SELECT$MAX_DEPTH),
+                            occurrenceStatus = 'PRESENT',
+                            limit = 99000)$data
+                 }) %>% 
+    bind_rows() 
+  
+  # --- 3.3. Re-format data frame
+  # Security if there is not GBIF data available for the species
+  if(nrow(target_gbif) != 0){
+    # --- 3.3.1. Select columns
+    # And re-select the scientificname as a double check
+    target_gbif <- target_gbif %>% 
+      dplyr::filter(grepl(SNAME, scientificName)) %>% 
+      dplyr::select(any_of(c("decimalLatitude","decimalLongitude","depth","year"))) %>% 
+      dplyr::filter(!is.na(decimalLatitude) & !is.na(decimalLongitude))
+    colnames(target_gbif) <- c("decimallatitude","decimallongitude","depth","year")
+    
+    # --- 3.3.2. Add missing columns
+    target_gbif <- target_gbif %>% 
+      mutate(scientificname = target$scientificname[1],
+             worms_id = QUERY$SUBFOLDER_INFO$SP_SELECT,
+             measurementvalue = "present",
+             measurementunit = "Occurrence",
+             taxonrank = target$taxonrank[1]) %>% 
+      dplyr::select(any_of(c("scientificname","worms_id","decimallatitude","decimallongitude","depth","year","measurementvalue","measurementunit", "taxonrank")))
+    
+  }
+  
+  # --- 4. Bind both datasets and add nb_occ
+  # Again, security if there is not GBIF data available for the species
+  if(nrow(target_gbif) != 0){
+     target <- rbind(target, target_gbif) %>% 
+       mutate(nb_occ = n())
+  } else {
+    target <- target %>% 
+      mutate(nb_occ = n())
+  }
+  
+  # --- 5. Create Y target table
   Y <- target %>% 
     dplyr::select(measurementvalue)
   
-  # --- 4. Create S sample table
+  # --- 6. Create S sample table
   # Add the row ID in S to keep track of rows in sub-sample, train, test etc...
   S <- target %>% 
     dplyr::select(-any_of(c("measurementvalue", "worms_id", "taxonrank", "scientificname", "nb_occ"))) %>% 
@@ -54,12 +98,12 @@ query_occurrence <- function(FOLDER_NAME = NULL,
            decimallongitude = as.numeric(decimallongitude),
            ID = row_number())
   
-  # --- 5. Create an Annotation table
+  # --- 7. Create an Annotation table
   annotations <- target %>% 
     dplyr::select(any_of(c("worms_id", "taxonrank", "scientificname", "nb_occ"))) %>% 
     distinct()
   
-  # --- 6. Save in the QUERY object
+  # --- 8. Save in the QUERY object
   QUERY[["Y"]] <- Y
   QUERY[["S"]] <- S
   QUERY[["annotations"]] <- annotations
