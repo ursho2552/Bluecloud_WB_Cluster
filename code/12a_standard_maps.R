@@ -59,10 +59,17 @@ standard_maps <- function(FOLDER_NAME = NULL,
   # --- 3.1. Abundance or habitat suitability legend
   hsi_pal <- inferno_pal(100)
   plot.new()
+  # --- 3.1.1. Extract the plot true scale (average max across bootstrap)
+  plot_scale <- lapply(MODEL, FUN = function(z)(z = apply(MODEL$GLM$proj$y_hat, 1, function(x)(x = mean(x, na.rm = TRUE))) %>% max(na.rm = TRUE))) %>% 
+    unlist() %>% 
+    max(na.rm = TRUE)
+  # --- 3.1.2. Plot the colorbar
   colorbar.plot(x = 0.5, y = 0, strip = seq(0,1,length.out = 100),
                 strip.width = 0.3, strip.length = 2.7,
                 col = hsi_pal, border = "black")
-  axis(side = 1)
+  # --- 3.1.3. Apply the scale to the axis caption
+  # This is only informative and the raster will be rescaled by the maximum
+  axis(side = 1, at = seq(0, 1, length.out = 5), labels = round(seq(0, 1 * plot_scale, length.out = 5), 2))
   text(x = 0.5, y = 0.3, "Habitat Suitability Index", adj = 0.5)
   abline(h = -0.5) # PDF wide separator
   # --- 3.2. Observation vs 75% quartile
@@ -91,8 +98,9 @@ standard_maps <- function(FOLDER_NAME = NULL,
     }else{val_raw <- MODEL[[i]][["proj"]][["y_hat"]]}
     
     # --- 4.2.2. Mean value
+    # Rescaled by the maximum to match the colorbar
     val <- apply(val_raw, 1, function(x)(x = mean(x, na.rm = TRUE)))
-    r_m <- r0 %>% setValues(val)
+    r_m <- r0 %>% setValues(val / plot_scale)
 
     # --- 4.2.3. Coefficient of variation
     val <- apply(val_raw, 1, function(x)(x = cv(x, na.rm = TRUE)))
@@ -153,9 +161,10 @@ standard_maps <- function(FOLDER_NAME = NULL,
     }
     # --- 5.2. Compute the different layers
     # --- 5.2.1. Mean value
+    # Rescaled by the maximum to match the colorbar
     val <- apply(y_ens, 1, function(x)(x = mean(x, na.rm = TRUE)))
     r_m <- r0 %>%
-      setValues(val)
+      setValues(val / plot_scale)
 
     # --- 5.2.2. Coefficient of variation
     val <- apply(y_ens, 1, function(x)(x = cv(x, na.rm = TRUE)))

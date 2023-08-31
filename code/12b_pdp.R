@@ -205,11 +205,19 @@ pdp <- function(FOLDER_NAME = NULL,
   pdf(paste0(project_wd,"/output/",FOLDER_NAME,"/",SUBFOLDER_NAME,"/06_pdp.pdf"))
   par(mfrow = c(4,4), mar = c(2,2,4,5))
   
-  # --- 6.2. Initialize color palette
+  # --- 6.2. Initialize 
+  # --- 6.2.1. Color palette
   if(CALL$DATA_TYPE == "proportions"){m_names <- names(pdp_all)
   } else {m_names <- CALL$HP$CALL$MODEL_LIST}
   pal <- brewer.pal(length(m_names), "Paired")
   if(CALL$DATA_TYPE != "proportions"){pal <- pal[which(m_names %in% MODEL$CALL$MODEL_LIST)]}
+  
+  # --- 6.2.2. Plot scaling (average max across bootstrap)
+  # Because continuous data are not between 0 and 1
+  plot_scale <- lapply(MODEL, FUN = function(z)(z = apply(MODEL$GLM$proj$y_hat, 1, function(x)(x = mean(x, na.rm = TRUE))) %>% max(na.rm = TRUE))) %>% 
+    unlist() %>% 
+    max(na.rm = TRUE)
+  
   
   # --- 6.3. Iteratively compute the plots
   for(i in QUERY$SUBFOLDER_INFO$ENV_VAR){
@@ -220,12 +228,13 @@ pdp <- function(FOLDER_NAME = NULL,
       
       # --- 6.3.2. Plot
       if(j == 1){
-        plot(tmp$x, tmp$y_hat_m, type = 'l', ylim = c(0,1), lwd = 1, col = pal[j],
+        plot(tmp$x, tmp$y_hat_m, type = 'l', lwd = 1, col = pal[j],
+             ylim = c(0, plot_scale),
              xlab = "", ylab = "", main = i)
         polygon(x = c(tmp$x, rev(tmp$x)),
                 y = c(tmp$y_hat_m-tmp$y_hat_m*tmp$y_hat_cv/100, rev(tmp$y_hat_m+tmp$y_hat_m*tmp$y_hat_cv/100)),
                 col = scales::alpha(pal[j], 0.3), border = NA)
-        mtext(side = 4, at = tail(tmp$y_hat_m, 1), text = m_names[j], col = pal[j], padj = 0.5, las = 1, cex = 0.6)
+        mtext(side = 4, at = tail(tmp$y_hat_m, 1), text = MODEL$CALL$MODEL_LIST[j], col = pal[j], padj = 0.5, las = 1, cex = 0.6)
         grid(col = "gray20")
       } else {
         lines(tmp$x, tmp$y_hat_m, type = 'l', ylim = c(0,1), lwd = 1, col = pal[j],
@@ -233,7 +242,7 @@ pdp <- function(FOLDER_NAME = NULL,
         polygon(x = c(tmp$x, rev(tmp$x)),
                 y = c(tmp$y_hat_m-tmp$y_hat_m*tmp$y_hat_cv/100, rev(tmp$y_hat_m+tmp$y_hat_m*tmp$y_hat_cv/100)),
                 col = scales::alpha(pal[j], 0.3), border = NA)
-        mtext(side = 4, at = tail(tmp$y_hat_m, 1), text = m_names[j], col = pal[j], padj = 0.5, las = 1, cex = 0.6)
+        mtext(side = 4, at = tail(tmp$y_hat_m, 1), text = MODEL$CALL$MODEL_LIST[j], col = pal[j], padj = 0.5, las = 1, cex = 0.6)
       } # End if
     } # End j model/target loop
   } # End i plot loop
