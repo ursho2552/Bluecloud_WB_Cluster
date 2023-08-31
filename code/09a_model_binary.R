@@ -49,6 +49,9 @@ model_binary <- function(CALL,
     # Based on RMSE values per model run (rsq does not work with 0's)
     model_best <- model_res %>% 
       select_best("rmse")
+    # Retrieve the corresponding RMSE as well
+    rmse_best <- model_res %>% show_best("rmse") %>% .[1,]
+    HP[[MODEL_LIST[i]]][["best_fit"]] <- rmse_best
     
     # --- 2.4. Define final workflow
     final_wf <- model_wf %>% 

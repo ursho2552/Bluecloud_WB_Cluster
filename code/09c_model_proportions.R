@@ -86,6 +86,9 @@ model_proportions <- function(CALL,
   best_hp <- which(unlist(min_loss) == min(unlist(min_loss)))
   nboost <- nboost[[best_hp]]
   
+  # --- 2.5. Retrieve the corresponding RMSE as well
+  HP[[MODEL_LIST]][["best_fit"]] <- sqrt(min_loss)
+  
   # --- 3. Final model fit
   # --- 3.1. Extract train and validation fold from initial split
   message(paste0(Sys.time(), "--- MBTR: fit final model"))

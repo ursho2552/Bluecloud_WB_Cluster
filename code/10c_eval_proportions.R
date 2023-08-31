@@ -32,6 +32,12 @@ eval_proportions <- function(CALL,
   # --- 1.4. Compute R2 into MODEL object
   MODEL[["MBTR"]][["eval"]][["R2"]] <- calc_rsquared(as.matrix(y), y_hat) %>% round(3)
   
+  # --- 1.5. Compute an over-fitting rate
+  # Calculated as the deviation during training to deviation in testing ratio
+  resample_dev <- MODEL[[i]][["best_fit"]]
+  eval_dev <- sqrt(mean(as.matrix((y-y_hat)^2), na.rm=TRUE))
+  MODEL[["MBTR"]][["eval"]][["OVF"]] <- ((resample_dev/eval_dev)-1)*100
+  
   # --- 2. Variable importance
   # Performed according to the loss evolution corresponding to each tree split
   # Re-fitting a model for every variable would be too costly for MBTR

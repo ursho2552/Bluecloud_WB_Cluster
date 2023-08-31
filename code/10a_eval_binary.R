@@ -25,12 +25,18 @@ eval_binary <- function(QUERY,
     
     # --- 1.3. Compute Continuous Boyce Index into MODELS object
     MODEL[[i]][["eval"]][["CBI"]] <- ecospat.boyce(fit = y_hat,
-                                                   obs = y_hat[which(y == 1)],
-                                                   PEplot = FALSE,
-                                                   method = "spearman",
-                                                   rm.duplicate = TRUE,
-                                                   res = 100) %>%
+                                                            obs = y_hat[which(y == 1)],
+                                                            PEplot = FALSE,
+                                                            method = "spearman",
+                                                            rm.duplicate = TRUE,
+                                                            res = 100) %>%
       .$cor
+    
+    # --- 1.4. Compute an over-fitting rate
+    # Calculated as the deviation during training to deviation in testing ratio
+    resample_dev <- MODEL[[i]][["best_fit"]]$mean
+    eval_dev <- rmse(data = data.frame(truth = y, estimate = y_hat), 1, 2)$.estimate
+    MODEL[[i]][["eval"]][["overfit_rate"]] <- ((resample_dev/eval_dev)-1)*100
     
   } # for each model loop
   

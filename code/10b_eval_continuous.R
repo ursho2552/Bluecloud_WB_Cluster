@@ -28,6 +28,13 @@ eval_continuous <- function(QUERY,
     MODEL[[i]][["eval"]][["R2"]] <- yardstick::rsq(data = df, truth, estimate ) %>% 
       .$.estimate %>% 
       round(3)
+    
+    # --- 1.4. Compute an over-fitting rate
+    # Calculated as the deviation during training to deviation in testing ratio
+    resample_dev <- MODEL[[i]][["best_fit"]]$mean
+    eval_dev <- rmse(data = data.frame(truth = y, estimate = y_hat), 1, 2)$.estimate
+    MODEL[[i]][["eval"]][["OVF"]] <- ((resample_dev/eval_dev)-1)*100
+    
   } # for each model loop
   
   

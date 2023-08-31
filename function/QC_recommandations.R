@@ -2,9 +2,11 @@
 #' @description function to extract the recommendations according to a set of
 #' predefined quality checks of the algorithms.
 #' @param MODEL the model object returned by the projection step
+#' @param ENSEMBLE boolean, should the recommendation be computed for the ensemble only
 #' @return a recommendation table with the quality checks and associated text
 
-qc_recommandations <- function(MODEL, 
+qc_recommandations <- function(MODEL,
+                               ENSEMBLE = FALSE,
                                RECOMMANDATIONS_DF = data.frame(FIT = c(0,0,1,0,1,0,1,1),
                                                                VIP = c(0,1,0,0,0,1,1,1),
                                                                DEV = c(0,0,0,1,1,1,0,1),
@@ -20,8 +22,14 @@ qc_recommandations <- function(MODEL,
   
   # --- 1. Extract labels
   # --- 1.1. Algorithm names
-  m_names <- names(MODEL) %>% 
-    .[. != "ENSEMBLE" & . !=  "CALL"]
+  if(ENSEMBLE == TRUE){
+    m_names <- names(MODEL) %>% 
+      .[. ==  "ENSEMBLE"]
+  } else {
+    m_names <- names(MODEL) %>% 
+      .[. != "ENSEMBLE" & . !=  "CALL"]
+  }
+
   # --- 1.2. Quality checks names
   qc_names <- c("FIT","VIP","DEV")
   
@@ -32,7 +40,7 @@ qc_recommandations <- function(MODEL,
   
   # --- 2.2. Fill up
   for(m in m_names){
-    tmp <- MODEL[[m]][["eval"]] %>% unlist()
+    tmp <- MODEL[[m]][["eval"]] %>% unlist() %>% .[c(1,3,4)]
     while(length(tmp) < length(qc_names)){tmp <- c(tmp, NA)}
     qc_matrix[m,] <- tmp
   }
