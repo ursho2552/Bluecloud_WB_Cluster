@@ -100,9 +100,12 @@ query_env <- function(FOLDER_NAME = NULL,
   
   # --- 7. Remove rows that are still NA - i.e. on land
   # Already done for X in the previous step
-  Y <- dplyr::slice(Y, -to_remove)
-  S <- dplyr::slice(S, -to_remove)
-  message(paste("--- ENV EXTRACT : Removed row number", to_remove, "more than 2 grid cells on land \n"))
+  if(length(to_remove) != 0){
+    Y <- dplyr::slice(Y, -to_remove)
+    S <- dplyr::slice(S, -to_remove)
+    message(paste("--- ENV EXTRACT : Removed row number", to_remove, "more than 2 grid cells on land \n"))
+  }
+  
   
   # --- 8. Wrap up and save
   # --- 8.1. Remove rare targets and update sample list
