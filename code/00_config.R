@@ -22,6 +22,7 @@ library(vroom)
 library(raster)
 library(virtualspecies) 
 library(ncdf4)
+library(usdm)
 
 # --- 2.3. Data access service
 library(phyloseq)

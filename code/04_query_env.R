@@ -69,27 +69,43 @@ query_env <- function(FOLDER_NAME = NULL,
 
   # --- 6. Extract the environmental data in the data frame
   # If there is an NA, extract from nearest non-NA cells
+  # within a certain radius - two grid cells
   X <- NULL
+  to_remove <- NULL
   for(j in 1:nrow(S)){
+    # --- 6.1. First try to extrct environmental data
     xy <- S[j,] %>% dplyr::select(x = decimallongitude, y = decimallatitude)
 
     tmp <- raster::extract(features, xy) %>%
       as.data.frame()
 
+    # --- 6.2. Use neighbor cell if NA is not far inland
     if(is.na(sum(tmp))){
       r_dist <- distanceFromPoints(features, xy) # Compute distance to NA point
       r_dist <- synchroniseNA(stack(r_dist, features[[1]]))[[1]] # Synchronize NA
+      r_dist[r_dist > 200e3] <- NA
       min_dist <- which.min(getValues(r_dist)) # Get closest non-NA point ID
       tmp <- features[min_dist] %>%
         as.data.frame()
+      
+      # --- 6.3. Remove if NA is too far inland
+      if(sum(tmp)==0){
+        to_remove <- c(to_remove, j)
+      }
     }
-
-    colnames(tmp) <- features_name
+    
     X <- rbind(X, tmp)
+    colnames(X) <- features_name
   } # End for j
   
-  # --- 7. Wrap up and save
-  # --- 7.1. Remove rare targets and update sample list
+  # --- 7. Remove rows that are still NA - i.e. on land
+  # Already done for X in the previous step
+  Y <- dplyr::slice(Y, -to_remove)
+  S <- dplyr::slice(S, -to_remove)
+  message(paste("--- ENV EXTRACT : Removed row number", to_remove, "more than 2 grid cells on land \n"))
+  
+  # --- 8. Wrap up and save
+  # --- 8.1. Remove rare targets and update sample list
   # Designed to clean the input table of proportion data (i.e. avoid sum lines = 0 in test of train sets)
   if(CALL$DATA_TYPE == "proportions"){
     target_filter <- apply(Y, 2, function(x)(x = sum(x/x, na.rm = TRUE)))
@@ -106,17 +122,17 @@ query_env <- function(FOLDER_NAME = NULL,
   save(CALL, file = paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
   }
   
-  # --- 7.2. Append QUERY with the environmental values and save
+  # --- 8.2. Append QUERY with the environmental values and save
   # And updated Y and S tables with duplicate coordinate removed
   QUERY[["Y"]] <- Y
   QUERY[["S"]] <- S
   QUERY[["X"]] <- X
   save(QUERY, file = paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))
   
-  # --- 7.3. Stop logs
+  # --- 8.3. Stop logs
   log_sink(FILE = sinkfile, START = FALSE)
   
-  # --- 7.4. Update list of SUBFOLDER_NAME
+  # --- 8.4. Update list of SUBFOLDER_NAME
   if(nrow(S) >= CALL$SAMPLE_SELECT$MIN_SAMPLE){
     return(SUBFOLDER_NAME)
   } else {

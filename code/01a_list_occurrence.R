@@ -39,7 +39,7 @@ list_occurrence <- function(DATA_SOURCE,
                                  depth = paste0(SAMPLE_SELECT$MIN_DEPTH, ",", SAMPLE_SELECT$MAX_DEPTH),
                                  occurrenceStatus = 'PRESENT')
                      },
-                     mc.cores = 16) %>% unlist()
+                     mc.cores = MAX_CLUSTERS) %>% unlist()
   message(paste(Sys.time(), "--- Retriving GBIF data : DONE"))
   
   # --- 2.2. Adding it to the initial occurrence number
