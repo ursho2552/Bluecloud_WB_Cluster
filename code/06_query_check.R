@@ -45,77 +45,31 @@ query_check <- function(FOLDER_NAME = NULL,
     }
   } # END if outlier TRUE
   
-  # --- 2. Univariate variable importance analysis
-  # Done with a Random forest using the method developed in the "Caret" library
-  if(UNIVARIATE == TRUE){
-    if(CALL$DATA_TYPE == "proportions"){
-      message("A univariate predictor selection is not possible for proportion data,
-              please select carefully your predictors")
-    } else{
-      # --- 2.1. Initialize data and control parameters
-      rfe_df <- cbind(QUERY$Y, QUERY$X)
-      # Modify rfFuncs : we modify the selectSize code to use pickSizeBest instead of a 1.5 tolerance around the best
-      rfFuncs$selectSize <- function(...) pickSizeBest(...) # weird functioning :-)
-      rfe_control <- rfeControl(functions=rfFuncs, method="cv", number=10, rerank = TRUE)
-      # --- 2.2. Run the RFE algorithm
-      message(paste(Sys.time(), "--- UNIVARIATE : Fitting the RFE algorithm \n"))
-      rfe_fit <- rfe(rfe_df[,-1], rfe_df[,1], sizes = c(1:ncol(rfe_df[,-1])), rfeControl = rfe_control)
-      
-      # --- 2.3. Extract the relevant predictors
-      # --- 2.3.1. Compute the moving average loss
-      loss_ma <- ma(rfe_fit$results$RMSE, n = 10)
-      # --- 2.3.2. Compute the percentage loss
-      loss_ma_pct <- (loss_ma[-1] - loss_ma[-length(loss_ma)])/loss_ma[-length(loss_ma)]*100
-      # --- 2.3.3. Find the first minimum or <1% loss percentage
-      id <- which(loss_ma_pct > 0)[1]
-      
-      # --- 2.4. Compute variable importance
-      rfe_vip <- rfe_fit$variables %>% 
-        dplyr::select(var, Overall) %>% 
-        mutate(var = fct_reorder(as.factor(var), Overall, .desc = TRUE))
-      
-      # --- 2.5. Extract the environmental variables
-      ENV_VAR <- rfe_vip$var[1:id] %>% as.character()
-      message(paste("--- UNIVARIATE : Selecting", ENV_VAR, "\n"))
-      
-      # --- 2.6. Produce an information plot
-      pdf(paste0(project_wd, "/output/", FOLDER_NAME, "/", SUBFOLDER_NAME,"/02_univariate_predictor_selection.pdf"))
-      par(mfrow = c(2,1))
-      # --- Variable importance
-      boxplot(rfe_vip$Overall ~ rfe_vip$var, main = paste("Univariate predictor importance for:", SUBFOLDER_NAME), 
-              xlab = "", ylab = "", axes = FALSE, outline = FALSE,
-              col = c(rep("#1F867B", id), rep("#B64A60", ncol(QUERY$X)-id)))
-      axis(side = 1, at = 1:ncol(QUERY$X), labels = levels(rfe_vip$var), las = 2, cex.axis = 0.3)
-      axis(side = 2, at = c(seq(0, 15, 5), seq(0, 100, 20)), labels = c(seq(0, 15, 5), seq(0, 100, 20)), las = 2)
-      abline(h = c(seq(0, 15, 5), seq(0, 100, 20)), lty = "longdash", col = "gray50")
-      # --- Number of variables
-      plot(rfe_fit$results$Variables, rfe_fit$results$RMSE, pch = 20, lwd = 3,
-           col = c(rep("#1F867B", id), rep("#B64A60", ncol(QUERY$X)-id)),
-           main = paste("Optimal predictor number for:", SUBFOLDER_NAME), xlab = "Nb. of predictors", ylab = "RMSE")
-      grid(col = "gray50")
-      dev.off()
-    }
-  } # END if univariate TRUE
-
-  # --- 3. Environmental variable correlation check
+  # --- 2. Environmental variable correlation check
   # Removing correlated environmental variables to avoid correlated model features
   if(is.numeric(CALL$ENV_COR) == TRUE){
-    # --- 3.1. Opening environmental value at presence points
-    if(UNIVARIATE == TRUE & CALL$DATA_TYPE != "proportions"){
-      features <- QUERY$X[,ENV_VAR]
-    } else {
-      features <- QUERY$X
+    # --- 2.1. Opening environmental value at presence points
+    features <- QUERY$X
+    if(CALL$DATA_TYPE == "binary"){
+      features <- features[which(QUERY$Y$measurementvalue != 0),]
     }
     
-    # --- 3.2. Check correlation/distance between variables
+    # --- 2.2. Re-order features by Variation Inflation Factor
+    # Later, we will keep the variable with the lower VIF among correlated clusters
+    features_vif <- vif(features) %>% 
+      arrange(VIF) %>% 
+      dplyr::filter(!is.infinite(VIF) & !is.na(VIF))
+    features <- features[, features_vif$Variables]
+    
+    # --- 2.3. Check correlation/distance between variables
     features_dist <- cor(features, method = "pearson")
     features_dist <- as.dist(1-abs(features_dist))
     
-    # --- 3.3. Do a clustering and cut
+    # --- 2.4. Do a clustering and cut
     features_clust <- hclust(features_dist) %>% as.dendrogram()
     features_group <- cutree(features_clust, h = 1-CALL$ENV_COR)
     
-    # --- 3.4. Randomly choose one variable within each inter-correlated clusters
+    # --- 2.5. Randomly choose one variable within each inter-correlated clusters
     features_keep <- NULL
     for(i in 1:max(features_group)){
       tmp <- which(features_group == i)
@@ -127,8 +81,8 @@ query_check <- function(FOLDER_NAME = NULL,
       }
     }
     
-    # --- 3.5. Plot the corresponding dentrogram
-    pdf(paste0(project_wd, "/output/", FOLDER_NAME, "/", SUBFOLDER_NAME,"/03_env_cor.pdf"))
+    # --- 2.6. Plot the corresponding dentrogram
+    pdf(paste0(project_wd, "/output/", FOLDER_NAME, "/", SUBFOLDER_NAME,"/02_env_cor.pdf"))
     par(mfrow = c(2,1), mar = c(8,5,5,3), cex = 0.6)
     pal <- rep("#B64A60", length(features))
     pal[get_leaves_attr(features_clust, "label") %in% names(features_keep)] <- "#1F867B"
@@ -139,9 +93,73 @@ query_check <- function(FOLDER_NAME = NULL,
     abline(h = 1-CALL$ENV_COR, col = "#B64A60")
     dev.off()
     
-    # --- 3.6. Update ENV_VAR
+    # --- 2.7. Update ENV_VAR
     QUERY$SUBFOLDER_INFO$ENV_VAR <- names(features_keep)
   } # END if env_cor TRUE
+  
+  
+  # --- 3. Univariate variable importance analysis
+  # Done with a Random forest using the method developed in the "Caret" library
+  if(UNIVARIATE == TRUE){
+    if(CALL$DATA_TYPE == "proportions"){
+      message("A univariate predictor selection is not possible for proportion data,
+              please select carefully your predictors")
+    } else {
+      # --- 3.1. Initialize data and control parameters
+      features <- QUERY$X[,QUERY$SUBFOLDER_INFO$ENV_VAR]
+      rfe_df <- cbind(QUERY$Y, features)
+      # Modify rfFuncs : we modify the selectSize code to use pickSizeBest instead of a 1.5 tolerance around the best
+      rfFuncs$selectSize <- function(...) pickSizeBest(...) # weird functioning :-)
+      rfe_control <- rfeControl(functions=rfFuncs, method="cv", number=5, rerank = FALSE)
+      # --- 3.2. Run the RFE algorithm
+      message(paste(Sys.time(), "--- UNIVARIATE : Fitting the RFE algorithm \n"))
+      rfe_fit <- rfe(rfe_df[,-1], rfe_df[,1], sizes = c(1:ncol(rfe_df[,-1])), rfeControl = rfe_control)
+      
+      # --- 3.3. Extract the relevant predictors
+      # --- 3.3.1. Compute the moving average loss
+      loss_ma <- ma(rfe_fit$results$RMSE, n = 10)
+      # --- 3.3.2. Compute the percentage loss
+      loss_ma_pct <- (loss_ma[-1] - loss_ma[-length(loss_ma)])/loss_ma[-length(loss_ma)]*100
+      # --- 3.3.3. Find the first minimum or <1% loss percentage
+      # Consider all variables if "id" is NA, due to moving average not working for low variable number
+      id <- which(loss_ma_pct > -1)[1]
+      if(is.na(id) == TRUE){
+        message("--- The moving window could not find a minimum loss, please considering 
+                removing this option from your run due to insufficient number of environmental variables")
+        id <- ncol(features)
+      }
+      
+      # --- 3.4. Compute variable importance
+      rfe_vip <- rfe_fit$variables %>% 
+        dplyr::select(var, Overall) %>% 
+        mutate(var = fct_reorder(as.factor(var), Overall, .desc = TRUE))
+      
+      # --- 3.5. Extract the environmental variables
+      ENV_VAR <- rfe_vip$var[1:id] %>% as.character()
+      message(paste("--- UNIVARIATE : Selecting", ENV_VAR, "\n"))
+      
+      # --- 3.6. Produce an information plot
+      pdf(paste0(project_wd, "/output/", FOLDER_NAME, "/", SUBFOLDER_NAME,"/03_univariate_predictor_selection.pdf"))
+      par(mfrow = c(2,1))
+      # --- Variable importance
+      boxplot(rfe_vip$Overall ~ rfe_vip$var, main = paste("Univariate predictor importance for:", SUBFOLDER_NAME), 
+              xlab = "", ylab = "", axes = FALSE, outline = FALSE,
+              col = c(rep("#1F867B", id), rep("#B64A60", ncol(features)-id)))
+      axis(side = 1, at = 1:ncol(features), labels = levels(rfe_vip$var), las = 2, cex.axis = 0.3)
+      axis(side = 2, at = c(seq(0, 15, 5), seq(0, 100, 20)), labels = c(seq(0, 15, 5), seq(0, 100, 20)), las = 2)
+      abline(h = c(seq(0, 15, 5), seq(0, 100, 20)), lty = "longdash", col = "gray50")
+      # --- Number of variables
+      plot(rfe_fit$results$Variables, rfe_fit$results$RMSE, pch = 20, lwd = 3,
+           col = c(rep("#1F867B", id), rep("#B64A60", ncol(features)-id)),
+           main = paste("Optimal predictor number for:", SUBFOLDER_NAME), xlab = "Nb. of predictors", ylab = "RMSE")
+      grid(col = "gray50")
+      dev.off()
+      
+      # --- 3.7. Update ENV_VAR
+      QUERY$SUBFOLDER_INFO$ENV_VAR <- ENV_VAR
+      
+    }
+  } # END if univariate TRUE
 
   # --- 4. MESS analysis
   # --- 4.1. Load necessary data
@@ -156,7 +174,7 @@ query_check <- function(FOLDER_NAME = NULL,
   
   # --- 4.2.2. Remove the pseudo-absences from the analysis
   # We should not consider them as true input data as they are user defined
-  if(CALL$DATA_TYPE == "pres"){
+  if(CALL$DATA_TYPE == "binary"){
     tmp <- tmp[which(QUERY$Y != 0),]
   } # if pres remove pseudo abs
   
