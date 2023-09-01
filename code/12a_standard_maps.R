@@ -76,7 +76,7 @@ standard_maps <- function(FOLDER_NAME = NULL,
   plot.new()
   points(x = 0.1, y = 0.4, pch = 22, col = "black", bg = "gray80", cex = 5)
   text(x = 0.2, y = 0.4, "Q75 Habitat Suitability Index", pos = 4)
-  points(x = 0.1, y = 0.1, pch = 3, col = "red", cex = 2)
+  points(x = 0.1, y = 0.1, pch = 20, col = "black", cex = 2)
   text(x = 0.2, y = 0.1, "Observation", pos = 4)
   # --- 3.3. MESS x CV 2D color scale
   par(mar = c(5,5,3,2), xpd = FALSE)
@@ -131,16 +131,22 @@ standard_maps <- function(FOLDER_NAME = NULL,
     plot(land, col = "antiquewhite4", legend=FALSE, add = TRUE)
 
     # --- 4.3.2. Plot the observations
-    # Top abundance quartile as contour
+    # --- 4.3.2.1. Top abundance quartile as contour
     plot(r_m > quantile(r_m, 0.75), col = c("white","gray80"), legend=FALSE, main = "Observations")
-    # Land mask
+    # --- 4.3.2.2. Land mask
     plot(land, col = "antiquewhite4", legend=FALSE, add = TRUE)
-    # Observations
+    # --- 4.3.2.3. Observations location
     if(CALL$DATA_TYPE == "proportions"){tmp <- QUERY$S
     } else {tmp <- QUERY$S[which(QUERY$Y$measurementvalue > 0),]}
-    points(tmp$decimallongitude, tmp$decimallatitude,
-           col = "red", pch = 3)
-
+    # --- 4.3.2.4. Observation colors
+    if(CALL$DATA_TYPE == "continuous"){
+      points(tmp$decimallongitude, tmp$decimallatitude,
+             col = col_numeric("inferno", domain = range(QUERY$Y$measurementvalue))(QUERY$Y$measurementvalue), pch = 20)
+    } else {
+      points(tmp$decimallongitude, tmp$decimallatitude,
+             col = "black", pch = 20)
+    }
+    
     # --- 4.3.3. Plot the uncertainties
     # Land mask
     plot(land, col = "antiquewhite4", legend=FALSE, main = "Uncertainties")
@@ -182,14 +188,19 @@ standard_maps <- function(FOLDER_NAME = NULL,
     plot(land, col = "antiquewhite4", legend=FALSE, add = TRUE)
 
     # --- 5.3.2. Plot the observations
-    # Top abundance quartile as contour
+    # --- 5.3.2.1. Top abundance quartile as contour
     plot(r_m > quantile(r_m, 0.75), col = c("white","gray80"), legend=FALSE, main = "Observations")
-    # Land mask
+    # --- 5.3.2.2. Land mask
     plot(land, col = "antiquewhite4", legend=FALSE, add = TRUE)
-    # Observations
+    # --- 5.3.2.3. Observations 
     tmp <- QUERY$S[which(QUERY$Y$measurementvalue > 0),]
-    points(tmp$decimallongitude, tmp$decimallatitude,
-           col = "red", pch = 3)
+    if(CALL$DATA_TYPE == "continuous"){
+      points(tmp$decimallongitude, tmp$decimallatitude,
+             col = col_numeric("inferno", domain = range(QUERY$Y$measurementvalue))(QUERY$Y$measurementvalue), pch = 20)
+    } else {
+      points(tmp$decimallongitude, tmp$decimallatitude,
+             col = "black", pch = 20)
+    }
 
     # --- 5.3.3. Plot the uncertainties
     # Land mask

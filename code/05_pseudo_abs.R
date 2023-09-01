@@ -49,9 +49,29 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
     land[land != 9999] <- NA
     
     pdf(paste0(project_wd,"/output/",FOLDER_NAME,"/",SUBFOLDER_NAME,"/01_observations.pdf"))
-    plot(land, col = "antiquewhite4", legend=FALSE, main = paste("Observation locations for:", SUBFOLDER_NAME), 
-         sub = paste("NB_OBS :",  nrow(QUERY$S)))
-    points(QUERY$S$decimallongitude, QUERY$S$decimallatitude, col = "black", pch = 3)
+    
+    # --- 1.3.1. Plot for continuous data
+    # We plot an artificial land with the scale of the observation first, for the legend
+    if(CALL$DATA_TYPE == "continuous"){
+      tmp <- (land-9998)*max(QUERY$Y$measurementvalue)
+      tmp[1] <- 0
+      plot(tmp, col = inferno_pal(100), main = paste("Observation locations for:", SUBFOLDER_NAME), 
+           sub = paste("NB_OBS :",  nrow(QUERY$S)))
+      plot(land, col = "antiquewhite4", legend=FALSE, main = paste("Observation locations for:", SUBFOLDER_NAME), 
+           sub = paste("NB_OBS :",  nrow(QUERY$S)), add = TRUE)
+      points(QUERY$S$decimallongitude, QUERY$S$decimallatitude, 
+             col = col_numeric("inferno", domain = range(QUERY$Y$measurementvalue))(QUERY$Y$measurementvalue),
+             pch = 20)
+    }
+
+    # --- 1.3.2. Plot for proportion type
+    if(CALL$DATA_TYPE == "proportions"){
+      plot(land, col = "antiquewhite4", legend=FALSE, main = paste("Observation locations for:", SUBFOLDER_NAME), 
+           sub = paste("NB_OBS :",  nrow(QUERY$S)))
+      points(QUERY$S$decimallongitude, QUERY$S$decimallatitude, 
+             col = "black", pch = 20)
+    }
+    
     dev.off()
     
     log_sink(FILE = sinkfile, START = FALSE)
