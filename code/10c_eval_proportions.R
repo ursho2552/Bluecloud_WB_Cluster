@@ -4,8 +4,6 @@
 #' @param CALL the call object from the master pipeline
 #' @param QUERY the query object from the master pipeline
 #' @param MODEL the models object from the master pipeline
-#' @param ENSEMBLE if TRUE, computes variable importance metrics for the ensemble 
-#' model as well
 #' @return the MODEL object updated with evaluation metric values (model performance
 #' metric and variable importance metric)
 #' @return variable importance plots as PDF file
@@ -80,27 +78,27 @@ eval_proportions <- function(CALL,
   
   # --- 3. Removing low quality algorithm
   # In this case the only algorithm available...
-  for(i in MODEL$CALL$MODEL_LIST){
+  for(i in MODEL$MODEL_LIST){
     # --- 3.1. Based on model performance
     # Fixed at 0.3 for CBI value or NA (in case of a 0 & 1 binary model prediction) 
     # /!\ /!\ /!\ /!\ treshold at 0.1 to be able to prototype something. TO CHANGE LATER OBVIOUSLY /!\ /!\ /!\ /!\
     if(MODEL[[i]][["eval"]][["R2"]] < 0.1 | is.na(MODEL[[i]][["eval"]][["R2"]])){
-      MODEL$CALL$MODEL_LIST <- MODEL$CALL$MODEL_LIST[MODEL$CALL$MODEL_LIST != i]
+      MODEL$MODEL_LIST <- MODEL$MODEL_LIST[MODEL$MODEL_LIST != i]
       message(paste("--- EVAL : discarded", i, "due to R2 =", MODEL[[i]][["eval"]][["R2"]], "< 0.1 \n"))
     }
     
     # --- 3.2. Based on cumulative variable importance
     # Fixed at 30% cumulative importance for the top three predictors
     if(MODEL[[i]][["eval"]][["CUM_VIP"]] < 50 | is.na(MODEL[[i]][["eval"]][["CUM_VIP"]])){
-      MODEL$CALL$MODEL_LIST <- MODEL$CALL$MODEL_LIST[MODEL$CALL$MODEL_LIST != i]
+      MODEL$MODEL_LIST <- MODEL$MODEL_LIST[MODEL$MODEL_LIST != i]
       message(paste("--- EVAL : discarded", i, "due to CUM_VIP =", MODEL[[i]][["eval"]][["CUM_VIP"]], "< 50% \n"))
     }
   } # for each model loop
   
   # --- 4. Variable importance - Plot
-  if(CALL$FAST == FALSE | (length(MODEL$CALL$MODEL_LIST) > 1)){
+  if(CALL$FAST == FALSE | (length(MODEL$MODEL_LIST) == 1)){
     # Define the color (green = QC passed; red = no)
-    if(length(MODEL$CALL$MODEL_LIST) > 1){pal <- "#1F867B"
+    if(length(MODEL$MODEL_LIST) == 1){pal <- "#1F867B"
     } else {pal <- "#B64A60"}
     
     # Simple barplot of the MBTR vip if the model passed QC

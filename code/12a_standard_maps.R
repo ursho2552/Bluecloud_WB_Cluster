@@ -4,12 +4,10 @@
 #' projection data
 #' @param FOLDER_NAME name of the corresponding folder
 #' @param SUBFOLDER_NAME list of sub_folders to parallelize on.
-#' @param ENSEMBLE if TRUE, computes the ensemble map ?
 #' @return plots mean and uncertainty maps per model or ensemble
 
 standard_maps <- function(FOLDER_NAME = NULL,
-                          SUBFOLDER_NAME = NULL,
-                          ENSEMBLE = FALSE){
+                          SUBFOLDER_NAME = NULL){
   
   # --- 1. Initialize function
   # --- 1.1. Parameter loading
@@ -18,7 +16,7 @@ standard_maps <- function(FOLDER_NAME = NULL,
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/MODEL.RData"))
   
   # --- 1.2. Check for projections
-  if(length(MODEL$CALL$MODEL_LIST) == 0){
+  if((length(MODEL$MODEL_LIST) == 0) & CALL$FAST == TRUE){
     message("No validated algorithms to display projections from")
     return(NULL)
   }
@@ -89,8 +87,8 @@ standard_maps <- function(FOLDER_NAME = NULL,
   # --- 4. Build model-level outputs
   # --- 4.1. Initialize loop
   if(CALL$DATA_TYPE == "proportions"){loop_over <- 1:ncol(QUERY$Y)
-  }else if(CALL$FAST == FALSE){loop_over <- CALL$HP$CALL$MODEL_LIST
-  }else {loop_over <- MODEL$CALL$MODEL_LIST}
+  }else if(CALL$FAST == FALSE){loop_over <- CALL$HP$MODEL_LIST
+  }else {loop_over <- MODEL$MODEL_LIST}
   
   for(i in loop_over){
     # --- 4.2. Compute the different layers
@@ -159,10 +157,10 @@ standard_maps <- function(FOLDER_NAME = NULL,
   } # End i model loop
 
   # --- 5. Build ensemble outputs
-  if(ENSEMBLE == TRUE & CALL$DATA_TYPE != "proportions"){
+  if(CALL$ENSEMBLE == TRUE & (length(MODEL$MODEL_LIST) > 1)){
     # --- 5.1. Build ensemble array, weighted by evaluation values, re-scale max=1
     y_ens <- NULL
-    for(i in MODEL$CALL$MODEL_LIST){
+    for(i in MODEL$MODEL_LIST){
       y_ens <- cbind(y_ens,
                      MODEL[[i]][["proj"]][["y_hat"]])
     }

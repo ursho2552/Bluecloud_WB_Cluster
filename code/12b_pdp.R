@@ -5,12 +5,9 @@
 #' MBTR. (FOR NOW)
 #' @param FOLDER_NAME name of the corresponding folder
 #' @param SUBFOLDER_NAME list of sub_folders to parallelize on.
-#' @param ENSEMBLE if TRUE, computes the ensemble pdp ?
 
 pdp <- function(FOLDER_NAME = NULL,
-                SUBFOLDER_NAME = NULL,
-                ENSEMBLE = FALSE,
-                N_BOOTSTRAP = 10){
+                SUBFOLDER_NAME = NULL){
   
   # --- 1. Initialize function
   # --- 1.1. Parameter loading
@@ -49,7 +46,7 @@ pdp <- function(FOLDER_NAME = NULL,
   
   # --- 1.4. For loop parameters
   if(CALL$DATA_TYPE == "proportions"){loop_over <- 1:ncol(QUERY$Y)
-  }else{loop_over <- MODEL$CALL$MODEL_LIST}
+  }else{loop_over <- MODEL$MODEL_LIST}
   
   # --- 1.5. Initialize global PDP storage
   pdp_all <- NULL
@@ -59,11 +56,11 @@ pdp <- function(FOLDER_NAME = NULL,
   tmp <- cbind(QUERY$Y, QUERY$X, QUERY$S)
   
   # --- 2.2. Run the bootstrap generation from tidy models
-  boot_split <- bootstraps(tmp, times = N_BOOTSTRAP)
+  boot_split <- bootstraps(tmp, times = CALL$N_BOOTSTRAP)
   
   # --- 2.3. Save bootstrap on disk for proportions
   if(CALL$DATA_TYPE == "proportions"){
-    for(b in 1:N_BOOTSTRAP){
+    for(b in 1:CALL$N_BOOTSTRAP){
       X_tr <- boot_split$splits[[b]] %>% analysis() %>%
         dplyr::select(QUERY$SUBFOLDER_INFO$ENV_VAR)
       write_feather(X_tr, paste0(project_wd, "/data/MBTR_cache/", b, "_X_tr.feather"))
@@ -83,14 +80,14 @@ pdp <- function(FOLDER_NAME = NULL,
   } # if proportions
   
   # ----------------------------------------------------------------------------
-  for(i in MODEL$CALL$MODEL_LIST){
+  for(i in MODEL$MODEL_LIST){
     # --- 3. Fit the bootstrap
     if(CALL$DATA_TYPE == "proportions"){
       # --- 3.1. Fit MBTR on bootstrap - for proportions only
       # --- 3.1.1. Compute the fit
       message(paste0(Sys.time(), "--- MBTR: re-fit model for bootstrap"))
       boot_fit <- mcmapply(FUN = mbtr_fit,
-                           path = paste0(project_wd, "/data/MBTR_cache/",1:N_BOOTSTRAP,"_"),
+                           path = paste0(project_wd, "/data/MBTR_cache/",1:CALL$N_BOOTSTRAP,"_"),
                            loss_type='mse',
                            n_boosts = as.integer(1000),
                            min_leaf= MODEL$MBTR$final_wf$MEAN_LEAF,
@@ -101,10 +98,10 @@ pdp <- function(FOLDER_NAME = NULL,
                            early_stopping_rounds = 10,
                            SIMPLIFY = FALSE,
                            USE.NAMES = FALSE,
-                           mc.cores = N_BOOTSTRAP)
+                           mc.cores = CALL$N_BOOTSTRAP)
       
       # --- 3.1.2. Reload them in R because of "previous session invalidity"
-      for(b in 1:N_BOOTSTRAP){
+      for(b in 1:CALL$N_BOOTSTRAP){
         boot_fit[[b]] <- py_load_object(paste0(project_wd, "/data/MBTR_cache/",b,"_m"), pickle = "pickle")[[1]]
       } # boot_fit reload
       
@@ -122,7 +119,7 @@ pdp <- function(FOLDER_NAME = NULL,
     pdp_m <- NULL
     message(paste(Sys.time(), "--- PDP : computing for", i))
     
-    for(b in 1:N_BOOTSTRAP){
+    for(b in 1:CALL$N_BOOTSTRAP){
       if(CALL$DATA_TYPE == "proportions"){
         
         # --- 4.2. Compute PDP for MBTR - proportions data
@@ -138,13 +135,9 @@ pdp <- function(FOLDER_NAME = NULL,
           colnames(tmp) <- c(j, CALL$SP_SELECT)
           pdp_b <- abind(pdp_b, tmp, along = 3)
         } # j env variable
-        pdp_m <- abind(pdp_m, pdp_b, along = 4)
         
         # --- 4.2.2. Aggregation at the model level
-        
-        
-        
-        
+        pdp_m <- abind(pdp_m, pdp_b, along = 4)
         
       } else {
         # --- 4.3. Compute PDP for tidymodels
@@ -208,16 +201,15 @@ pdp <- function(FOLDER_NAME = NULL,
   # --- 6.2. Initialize 
   # --- 6.2.1. Color palette
   if(CALL$DATA_TYPE == "proportions"){m_names <- names(pdp_all)
-  } else {m_names <- CALL$HP$CALL$MODEL_LIST}
+  } else {m_names <- CALL$HP$MODEL_LIST}
   pal <- brewer.pal(length(m_names), "Paired")
-  if(CALL$DATA_TYPE != "proportions"){pal <- pal[which(m_names %in% MODEL$CALL$MODEL_LIST)]}
+  if(CALL$DATA_TYPE != "proportions"){pal <- pal[which(m_names %in% MODEL$MODEL_LIST)]}
   
   # --- 6.2.2. Plot scaling (average max across bootstrap)
   # Because continuous data are not between 0 and 1
   plot_scale <- lapply(MODEL, FUN = function(z)(z = apply(MODEL$GLM$proj$y_hat, 1, function(x)(x = mean(x, na.rm = TRUE))) %>% max(na.rm = TRUE))) %>% 
     unlist() %>% 
     max(na.rm = TRUE)
-  
   
   # --- 6.3. Iteratively compute the plots
   for(i in QUERY$SUBFOLDER_INFO$ENV_VAR){
@@ -234,7 +226,7 @@ pdp <- function(FOLDER_NAME = NULL,
         polygon(x = c(tmp$x, rev(tmp$x)),
                 y = c(tmp$y_hat_m-tmp$y_hat_m*tmp$y_hat_cv/100, rev(tmp$y_hat_m+tmp$y_hat_m*tmp$y_hat_cv/100)),
                 col = scales::alpha(pal[j], 0.3), border = NA)
-        mtext(side = 4, at = tail(tmp$y_hat_m, 1), text = MODEL$CALL$MODEL_LIST[j], col = pal[j], padj = 0.5, las = 1, cex = 0.6)
+        mtext(side = 4, at = tail(tmp$y_hat_m, 1), text = MODEL$MODEL_LIST[j], col = pal[j], padj = 0.5, las = 1, cex = 0.6)
         grid(col = "gray20")
       } else {
         lines(tmp$x, tmp$y_hat_m, type = 'l', ylim = c(0,1), lwd = 1, col = pal[j],
@@ -242,7 +234,7 @@ pdp <- function(FOLDER_NAME = NULL,
         polygon(x = c(tmp$x, rev(tmp$x)),
                 y = c(tmp$y_hat_m-tmp$y_hat_m*tmp$y_hat_cv/100, rev(tmp$y_hat_m+tmp$y_hat_m*tmp$y_hat_cv/100)),
                 col = scales::alpha(pal[j], 0.3), border = NA)
-        mtext(side = 4, at = tail(tmp$y_hat_m, 1), text = MODEL$CALL$MODEL_LIST[j], col = pal[j], padj = 0.5, las = 1, cex = 0.6)
+        mtext(side = 4, at = tail(tmp$y_hat_m, 1), text = MODEL$MODEL_LIST[j], col = pal[j], padj = 0.5, las = 1, cex = 0.6)
       } # End if
     } # End j model/target loop
   } # End i plot loop

@@ -14,12 +14,12 @@ rm(list=ls())
 closeAllConnections()
 setwd("/net/meso/work/aschickele/Bluecloud_WB_local")
 source(file = "./code/00_config.R")
-run_name <- "fast_TF_cont"
+run_name <- "new_param_naming_cont"
 
 # --- 1. List the available species
 # Within the user defined selection criteria
 list_bio <- list_bio_wrapper(FOLDER_NAME = run_name,
-                             DATA_SOURCE = "/net/meso/work/clercc/TestR/SampledFFGM.csv",
+                             DATA_SOURCE = "/net/meso/work/clercc/PrepareR/SampledFFGM.csv",
                              SAMPLE_SELECT = list(MIN_SAMPLE = 50, MIN_DEPTH = 0, MAX_DEPTH = 50, START_YEAR = 1990, STOP_YEAR = 2016))
 
 # Define the list of species to consider
@@ -40,9 +40,18 @@ subfolder_list <- run_init(FOLDER_NAME = run_name,
                            ENV_VAR = NULL,
                            ENV_PATH = c("/net/meso/work/aschickele/Bluecloud_WB_local/data/bio_oracle", 
                                         "/net/meso/work/aschickele/Bluecloud_WB_local/data/features_mean_from_monthly"),
+                           METHOD_PA = "density",
+                           PER_RANDOM = 0.25,
+                           OUTLIER = TRUE,
+                           UNIVARIATE = TRUE,
                            ENV_COR = 0.8,
                            NFOLD = 3,
-                           FOLD_METHOD = "lon")
+                           FOLD_METHOD = "lon",
+                           MODEL_LIST = c("GLM","GAM","RF","MLP","SVM"),
+                           LEVELS = 3,
+                           ENSEMBLE = TRUE,
+                           N_BOOTSTRAP = 10,
+                           CUT = 0.1)
 
 # --- 3. Query biological data
 # Get the biological data of the species we wish to model
@@ -66,16 +75,12 @@ subfolder_list <- mcmapply(FUN = query_env,
 mcmapply(FUN = pseudo_abs,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
-         METHOD_PA = "density",
-         PER_RANDOM = 0.25,
          mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
 # --- 6. Outliers, Environmental predictor and MESS check 
 mcmapply(FUN = query_check,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
-         OUTLIER = TRUE,
-         UNIVARIATE = TRUE,
          mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
 # --- 7. Generate split and re sampling folds
@@ -85,9 +90,7 @@ mcmapply(FUN = folds,
          mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
 # --- 8. Hyper parameters to train
-hyperparameter(FOLDER_NAME = run_name,
-               MODEL_LIST = c("GLM","GAM","RF","MLP","SVM"),
-               LEVELS = 3)
+hyperparameter(FOLDER_NAME = run_name)
 
 # --- 9. Model fit -- FIX : RF is very long for big data
 mcmapply(FUN = model_wrapper,
@@ -100,15 +103,12 @@ mcmapply(FUN = model_wrapper,
 mcmapply(FUN = eval_wrapper,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
-         ENSEMBLE = TRUE,
          mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
 # ---11. Model projections
 mcmapply(FUN = proj_wrapper,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
-         N_BOOTSTRAP = 10,
-         CUT = 0.1,
          mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
 # --- 12. Output plots
@@ -116,15 +116,12 @@ mcmapply(FUN = proj_wrapper,
 mcmapply(FUN = standard_maps,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
-         ENSEMBLE = TRUE,
          mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
 # --- 12.2. Partial dependency plots - TAKES AGES FOR LARGE OCCURRENCE NUMBER
 mcmapply(FUN = pdp,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
-         N_BOOTSTRAP = 10,
-         ENSEMBLE = TRUE,
          mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
 # --- 12.3 Diversity

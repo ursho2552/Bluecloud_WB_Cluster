@@ -2,26 +2,60 @@
 #' @name run_init
 #' @description (1) initialize an output folder corresponding to the run call (i.e., species
 #' and selection criteria) in which the output will be saved.
-#' @description (2) initialize the global parameters of the run and stores them in
+#' @description (2) initialize all parameters of the run and stores them in
 #' a CALL object
+
 #' @param FOLDER_NAME name of the run folder we want to work in
+#' @param SP_SELECT vector of IDs, corresponding to the species to parallelize on
 #' @param FAST TRUE or FALSE; if TRUE, does not compute projections and plot for algorithms
 #' that did not pass the Quality Checks
 #' @param LOAD_FROM load a previous list_bio object from another folder to be
 #' duplicated in the new FOLDER_NAME. It avoids re-doing the initial list_bio step
 #' that can be long for omics data
+
 #' @param SP_SELECT species to run the analysis for, in form of Aphia ID for traditional data
 #' and OTU ID for omics
 #' @param DATA_TYPE the output type of the data, which can influence the sub-folder
 #' architecture. See details.
+
 #' @param ENV_VAR vector of names of environmental variables available within
 #' the climatologies available in Blue Cloud. If null all variables are taken.
 #' @param ENV_PATH string or vector of path to the .nc or raster of environmental variables
+
+#' @param METHOD_PA method of pseudo-absence, either "mindist" or "cumdist" or "density"
+#' @param NB_PA number of pseudo-absences to generate
+#' @param PER_RANDOM ratio of pseudo-absences that are sampled randomly in the background
+#' @param DIST_PA if METHOD_PA = "mindist", distance from presences (in meters),
+#'  from which to define the background data. Expert use only.
+#' @param BACKGROUND_FILTER additional background filter for finer tuning, such
+#' as selecting pseudo-absences within the sampled background of a given campaign
+#' or instrument deployment. Passed by the user in the form of a 2 column 
+#' data frame, x = longitude and y = latitude where the pseudo-absences
+#' can be sampled. Or a path to a raster object where pseudo-absences are sampled in
+#' non NA cells, weighted by the cell values.
+
+#' @param OUTLIER if TRUE, remove outliers
+#' @param UNIVARIATE if true, performs a univariate predictor pre-selection
 #' @param ENV_COR numeric, removes the correlated environmental values from the
 #' query objects and CALL according to the defined threshold. Else NULL.
+
 #' @param NFOLD number of folds, used defined integer
 #' @param FOLD_METHOD method used to create the folds, integer between "kfold"
 #' and "lon"
+
+#' @param MODEL_LIST list of algorithms from which to compute hyperparameter
+#' selection
+#' @param LEVELS maximum number of parameter values to test in each of the grids
+
+#' @param ENSEMBLE TRUE or FALSE; if TRUE, computes an ensemble at the evaluation and projection steps
+#' @param N_BOOTSTRAP number of bootstrap to do for the projections and partial dependency plots
+#' @param CUT numeric or NULL; if numeric, level at which the projections are considered to be 0.
+#' Projection patches without observation are then removed.
+#' @param PROJ_PATH (optional) path to a environmental raster, potentially 
+#' different than the one given in the QUERY object. This is the case for 
+#' supplementary projections in other time and climate scenarios for example. 
+#' To your own risk and only for expert users !
+
 #' @details Different data transformation between DATA_SOURCE and DATA_TYPE are implemented, including:
 #' - "occurrence" to "binary" (default)
 #' - "abundance" to "continuous" (default, not recommended for more than 50 targets)
@@ -34,15 +68,29 @@
 #' @return all global parameters in a CALL.RData object
 
 run_init <- function(FOLDER_NAME = "test_run",
-                     FAST = TRUE,
-                     LOAD_FROM = NULL,
                      SP_SELECT = NULL,
+                     FAST = FALSE,
+                     LOAD_FROM = NULL,
                      DATA_TYPE = NULL,
                      ENV_VAR = NULL,
-                     ENV_PATH = "/net/meso/work/aschickele/Bluecloud_WB_local/data/features_monthly",
+                     ENV_PATH = c("/net/meso/work/aschickele/Bluecloud_WB_local/data/bio_oracle", 
+                                  "/net/meso/work/aschickele/Bluecloud_WB_local/data/features_mean_from_monthly"),
+                     METHOD_PA = "density",
+                     NB_PA = NULL,
+                     PER_RANDOM = 0.25,
+                     DIST_PA = NULL,
+                     BACKGROUND_FILTER = NULL,
+                     OUTLIER = TRUE,
+                     UNIVARIATE = TRUE,
                      ENV_COR = 0.8,
-                     NFOLD = 5,
-                     FOLD_METHOD = "kfold"){
+                     NFOLD = 3,
+                     FOLD_METHOD = "lon",
+                     MODEL_LIST = c("GLM","GAM","RF","MLP","SVM","BRT"),
+                     LEVELS = 3,
+                     ENSEMBLE = TRUE,
+                     N_BOOTSTRAP = 10,
+                     CUT = 0.1,
+                     PROJ_PATH = NULL){
   
   # --- 1. Initialize function
   # --- 1.1. Start logs - create file
@@ -120,9 +168,22 @@ run_init <- function(FOLDER_NAME = "test_run",
   CALL[["FAST"]] <- FAST
   CALL[["ENV_VAR"]] <- ENV_VAR
   CALL[["ENV_PATH"]] <- ENV_PATH
+  CALL[["METHOD_PA"]] <- METHOD_PA
+  CALL[["NB_PA"]] <- NB_PA
+  CALL[["PER_RANDOM"]] <- PER_RANDOM
+  CALL[["DIST_PA"]] <- DIST_PA
+  CALL[["BACKGROUND_FILTER"]] <- BACKGROUND_FILTER
+  CALL[["OUTLIER"]] <- OUTLIER
+  CALL[["UNIVARIATE"]] <- UNIVARIATE
   CALL[["ENV_COR"]] <- ENV_COR
   CALL[["NFOLD"]] <- NFOLD
   CALL[["FOLD_METHOD"]] <- FOLD_METHOD
+  CALL[["MODEL_LIST"]] <- MODEL_LIST
+  CALL[["LEVELS"]] <- LEVELS
+  CALL[["ENSEMBLE"]] <- ENSEMBLE
+  CALL[["N_BOOTSTRAP"]] <- N_BOOTSTRAP
+  CALL[["CUT"]] <- CUT
+  CALL[["PROJ_PATH"]] <- PROJ_PATH
   
   # --- 7. Wrap up and save
   # --- 7.1. Save file(s)

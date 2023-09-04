@@ -2,7 +2,7 @@
 #' @description function to extract the recommendations according to a set of
 #' predefined quality checks of the algorithms.
 #' @param MODEL the model object returned by the projection step
-#' @param ENSEMBLE boolean, should the recommendation be computed for the ensemble only
+#' @param ENSEMBLE compute the QC for the ensemble
 #' @return a recommendation table with the quality checks and associated text
 
 qc_recommandations <- function(MODEL,
@@ -27,7 +27,7 @@ qc_recommandations <- function(MODEL,
       .[. ==  "ENSEMBLE"]
   } else {
     m_names <- names(MODEL) %>% 
-      .[. != "ENSEMBLE" & . !=  "CALL"]
+      .[. != "ENSEMBLE" & . !=  "MODEL_LIST"]
   }
 
   # --- 1.2. Quality checks names

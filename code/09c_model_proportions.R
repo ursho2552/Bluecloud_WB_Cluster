@@ -3,24 +3,21 @@
 #' @description sub-pipeline corresponding to the model fitting procedure for
 #' proportions data. Called via the model_wrapper.R function, thus no default
 #' parameter values are defined.
+#' @param CALL the call object from the master pipeline. 
 #' @param QUERY the query object from the master pipeline
-#' @param HP the hyperparameter object from the master pipeline. In case of no
-#' hyperparameter selection, please pass an empty list as it is returned from
-#' the hyperparameter function.
-#' @param MODEL_LIST vector of string model names : only "MBTR" available for
-#' this data type
 #' @return returns a path to the python model file
 
 model_proportions <- function(CALL,
-                              QUERY,
-                              HP,
-                              MODEL_LIST){
+                              QUERY){
   
   # --- 1. Initialize function
-  # --- 1.1. Source the MBTR functions
+  # --- 1.1. Storage in MODEL object
+  MODEL <- CALL$HP
+  
+  # --- 1.2. Source the MBTR functions
   source_python(paste0(project_wd,"/function/mbtr_function.py"))
   
-  # --- 1.2. Create a clean cache folder in data
+  # --- 1.3. Create a clean cache folder in data
   # i.e. to write train and test files to pass to python (necessary for parallel)
   dir.create(paste0(project_wd, "/data/MBTR_cache"))
   to_clean <- list.files(paste0(project_wd, "/data/MBTR_cache"), full.names = TRUE)
@@ -29,7 +26,7 @@ model_proportions <- function(CALL,
   # --- 2. Run the model for each fold x hyper parameter
   # --- 2.1. Initialize loss & hp object
   loss <- list()
-  hp <- 1:nrow(HP$MBTR$model_grid)
+  hp <- 1:nrow(MODEL$MBTR$model_grid)
   
   # --- 2.2. Initialize the hyperparameter fit function
   # i.e. to use mcmapply across hyperparameters for faster computing
@@ -37,11 +34,11 @@ model_proportions <- function(CALL,
     m <- mbtr_fit(path,
                   loss_type='mse',
                   n_boosts = as.integer(1000),
-                  min_leaf= HP$MBTR$model_grid$MEAN_LEAF[hp],
-                  learning_rate=HP$MBTR$model_grid$LEARNING_RATE[hp],
-                  lambda_weights=HP$MBTR$model_grid$LEARNING_RATE[hp]/100,
+                  min_leaf= MODEL$MBTR$model_grid$MEAN_LEAF[hp],
+                  learning_rate=MODEL$MBTR$model_grid$LEARNING_RATE[hp],
+                  lambda_weights=MODEL$MBTR$model_grid$LEARNING_RATE[hp]/100,
                   lambda_leaves=0,
-                  n_q= as.integer(HP$MBTR$model_grid$N_Q[hp]),
+                  n_q= as.integer(MODEL$MBTR$model_grid$N_Q[hp]),
                   early_stopping_rounds = 10)
     tmp <- m[[2]] %>% unlist()
   } # end function
@@ -72,13 +69,13 @@ model_proportions <- function(CALL,
     loss[[cv]] <- mcmapply(FUN = mbtr_hp_fit,
                            path = paste0(project_wd, "/data/MBTR_cache/",cv,"_"),
                            hp = hp,
-                           mc.cores = nrow(HP$MBTR$model_grid))
+                           mc.cores = nrow(MODEL$MBTR$model_grid))
     message("Algorithm fitting - DONE")
   } # cv loop
   
   # --- 2.4. Compute the minimum loss and corresponding nb. of boost rounds
   min_loss <- nboost <- list()
-  for(i in 1:nrow(HP$MBTR$model_grid)){
+  for(i in 1:nrow(MODEL$MBTR$model_grid)){
     max_boost <- lapply(loss, function(x)(x = length(x[[i]]))) %>% unlist() %>% min()
     min_loss[[i]] <- lapply(loss, function(x)(x = x[[i]][1:max_boost])) %>% as.data.frame() %>% apply(1, mean) %>% min()
     nboost[[i]] <- which(lapply(loss, function(x)(x = x[[i]][1:max_boost])) %>% as.data.frame() %>% apply(1, mean) == min_loss[[i]])
@@ -87,7 +84,7 @@ model_proportions <- function(CALL,
   nboost <- nboost[[best_hp]]
   
   # --- 2.5. Retrieve the corresponding RMSE as well
-  HP[[MODEL_LIST]][["best_fit"]] <- sqrt(min_loss)
+  MODEL[["MBTR"]][["best_fit"]] <- sqrt(min_loss)
   
   # --- 3. Final model fit
   # --- 3.1. Extract train and validation fold from initial split
@@ -112,19 +109,19 @@ model_proportions <- function(CALL,
   final_fit <- mbtr_fit(path = paste0(project_wd, "/data/MBTR_cache/0_"),
                         loss_type='mse',
                         n_boosts = as.integer(100),
-                        min_leaf= HP$MBTR$model_grid$MEAN_LEAF[best_hp],
-                        learning_rate=HP$MBTR$model_grid$LEARNING_RATE[best_hp],
-                        lambda_weights=HP$MBTR$model_grid$LEARNING_RATE[best_hp]/100,
+                        min_leaf= MODEL$MBTR$model_grid$MEAN_LEAF[best_hp],
+                        learning_rate=MODEL$MBTR$model_grid$LEARNING_RATE[best_hp],
+                        lambda_weights=MODEL$MBTR$model_grid$LEARNING_RATE[best_hp]/100,
                         lambda_leaves=0,
-                        n_q= as.integer(HP$MBTR$model_grid$N_Q[best_hp]),
+                        n_q= as.integer(MODEL$MBTR$model_grid$N_Q[best_hp]),
                         early_stopping_rounds = 10)
   
   # --- 3.3. Write model in a file
   py_save_object(final_fit, paste0(project_wd, "/data/MBTR_cache/final_fit"), pickle = "pickle")
   
   # --- 3.4. Pass the file path
-  HP[[MODEL_LIST]][["final_wf"]] <- HP$MBTR$model_grid[best_hp,] %>% mutate(NBOOST = nboost)
-  HP[[MODEL_LIST]][["final_fit"]] <- paste0(project_wd, "/data/MBTR_cache/final_fit")
-  return(HP)
+  MODEL[["MBTR"]][["final_wf"]] <- MODEL$MBTR$model_grid[best_hp,] %>% mutate(NBOOST = nboost)
+  MODEL[["MBTR"]][["final_fit"]] <- paste0(project_wd, "/data/MBTR_cache/final_fit")
+  return(MODEL)
   
 } # END FUNCTION

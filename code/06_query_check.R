@@ -4,14 +4,10 @@
 #' including an outlier check, environmental variable correlation and MESS
 #' @param FOLDER_NAME name of the corresponding folder
 #' @param SUBFOLDER_NAME list of sub_folders to parallelize on.
-#' @param OUTLIER if TRUE, remove outliers
-#' @param UNIVARIATE if true, performs a univariate predictor pre-selection
 #' @return Updates the output in a QUERY.RData and CALL.Rdata files
 
 query_check <- function(FOLDER_NAME = NULL,
-                        SUBFOLDER_NAME = NULL,
-                        OUTLIER = TRUE,
-                        UNIVARIATE = TRUE){
+                        SUBFOLDER_NAME = NULL){
   
   # --- 1. Initialize function
   set.seed(123)
@@ -29,7 +25,7 @@ query_check <- function(FOLDER_NAME = NULL,
   
   # --- 2. Outlier analysis
   # Outlier check on the query based on z-score (from Nielja code)
-  if(OUTLIER == TRUE){
+  if(CALL$OUTLIER == TRUE){
     if(CALL$DATA_TYPE == "binary"){
       message("--- Cannot perform outlier analysis on presence - pseudo absence data ---")
     } else {
@@ -101,7 +97,7 @@ query_check <- function(FOLDER_NAME = NULL,
   
   # --- 3. Univariate variable importance analysis
   # Done with a Random forest using the method developed in the "Caret" library
-  if(UNIVARIATE == TRUE){
+  if(CALL$UNIVARIATE == TRUE){
     if(CALL$DATA_TYPE == "proportions"){
       message("A univariate predictor selection is not possible for proportion data,
               please select carefully your predictors")

@@ -6,8 +6,6 @@
 #' to properly pass the inputs to python library MBTR
 #' @param FOLDER_NAME name of the corresponding folder
 #' @param SUBFOLDER_NAME list of sub_folders to parallelize on.
-#' @param MODEL_LIST vector of string model names. It can be different from the
-#' list passed to the hyperparameter function in the previous step
 #' @return a model list object containing the different model objects
 #' @return in case of proportion data, the model list object contains the path
 #' to the model files as it cannot be passed as an object in memory
@@ -16,8 +14,7 @@
 # TO DO : implement the input converter for MBTR
 
 model_wrapper <- function(FOLDER_NAME = NULL,
-                          SUBFOLDER_NAME = NULL,
-                          MODEL_LIST = NULL){
+                          SUBFOLDER_NAME = NULL){
   
   # --- 1. Initialize function
   # --- 1.1. Start logs - append file
@@ -28,9 +25,8 @@ model_wrapper <- function(FOLDER_NAME = NULL,
   # --- 1.2. Parameter loading
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))
-  HP <- CALL$HP
-  if(is.null(MODEL_LIST)){
-    MODEL_LIST <- HP$CALL$MODEL_LIST
+  if(is.null(CALL$MODEL_LIST)){
+    MODEL_LIST <- CALL$HP$MODEL_LIST
   }
   
   # --- 2. Redirection to BINARY model
@@ -40,9 +36,7 @@ model_wrapper <- function(FOLDER_NAME = NULL,
     
     # --- 2.2. Run function
     MODEL <- model_binary(CALL,
-                          QUERY = QUERY,
-                          HP = HP,
-                          MODEL_LIST = MODEL_LIST)
+                          QUERY = QUERY)
   } # END if binary
   
   # --- 3. Redirection to CONTINUOUS model
@@ -52,9 +46,7 @@ model_wrapper <- function(FOLDER_NAME = NULL,
     
     # --- 3.2. Run function
     MODEL <- model_continuous(CALL,
-                              QUERY = QUERY,
-                              HP = HP,
-                              MODEL_LIST = MODEL_LIST)
+                              QUERY = QUERY)
   } # END if continuous
   
   # --- 4. Redirection to PROPORTIONS model
@@ -64,9 +56,7 @@ model_wrapper <- function(FOLDER_NAME = NULL,
     
     # --- 3.2. Run function
     MODEL <- model_proportions(CALL,
-                               QUERY = QUERY,
-                               HP = HP,
-                               MODEL_LIST = MODEL_LIST)
+                               QUERY = QUERY)
   } # END if proportions
   
   # --- 5. Wrap up and save

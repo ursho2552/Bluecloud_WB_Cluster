@@ -8,7 +8,7 @@
 #' @param SUBFOLDER_NAME list of sub_folders to parallelize on.
 #' @return Y: a data frame of target values across sample stations
 #' @return S: a data frame of stations including Lat, Lon, year, month, depth
-#' @return Annotations: a data frame of taxonomic (maybe functional) annotation
+#' @return Annotations: a data frame of taxonomic annotation
 #' for each target species.
 #' @return Saves the output in a QUERY.RData file
 

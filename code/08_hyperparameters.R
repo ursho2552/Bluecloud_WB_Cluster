@@ -4,16 +4,11 @@
 #' algorithm in the pipeline and returns those selected by the user
 #' @param SP_SELECT species to run the analysis for, in form of Aphia ID
 #' @param FOLDER_NAME name of the corresponding folder
-#' @param MODEL_LIST list of algorithms from which to compute hyperparameter
-#' selection
-#' @param LEVELS maximum number of parameter values to test in each of the grids
 #' @return a hyperparameter list of the chosen models, including spec and grid
 #' per model
 #' @return the general HP list is saved in the CALL.RData object
 
-hyperparameter <- function(FOLDER_NAME = NULL,
-                           MODEL_LIST = c("GLM","GAM","RF","MLP"),
-                           LEVELS = 3){ # TO DO : double check model names
+hyperparameter <- function(FOLDER_NAME = NULL){
 
   # --- 1. Initialize the  object
   # --- 1.1. Output object
@@ -32,7 +27,7 @@ hyperparameter <- function(FOLDER_NAME = NULL,
   # --- 2.1.2. Define the grid according to built in functions
   HP$RF$model_grid <- grid_regular(trees(range = c(200, 1000)),
                                    min_n(range = c(5, ceiling(CALL$SAMPLE_SELECT$MIN_SAMPLE*0.3))),
-                                   levels = LEVELS)
+                                   levels = CALL$LEVELS)
   
   # --- 2.2. GENERALIZED ADDITIVE MODELS 
   # --- 2.2.1. Define the model specifications
@@ -57,7 +52,7 @@ hyperparameter <- function(FOLDER_NAME = NULL,
   
   # --- 2.2.2. Define the grid according to built in functions
   HP$GAM$model_grid <- grid_regular(adjust_deg_free(),
-                                    levels = LEVELS)
+                                    levels = CALL$LEVELS)
   
   # --- 2.3. GENERALIZED LINEAR MODELS
   # --- 2.3.1. Define the model specifications
@@ -95,7 +90,7 @@ hyperparameter <- function(FOLDER_NAME = NULL,
   
   # --- 2.4.2. Define the grid according to built in functions
   HP$MLP$model_grid <- grid_regular(hidden_units(),
-                                    levels = LEVELS)
+                                    levels = CALL$LEVELS)
   
   # --- 2.5. Boosted Regression Tree
   # --- 2.5.1. Define the model specifications
@@ -109,7 +104,7 @@ hyperparameter <- function(FOLDER_NAME = NULL,
   # --- 2.5.2. Define the grid according to built in functions
   HP$BRT$model_grid <- grid_regular(min_n(range = c(2, ceiling(CALL$SAMPLE_SELECT$MIN_SAMPLE*0.3))),
                                     tree_depth(range = c(3, 10)),
-                                    levels = LEVELS)
+                                    levels = CALL$LEVELS)
   
   # --- 2.6. Support Vector Machine
   # --- 2.6.1. Define the model specifications
@@ -126,24 +121,24 @@ hyperparameter <- function(FOLDER_NAME = NULL,
   HP$SVM$model_grid <- grid_regular(cost(),
                                     rbf_sigma(),
                                     svm_margin(),
-                                    levels = LEVELS)
+                                    levels = CALL$LEVELS)
   
   # --- 2.7. Multivariate Boosted Regression Tree
   # Specific to proportions data
-  HP$MBTR$model_grid <- data.frame(LEARNING_RATE = seq(1e-1, 5e-3, length.out = LEVELS),
+  HP$MBTR$model_grid <- data.frame(LEARNING_RATE = seq(1e-1, 5e-3, length.out = CALL$LEVELS),
                                    N_Q = 10,
-                                   MEAN_LEAF = seq(5, ceiling(CALL$SAMPLE_SELECT$MIN_SAMPLE*0.3), length.out = LEVELS)) %>% 
+                                   MEAN_LEAF = seq(5, ceiling(CALL$SAMPLE_SELECT$MIN_SAMPLE*0.3), length.out = CALL$LEVELS)) %>% 
     expand.grid() %>% 
     unique()
   
   # --- 3. Hyper parameter selection
   # --- 3.1. For univariate data : According to the specified model list
   if(CALL$DATA_TYPE != "proportions"){
-    HP <- HP[MODEL_LIST]
-    HP$CALL$MODEL_LIST <- MODEL_LIST
+    HP <- HP[CALL$MODEL_LIST]
+    HP$MODEL_LIST <- CALL$MODEL_LIST
   } else {
     HP <- HP["MBTR"]
-    HP$CALL$MODEL_LIST <- "MBTR"
+    HP$MODEL_LIST <- "MBTR"
   }
   
   # --- 4. Append CALL and save

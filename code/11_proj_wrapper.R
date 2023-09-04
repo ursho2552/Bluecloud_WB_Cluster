@@ -6,20 +6,12 @@
 #' to properly pass the inputs to python library MBTR
 #' @param FOLDER_NAME name of the corresponding folder
 #' @param SUBFOLDER_NAME list of sub_folders to parallelize on.
-#' @param N_BOOTSTRAP number of bootstrap to do for the projections
-#' @param PROJ_PATH (optional) path to a environmental raster, potentially 
-#' different than the one given in the QUERY object. This is the case for 
-#' supplementary projections in other time and climate scenarios for example. 
-#' To your own risk and only for expert users !
 #' @return an updated model list object containing the projections objects
 #' embedded in each model sub-list.
 #' @return outputs are saved in the MODEL.RData object
 
 proj_wrapper <- function(FOLDER_NAME = NULL,
-                         SUBFOLDER_NAME = NULL,
-                         N_BOOTSTRAP = 10,
-                         PROJ_PATH = NULL,
-                         CUT = NULL){
+                         SUBFOLDER_NAME = NULL){
   
   # --- 1. Initialize function
   # --- 1.1. Start logs - append file
@@ -40,9 +32,7 @@ proj_wrapper <- function(FOLDER_NAME = NULL,
     # --- 2.2. Run function
     MODEL <- proj_binary(QUERY = QUERY,
                          MODEL = MODEL,
-                         CALL = CALL,
-                         N_BOOTSTRAP = N_BOOTSTRAP,
-                         CUT = CUT)
+                         CALL = CALL)
   } # END if binary
   
   # --- 3. Redirection to the CONTINUOUS model projections
@@ -53,9 +43,7 @@ proj_wrapper <- function(FOLDER_NAME = NULL,
     # --- 3.2. Run function
     MODEL <- proj_continuous(QUERY = QUERY,
                              MODEL = MODEL,
-                             CALL = CALL,
-                             N_BOOTSTRAP = N_BOOTSTRAP,
-                             CUT = CUT)
+                             CALL = CALL)
   } # END if continuous
   
   # --- 4. Redirection to the PROPORTIONS model projections
@@ -66,8 +54,7 @@ proj_wrapper <- function(FOLDER_NAME = NULL,
     # --- 3.2. Run function
     MODEL <- proj_proportions(QUERY = QUERY,
                               MODEL = MODEL,
-                              CALL = CALL,
-                              N_BOOTSTRAP = N_BOOTSTRAP)
+                              CALL = CALL)
   } # END if proportions
   
   # --- 5. Wrap up and save

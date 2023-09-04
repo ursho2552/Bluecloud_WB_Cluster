@@ -3,20 +3,17 @@
 #' @description sub-pipeline for model evaluation corresponding to binary data
 #' @param CALL the call object from the master pipeline
 #' @param QUERY the query object from the master pipeline
-#' @param MODEL the models object from the master pipeline#'
-#' @param ENSEMBLE if TRUE, computes variable importance metrics for the ensemble 
-#' model as well
+#' @param MODEL the models object from the master pipeline
 #' @return the MODEL object updated with evaluation metric values (model performance
 #' metric and variable importance metric)
 #' @return variable importance plots as PDF file
 
 eval_binary <- function(CALL,
                         QUERY,
-                        MODEL,
-                        ENSEMBLE = TRUE){
+                        MODEL){
 
   # --- 1. Model performance assessment
-  for(i in MODEL$CALL$MODEL_LIST){
+  for(i in MODEL$MODEL_LIST){
     # --- 1.1. Load final model data 
     final_fit <- MODEL[[i]][["final_fit"]] %>% 
       collect_predictions()
@@ -53,7 +50,7 @@ eval_binary <- function(CALL,
   target <- QUERY$FOLDS$train %>% 
     dplyr::select(measurementvalue)
  
-  for(i in MODEL$CALL$MODEL_LIST){
+  for(i in MODEL$MODEL_LIST){
     # --- 2.2. Extract final model fit
     m <- extract_fit_parsnip(MODEL[[i]][["final_fit"]])
     
@@ -97,29 +94,29 @@ eval_binary <- function(CALL,
   } # for each model loop
   
   # --- 3. Removing low quality algorithms
-  for(i in MODEL$CALL$MODEL_LIST){
+  for(i in MODEL$MODEL_LIST){
     # --- 3.1. Based on model performance
     # Fixed at 0.3 for CBI value or NA (in case of a 0 & 1 binary model prediction)
     if(MODEL[[i]][["eval"]][["CBI"]] < 0.5 | is.na(MODEL[[i]][["eval"]][["CBI"]])){
-      MODEL$CALL$MODEL_LIST <- MODEL$CALL$MODEL_LIST[MODEL$CALL$MODEL_LIST != i]
+      MODEL$MODEL_LIST <- MODEL$MODEL_LIST[MODEL$MODEL_LIST != i]
       message(paste("--- EVAL : discarded", i, "due to CBI =", MODEL[[i]][["eval"]][["CBI"]], "< 0.5 \n"))
     }
     
     # --- 3.2. Based on cumulative variable importance
     # Fixed at 30% cumulative importance for the top three predictors
     if(MODEL[[i]][["eval"]][["CUM_VIP"]] < 50 | is.na(MODEL[[i]][["eval"]][["CUM_VIP"]])){
-      MODEL$CALL$MODEL_LIST <- MODEL$CALL$MODEL_LIST[MODEL$CALL$MODEL_LIST != i]
+      MODEL$MODEL_LIST <- MODEL$MODEL_LIST[MODEL$MODEL_LIST != i]
       message(paste("--- EVAL : discarded", i, "due to CUM_VIP =", MODEL[[i]][["eval"]][["CUM_VIP"]], "< 50% \n"))
     }
   } # for each model loop
   
   # --- 4. Variable importance - Ensemble level
-  if(ENSEMBLE == TRUE & (length(MODEL$CALL$MODEL_LIST) > 1)){
+  if(CALL$ENSEMBLE == TRUE & (length(MODEL$MODEL_LIST) > 1)){
     # --- 4.1. Aggregate and weight raw data
     ens_imp <- NULL
     message("--- VAR IMPORTANCE : compute ensemble")
     
-    for(i in MODEL$CALL$MODEL_LIST){
+    for(i in MODEL$MODEL_LIST){
       # Concatenate raw variable importance
       ens_imp <- rbind(ens_imp, var_imp[[i]][["Raw"]])
     } # End i model loop
@@ -127,7 +124,7 @@ eval_binary <- function(CALL,
     # --- 4.2. Further compute it as percentage
     var_imp[["ENSEMBLE"]][["Percent"]] <- ens_imp %>% 
       group_by(permutation) %>% 
-      mutate(value = value / sum(value) * 100 * length(MODEL$CALL$MODEL_LIST))  %>% 
+      mutate(value = value / sum(value) * 100 * length(MODEL$MODEL_LIST))  %>% 
       ungroup() %>% 
       dplyr::select(variable, value) %>% 
       mutate(variable = fct_reorder(variable, value, .desc = TRUE))
@@ -140,9 +137,9 @@ eval_binary <- function(CALL,
   # --- 5.2. Define plots to display
   # All if FAST == FALSE; those that passed QC if there is more than 1
   if(CALL$FAST == FALSE){
-    plot_display <- CALL$HP$CALL$MODEL_LIST
-  } else if(length(MODEL$CALL$MODEL_LIST) > 1){
-    plot_display <- MODEL$CALL$MODEL_LIST
+    plot_display <- CALL$HP$MODEL_LIST
+  } else if(length(MODEL$MODEL_LIST) > 1){
+    plot_display <- MODEL$MODEL_LIST
   } else {
     plot_display <- NULL
   }
@@ -152,7 +149,7 @@ eval_binary <- function(CALL,
     # --- 5.3.1. Algorithm level plot
     for(i in plot_display){
       # Define the color (green = QC passed; red = no)
-      if(i %in% MODEL$CALL$MODEL_LIST == TRUE){pal <- "#1F867B"
+      if(i %in% MODEL$MODEL_LIST == TRUE){pal <- "#1F867B"
       } else {pal <- "#B64A60"}
       
       # Do the plot
@@ -168,7 +165,7 @@ eval_binary <- function(CALL,
     } # End i model loop
     
     # --- 5.3.2. Ensemble level plot
-    if(ENSEMBLE == TRUE & (length(MODEL$CALL$MODEL_LIST) > 1)){
+    if(CALL$ENSEMBLE == TRUE & (length(MODEL$MODEL_LIST) > 1)){
       tmp <- var_imp[["ENSEMBLE"]][["Percent"]] 
       boxplot(tmp$value ~ tmp$variable, axes = FALSE, 
               main = paste("Ensemble"), col = "gray50",

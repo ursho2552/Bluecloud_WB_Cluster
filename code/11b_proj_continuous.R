@@ -1,22 +1,15 @@
 #' =============================================================================
 #' @name proj_continuous
 #' @description computes spatial projections for the continuous data sub-pipeline
+#' @param CALL the call object from the master pipeline
 #' @param QUERY the query object from the master pipeline
-#' @param MODELS the models object from the master pipeline
-#' @param N_BOOTSTRAP number of bootstrap to do for the projections
-#' @param PROJ_PATH (optional) path to a environmental raster, potentially 
-#' different than the one given in the QUERY object. This is the case for 
-#' supplementary projections in other time and climate scenarios for example. 
-#' To your own risk and only for expert users !
+#' @param MODEL the models object from the master pipeline
 #' @return an updated model list object containing the projections objects
 #' embedded in each model sub-list.
 
 proj_continuous <- function(QUERY,
                             MODEL,
-                            CALL,
-                            N_BOOTSTRAP,
-                            PROJ_PATH = NULL,
-                            CUT = NULL){
+                            CALL){
   
   # --- 1. Load environmental data
   features <- stack(CALL$ENV_PATH) %>% 
@@ -31,14 +24,14 @@ proj_continuous <- function(QUERY,
   tmp <- cbind(QUERY$Y, QUERY$X, QUERY$S)
   
   # --- 2.2. Run the bootstrap generation from tidy models
-  boot_split <- bootstraps(tmp, times = N_BOOTSTRAP)
+  boot_split <- bootstraps(tmp, times = CALL$N_BOOTSTRAP)
   
   # --- 3. Define the projections to compute
   # All algorithms if FAST == FALSE; only the ones that passed QC otherwise
   if(CALL$FAST == FALSE){
-    loop_over <- CALL$HP$CALL$MODEL_LIST
+    loop_over <- CALL$HP$MODEL_LIST
   } else {
-    loop_over <- MODEL$CALL$MODEL_LIST
+    loop_over <- MODEL$MODEL_LIST
   }
   
   for(i in loop_over){
@@ -80,7 +73,7 @@ proj_continuous <- function(QUERY,
     
     
     # --- 7. Cut spatial discontinuities
-    if(!is.null(CUT)){
+    if(!is.null(CALL$CUT)){
       r0 <- raster(CALL$ENV_PATH)
       tmp <- apply(y_hat, 2, function(x){
         # --- 7.1. Open presence data
@@ -89,7 +82,7 @@ proj_continuous <- function(QUERY,
         xy <- xy[which(QUERY$Y != 0),] # specific to presence data
         
         # --- 7.2. Cut y_hat
-        x[x < CUT] <- 0
+        x[x < CALL$CUT] <- 0
         r <- setValues(r0, x)
         
         # --- 7.3. Define patches and overlap with presence points

@@ -4,27 +4,12 @@
 #' query_env and bio according to various background selection methods.
 #' @param FOLDER_NAME name of the corresponding folder
 #' @param SUBFOLDER_NAME list of sub_folders to parallelize on.
-#' @param METHOD_PA method of pseudo-absence, either "mindist" or "cumdist" or "density"
-#' @param NB_PA number of pseudo-absences to generate
-#' @param DIST_PA if METHOD_PA = "mindist", distance from presences (in meters),
-#'  from which to define the background data. Expert use only.
-#' @param BACKGROUND_FILTER additional background filter for finer tuning, such
-#' as selecting pseudo-absences within the sampled background of a given campaign
-#' or instrument deployment. Passed by the user in the form of a 2 column 
-#' data frame, x = longitude and y = latitude where the pseudo-absences
-#' can be sampled. Or a path to a raster object where pseudo-absences are sampled in
-#' non NA cells, weighted by the cell values.
 #' @return X updated with the pseudo-absence values (= 0)
 #' @return Y updated with the environmental values corresponding
 #' @return Updates the output in a QUERY.RData and CALL.Rdata files
 
 pseudo_abs <- function(FOLDER_NAME = NULL,
-                       SUBFOLDER_NAME = NULL,
-                       METHOD_PA = "cumdist",
-                       NB_PA = NULL,
-                       DIST_PA = 1000e3,
-                       PER_RANDOM = 0.25,
-                       BACKGROUND_FILTER = NULL){
+                       SUBFOLDER_NAME = NULL){
   
   # --- 1. Initialize function
   set.seed(123)
@@ -36,7 +21,7 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
   # --- 1.2. Parameter loading
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))
-  if(is.null(NB_PA)){NB_PA = nrow(QUERY$S)}
+  if(is.null(CALL$NB_PA)){CALL$NB_PA = nrow(QUERY$S)}
   
   # --- 1.3. Double check data type - plot observation locations anyway
   if(CALL$DATA_TYPE != "binary"){
@@ -86,7 +71,7 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
   # --- 3. Background definition
   # --- 3.1. Based on a geographical distance
   # Defining the background as cells distant from more than n-km from presence
-  if(METHOD_PA == "mindist"){
+  if(CALL$METHOD_PA == "mindist"){
     # --- 3.1.1. Extract presence points
     val <- QUERY$S %>% 
       dplyr::select(decimallongitude, decimallatitude)
@@ -99,12 +84,12 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
     background <- synchroniseNA(stack(background, r))[[1]] %>% 
       rasterToPoints() %>% 
       as.data.frame() %>% 
-      dplyr::filter(layer < DIST_PA & !is.na(layer)) %>% 
+      dplyr::filter(layer < CALL$DIST_PA & !is.na(layer)) %>% 
       dplyr::select(x, y)
   } # End if geo
   
   # --- 3.2. Random but biased by cumulative-distance to presence
-  if(METHOD_PA == "cumdist"){
+  if(CALL$METHOD_PA == "cumdist"){
     # --- 3.2.1. Extract presence points
     presence <- QUERY$S %>% 
       dplyr::select(decimallongitude, decimallatitude)
@@ -125,7 +110,7 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
   } # End if bias_env
   
   # --- 3.3. Density of presence within a buffer
-  if(METHOD_PA == "density"){
+  if(CALL$METHOD_PA == "density"){
     # --- 3.3.1. Extract presence points
     presence <- QUERY$S %>% 
       dplyr::select(decimallongitude, decimallatitude) %>% 
@@ -135,7 +120,7 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
     # --- 3.3.2. Compute density
     focal_w <- focalWeight(r, 20, type = "Gauss")
     dens <- focal(presence, focal_w, fun = function(x){sum(x, na.rm = TRUE)}, pad = TRUE)
-    dens <- (dens/max(getValues(dens), na.rm = TRUE)*(1-PER_RANDOM))+PER_RANDOM # try to get a fix random PA generation
+    dens <- (dens/max(getValues(dens), na.rm = TRUE)*(1-CALL$PER_RANDOM))+CALL$PER_RANDOM # try to get a fix random PA generation
     dens[!is.na(presence)] <- NA
     
     # --- 3.3.3. Define the weighted background raster
@@ -145,11 +130,11 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
   } # End if density
   
   # --- 4. Additional background filter
-  if(!is.null(BACKGROUND_FILTER)){
-    if(is.data.frame(BACKGROUND_FILTER)){
-      background <- BACKGROUND_FILTER
+  if(!is.null(CALL$BACKGROUND_FILTER)){
+    if(is.data.frame(CALL$BACKGROUND_FILTER)){
+      background <- CALL$BACKGROUND_FILTER
     } else {
-      background <- raster(BACKGROUND_FILTER) %>% 
+      background <- raster(CALL$BACKGROUND_FILTER) %>% 
         rasterToPoints() %>% 
         as.data.frame()
     }
@@ -159,18 +144,18 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
   # --- 5.1. Conditional sampling
   # Add a resample option if there is not enough background available
   if(ncol(background == 3)){
-    if(nrow(background) < NB_PA){
+    if(nrow(background) < CALL$NB_PA){
       message(" PSEUDO-ABS : background too small, selection with replacement !")
-      tmp <- sample(x = 1:nrow(background), size = NB_PA, replace = TRUE, prob = background[,3]**2) # sqr the distance to bias more
+      tmp <- sample(x = 1:nrow(background), size = CALL$NB_PA, replace = TRUE, prob = background[,3]**2) # sqr the distance to bias more
     } else {
-      tmp <- sample(x = 1:nrow(background), size = NB_PA, prob = background[,3]**2) # sqr the distance to bias more
+      tmp <- sample(x = 1:nrow(background), size = CALL$NB_PA, prob = background[,3]**2) # sqr the distance to bias more
     } 
   } else {
-    if(nrow(background) < NB_PA){
+    if(nrow(background) < CALL$NB_PA){
       message(" PSEUDO-ABS : background too small, selection with replacement !")
-      tmp <- sample(x = 1:nrow(background), size = NB_PA, replace = TRUE)
+      tmp <- sample(x = 1:nrow(background), size = CALL$NB_PA, replace = TRUE)
     } else {
-      tmp <- sample(x = 1:nrow(background), size = NB_PA)
+      tmp <- sample(x = 1:nrow(background), size = CALL$NB_PA)
     } 
   }
 
@@ -183,7 +168,7 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
   land[is.na(land)] <- 9999
   land[land != 9999] <- NA
   plot(land, col = "antiquewhite4", legend=FALSE, main = paste("Presence - Pseudo Abs for:", SUBFOLDER_NAME), 
-       sub = paste("NB_OBS :",  nrow(QUERY$S),"// NB_PA :", NB_PA, "// METHOD_PA :", METHOD_PA))
+       sub = paste("NB_OBS :",  nrow(QUERY$S),"// NB_PA :", CALL$NB_PA, "// METHOD_PA :", CALL$METHOD_PA))
   points(xy, col = "red", pch = 3)
   points(QUERY$S$decimallongitude, QUERY$S$decimallatitude, col = "black", pch = 3)
   dev.off()
