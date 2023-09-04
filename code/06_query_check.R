@@ -21,7 +21,11 @@ query_check <- function(FOLDER_NAME = NULL,
   
   # --- 1.3. Moving average function
   # Short and only used here, thats why it is not in the function folder
-  ma <- function(x, n = 10){stats::filter(x, rep(1 / n, n), sides = 2)}
+  ma <- function(x, n = 10){
+                 if(length(x) > n){ma = stats::filter(x, rep(1 / n, n), sides = 2)
+                 } else {ma = NA}
+                 return(ma)
+    } # end function
   
   # --- 2. Outlier analysis
   # Outlier check on the query based on z-score (from Nielja code)
@@ -54,9 +58,11 @@ query_check <- function(FOLDER_NAME = NULL,
     # Remove variables with less than X unique values (to be able to fit the lm within VIF)
     tmp <- which(apply(features, 2, function(x)(length(unique(x)))) <= 10) %>% as.numeric()
     # Later, we will keep the variable with the lower VIF among correlated clusters
-    features_vif <- vif(features[,-tmp]) %>% 
-      arrange(VIF)
-    features <- features[, features_vif$Variables]
+    if(length(tmp) != 0){
+      features_vif <- vif(features[,-tmp]) %>% 
+        arrange(VIF)
+      features <- features[, features_vif$Variables]
+    }
     
     # --- 2.3. Check correlation/distance between variables
     features_dist <- cor(features, method = "pearson")
@@ -66,7 +72,8 @@ query_check <- function(FOLDER_NAME = NULL,
     features_clust <- hclust(features_dist) %>% as.dendrogram()
     features_group <- cutree(features_clust, h = 1-CALL$ENV_COR)
     
-    # --- 2.5. Randomly choose one variable within each inter-correlated clusters
+    # --- 2.5. Choose one variable within each inter-correlated clusters
+    # Lowest VIF if possible to compute it
     features_keep <- NULL
     for(i in 1:max(features_group)){
       tmp <- which(features_group == i)
