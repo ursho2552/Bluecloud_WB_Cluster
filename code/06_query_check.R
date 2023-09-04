@@ -55,10 +55,11 @@ query_check <- function(FOLDER_NAME = NULL,
     }
     
     # --- 2.2. Re-order features by Variation Inflation Factor
+    # Remove variables with less than X unique values (to be able to fit the lm within VIF)
+    tmp <- which(apply(features, 2, function(x)(length(unique(x)))) <= 10) %>% as.numeric()
     # Later, we will keep the variable with the lower VIF among correlated clusters
-    features_vif <- vif(features) %>% 
-      arrange(VIF) %>% 
-      dplyr::filter(!is.infinite(VIF) & !is.na(VIF))
+    features_vif <- vif(features[,-tmp]) %>% 
+      arrange(VIF)
     features <- features[, features_vif$Variables]
     
     # --- 2.3. Check correlation/distance between variables
@@ -81,7 +82,7 @@ query_check <- function(FOLDER_NAME = NULL,
       }
     }
     
-    # --- 2.6. Plot the corresponding dentrogram
+    # --- 2.6. Plot the corresponding dendrogram
     pdf(paste0(project_wd, "/output/", FOLDER_NAME, "/", SUBFOLDER_NAME,"/02_env_cor.pdf"))
     par(mfrow = c(2,1), mar = c(8,5,5,3), cex = 0.6)
     pal <- rep("#B64A60", length(features))

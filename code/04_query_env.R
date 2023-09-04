@@ -95,8 +95,8 @@ query_env <- function(FOLDER_NAME = NULL,
     }
     
     X <- rbind(X, tmp)
-    colnames(X) <- features_name
   } # End for j
+  colnames(X) <- features_name
   
   # --- 7. Remove rows that are still NA - i.e. on land
   # Already done for X in the previous step
