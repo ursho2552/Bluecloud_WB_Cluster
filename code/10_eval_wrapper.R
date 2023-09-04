@@ -34,7 +34,8 @@ eval_wrapper <- function(FOLDER_NAME = NULL,
     source(file = paste0(project_wd, "/code/10a_eval_binary.R"))
     
     # --- 2.2. Run function
-    MODEL<- eval_binary(QUERY = QUERY,
+    MODEL<- eval_binary(CALL = CALL,
+                        QUERY = QUERY,
                         MODEL = MODEL,
                         ENSEMBLE = ENSEMBLE)
   } # END if biinary
@@ -45,7 +46,8 @@ eval_wrapper <- function(FOLDER_NAME = NULL,
     source(file = paste0(project_wd, "/code/10b_eval_continuous.R"))
     
     # --- 3.2. Run function
-    MODEL <- eval_continuous(QUERY = QUERY,
+    MODEL <- eval_continuous(CALL = CALL,
+                             QUERY = QUERY,
                              MODEL = MODEL,
                              ENSEMBLE = ENSEMBLE)
   } # END if continuous

@@ -1,8 +1,9 @@
 #' =============================================================================
 #' @name eval_proportions
 #' @description sub-pipeline for model evaluation corresponding to presence data
+#' @param CALL the call object from the master pipeline
 #' @param QUERY the query object from the master pipeline
-#' @param MODEL the models object from the master pipeline#'
+#' @param MODEL the models object from the master pipeline
 #' @param ENSEMBLE if TRUE, computes variable importance metrics for the ensemble 
 #' model as well
 #' @return the MODEL object updated with evaluation metric values (model performance
@@ -43,7 +44,6 @@ eval_proportions <- function(CALL,
   # Re-fitting a model for every variable would be too costly for MBTR
   # --- 2.1. Initialize function
   var_imp <- matrix(0, 1, length(QUERY$SUBFOLDER_INFO$ENV_VAR)) %>% as.data.frame()
-  par(mar = c(10,5,5,5))
   
   n_tree <- length(final_fit$trees)
   
@@ -98,14 +98,21 @@ eval_proportions <- function(CALL,
   } # for each model loop
   
   # --- 4. Variable importance - Plot
-  # Simple barplot of the MBTR vip if the model passed QC
-  barplot(var_imp, rep(1,length(var_imp)), axes = FALSE,
-          main = "Model-level for : MBTR", col = "gray50",
-          xlab = "", ylab = "Variable importance (%)", las = 2)
-  axis(side = 2, at = seq(0, 100, 10), labels = seq(0, 100, 10), las = 2)
-  abline(h = seq(0, 100, 10), lty = "dotted")
-  box()
-  
+  if(CALL$FAST == FALSE | (length(MODEL$CALL$MODEL_LIST) > 1)){
+    # Define the color (green = QC passed; red = no)
+    if(length(MODEL$CALL$MODEL_LIST) > 1){pal <- "#1F867B"
+    } else {pal <- "#B64A60"}
+    
+    # Simple barplot of the MBTR vip if the model passed QC
+    barplot(var_imp, rep(1,length(var_imp)), axes = FALSE,
+            main = paste("Model-level for : MBTR \n R2 =", 
+                         round(MODEL[["MBTR"]]$eval$CBI, 2), "; CUM_VIP =", round(MODEL[["MBTR"]]$eval$CUM_VIP, 0)), 
+            col = pal, xlab = "", ylab = "Variable importance (%)", las = 2)
+    axis(side = 2, at = seq(0, 100, 10), labels = seq(0, 100, 10), las = 2)
+    abline(h = seq(0, 100, 10), lty = "dotted")
+    box()
+  }
+
   # --- 5. Wrap up and save
   return(MODEL)
   

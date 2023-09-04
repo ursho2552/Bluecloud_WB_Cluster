@@ -89,7 +89,8 @@ standard_maps <- function(FOLDER_NAME = NULL,
   # --- 4. Build model-level outputs
   # --- 4.1. Initialize loop
   if(CALL$DATA_TYPE == "proportions"){loop_over <- 1:ncol(QUERY$Y)
-  }else{loop_over <- MODEL$CALL$MODEL_LIST}
+  }else if(CALL$FAST == FALSE){loop_over <- CALL$HP$CALL$MODEL_LIST
+  }else {loop_over <- MODEL$CALL$MODEL_LIST}
   
   for(i in loop_over){
     # --- 4.2. Compute the different layers

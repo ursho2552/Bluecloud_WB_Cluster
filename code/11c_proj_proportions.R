@@ -2,7 +2,7 @@
 #' @name proj_proportions
 #' @description computes spatial projections for the proportions data sub-pipeline
 #' @param QUERY the query object from the master pipeline
-#' @param MODELS the models object from the master pipeline
+#' @param MODEL the model object from the master pipeline
 #' @param N_BOOTSTRAP number of bootstrap to do for the projections
 #' @param PROJ_PATH (optional) path to a environmental raster, potentially 
 #' different than the one given in the QUERY object. This is the case for 
@@ -18,10 +18,15 @@ proj_proportions <- function(QUERY,
                              PROJ_PATH = NULL){
   
   # --- 1. Initialize function
-  # --- 1.1. Source the MBTR functions
+  # --- 1.1. Early stop function if model did not pass QC and fast = TRUE
+  if(CALL$FAST == TRUE & (length(MODEL$CALL$MODEL_LIST) == 1)){
+    return(MODEL)
+  }
+  
+  # --- 1.2. Source the MBTR functions
   source_python(paste0(project_wd,"/function/mbtr_function.py"))
   
-  # --- 1.2. Load environmental data - TO FIX DYNAMICALLY
+  # --- 1.3. Load environmental data - TO FIX DYNAMICALLY
   features <- stack(CALL$ENV_PATH) %>% 
     readAll() %>% 
     raster::subset(QUERY$SUBFOLDER_INFO$ENV_VAR) %>% 

@@ -18,7 +18,7 @@ proj_binary <- function(QUERY,
                         PROJ_PATH = NULL,
                         CUT = NULL){
   
-  # --- 1. Load environmental data - TO FIX DYNAMICALLY
+  # --- 1. Load environmental data
   features <- stack(CALL$ENV_PATH) %>% 
     readAll() %>% 
     raster::subset(QUERY$SUBFOLDER_INFO$ENV_VAR) %>% 
@@ -33,23 +33,30 @@ proj_binary <- function(QUERY,
   # --- 2.2. Run the bootstrap generation from tidy models
   boot_split <- bootstraps(tmp, times = N_BOOTSTRAP)
   
-  # =========================== MODEL LOOP SECTION =============================
-  for(i in MODEL$CALL$MODEL_LIST){
-    
-    # --- 3. Fit model on bootstrap
+  # --- 3. Define the projections to compute
+  # All algorithms if FAST == FALSE; only the ones that passed QC otherwise
+  if(CALL$FAST == FALSE){
+    loop_over <- CALL$HP$CALL$MODEL_LIST
+  } else {
+    loop_over <- MODEL$CALL$MODEL_LIST
+  }
+  
+  
+  for(i in loop_over){
+    # --- 4. Fit model on bootstrap
     # fit_resamples() does not save models by default. Thus the control_resamples()
     boot_fit <- MODEL[[i]][["final_wf"]] %>% 
       fit_resamples(resamples = boot_split,
                     control = control_resamples(extract = function (x) extract_fit_parsnip(x))) %>% 
       unnest(.extracts)
 
-    # --- 4. Compute one prediction per bootstrap
+    # --- 5. Compute one prediction per bootstrap
     # As we extracted the model information in a supplementary column, we can
     # directly compute the bootstrap within the synthetic resample object.
     boot_proj <- boot_fit %>% 
       mutate(proj = map(.extracts, function(x)(x = predict(x, features))))
     
-    # --- 5. Compute average and CV across bootstraps
+    # --- 6. Compute average and CV across bootstraps
     # First transform the object into a cell x bootstrap matrix
     # /!\ Need to create a unique row identifier for pivot_wider to work...
     tmp <- boot_proj %>% 
@@ -72,26 +79,26 @@ proj_binary <- function(QUERY,
       x <- r
     })
     
-    # --- 6. Cut spatial discontinuities
+    # --- 7. Cut spatial discontinuities
     if(!is.null(CUT)){
       r0 <- raster(CALL$ENV_PATH)
       tmp <- apply(y_hat, 2, function(x){
-        # --- 6.1. Open presence data
+        # --- 7.1. Open presence data
         xy <- QUERY$S %>% 
           dplyr::select(decimallongitude, decimallatitude)
         xy <- xy[which(QUERY$Y == 1),] # specific to presence data
         
-        # --- 6.2. Cut y_hat
+        # --- 7.2. Cut y_hat
         x[x < CUT] <- 0
         r <- setValues(r0, x)
         
-        # --- 6.3. Define patches and overlap with presence points
+        # --- 7.3. Define patches and overlap with presence points
         r_patch <- clump(r)
         id_patch <- r_patch %>% 
           raster::extract(xy) %>% unique() %>% 
           .[!is.na(.)]
 
-        # --- 6.4. Subset values from a patch overlapping with presences
+        # --- 7.4. Subset values from a patch overlapping with presences
         r_patch[!(r_patch %in% id_patch)] <- 0
         r_patch <- getValues(r_patch)
         r_patch[r_patch > 0] <- 1
@@ -102,11 +109,11 @@ proj_binary <- function(QUERY,
       
     } # if CUT
     
-    # --- 7. Compute the average CV across bootstrap runs as a QC
+    # --- 8. Compute the average CV across bootstrap runs as a QC
     AVG_CV <- apply(y_hat, 1, function(x)(x = cv(x, na.rm = TRUE))) %>% 
       mean(na.rm = TRUE)
     
-    # --- 8. Append the MODEL object
+    # --- 9. Append the MODEL object
     MODEL[[i]][["proj"]][["y_hat"]] <- y_hat
     MODEL[[i]][["eval"]][["AVG_CV"]] <- AVG_CV
     

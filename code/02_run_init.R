@@ -5,6 +5,8 @@
 #' @description (2) initialize the global parameters of the run and stores them in
 #' a CALL object
 #' @param FOLDER_NAME name of the run folder we want to work in
+#' @param FAST TRUE or FALSE; if TRUE, does not compute projections and plot for algorithms
+#' that did not pass the Quality Checks
 #' @param LOAD_FROM load a previous list_bio object from another folder to be
 #' duplicated in the new FOLDER_NAME. It avoids re-doing the initial list_bio step
 #' that can be long for omics data
@@ -32,14 +34,15 @@
 #' @return all global parameters in a CALL.RData object
 
 run_init <- function(FOLDER_NAME = "test_run",
-                        LOAD_FROM = NULL,
-                        SP_SELECT = NULL,
-                        DATA_TYPE = NULL,
-                        ENV_VAR = NULL,
-                        ENV_PATH = "/net/meso/work/aschickele/Bluecloud_WB_local/data/features_monthly",
-                        ENV_COR = 0.8,
-                        NFOLD = 5,
-                        FOLD_METHOD = "kfold"){
+                     FAST = TRUE,
+                     LOAD_FROM = NULL,
+                     SP_SELECT = NULL,
+                     DATA_TYPE = NULL,
+                     ENV_VAR = NULL,
+                     ENV_PATH = "/net/meso/work/aschickele/Bluecloud_WB_local/data/features_monthly",
+                     ENV_COR = 0.8,
+                     NFOLD = 5,
+                     FOLD_METHOD = "kfold"){
   
   # --- 1. Initialize function
   # --- 1.1. Start logs - create file
@@ -114,6 +117,7 @@ run_init <- function(FOLDER_NAME = "test_run",
   
   # --- 6.2. Append CALL with all other objects
   CALL[["SP_SELECT"]] <- SP_SELECT
+  CALL[["FAST"]] <- FAST
   CALL[["ENV_VAR"]] <- ENV_VAR
   CALL[["ENV_PATH"]] <- ENV_PATH
   CALL[["ENV_COR"]] <- ENV_COR

@@ -1,6 +1,7 @@
 #' =============================================================================
 #' @name eval_binary
 #' @description sub-pipeline for model evaluation corresponding to binary data
+#' @param CALL the call object from the master pipeline
 #' @param QUERY the query object from the master pipeline
 #' @param MODEL the models object from the master pipeline#'
 #' @param ENSEMBLE if TRUE, computes variable importance metrics for the ensemble 
@@ -9,7 +10,8 @@
 #' metric and variable importance metric)
 #' @return variable importance plots as PDF file
 
-eval_binary <- function(QUERY,
+eval_binary <- function(CALL,
+                        QUERY,
                         MODEL,
                         ENSEMBLE = TRUE){
 
@@ -42,9 +44,8 @@ eval_binary <- function(QUERY,
   
   # --- 2. Variable importance - algorithm level
   # --- 2.1. Initialize function
-  # --- 2.1.1. Storage and graphical specification
+  # --- 2.1.1. Storage
   var_imp <- NULL
-  par(mfrow = c(3,2), mar = c(5,5,5,5))
   
   # --- 2.1.2. Model related data
   features <- QUERY$FOLDS$train %>% 
@@ -113,14 +114,13 @@ eval_binary <- function(QUERY,
   } # for each model loop
   
   # --- 4. Variable importance - Ensemble level
-  # Variable importance values also scaled by the CBI metric value
-  if(ENSEMBLE == TRUE & length(MODEL$CALL$MODEL_LIST > 1)){
+  if(ENSEMBLE == TRUE & (length(MODEL$CALL$MODEL_LIST) > 1)){
     # --- 4.1. Aggregate and weight raw data
     ens_imp <- NULL
     message("--- VAR IMPORTANCE : compute ensemble")
     
     for(i in MODEL$CALL$MODEL_LIST){
-      # Concatenate eval-weighted raw variable importance
+      # Concatenate raw variable importance
       ens_imp <- rbind(ens_imp, var_imp[[i]][["Raw"]])
     } # End i model loop
     
@@ -134,29 +134,52 @@ eval_binary <- function(QUERY,
   } # End if ensemble TRUE
   
   # --- 5. Variable importance - Plot
-  # Plot algorithm level and ensemble variable importance
-  if(length(MODEL$CALL$MODEL_LIST > 1)){
-    for(i in MODEL$CALL$MODEL_LIST){
+  # --- 5.1. Graphical specification
+  par(mfrow = c(3,3), mar = c(5,3,5,1))
+  
+  # --- 5.2. Define plots to display
+  # All if FAST == FALSE; those that passed QC if there is more than 1
+  if(CALL$FAST == FALSE){
+    plot_display <- CALL$HP$CALL$MODEL_LIST
+  } else if(length(MODEL$CALL$MODEL_LIST) > 1){
+    plot_display <- MODEL$CALL$MODEL_LIST
+  } else {
+    plot_display <- NULL
+  }
+
+  # --- 5.3. Plot algorithm level and ensemble variable importance
+  if(!is.null(plot_display)){
+    # --- 5.3.1. Algorithm level plot
+    for(i in plot_display){
+      # Define the color (green = QC passed; red = no)
+      if(i %in% MODEL$CALL$MODEL_LIST == TRUE){pal <- "#1F867B"
+      } else {pal <- "#B64A60"}
+      
+      # Do the plot
       tmp <- var_imp[[i]][["Percent"]]
       boxplot(tmp$value ~ tmp$variable, axes = FALSE, 
-              main = paste("Model-level for :", i), col = "gray50",
-              xlab = "", ylab = "Variable importance (%)")
-      axis(side = 1, at = 1:ncol(features), labels = levels(tmp$variable), las = 2)
+              main = paste("Model-level for :", i, 
+                           "\n CBI =", round(MODEL[[i]]$eval$CBI, 2), "; CUM_VIP =", round(MODEL[[i]]$eval$CUM_VIP, 0)), 
+              col = pal, xlab = "", ylab = "Variable importance (%)")
+      axis(side = 1, at = 1:ncol(features), labels = levels(tmp$variable), las = 2, cex.axis = 0.6)
       axis(side = 2, at = seq(0, 100, 10), labels = seq(0, 100, 10), las = 2)
       abline(h = seq(0, 100, 10), lty = "dotted")
       box()
     } # End i model loop
-    if(ENSEMBLE == TRUE){
+    
+    # --- 5.3.2. Ensemble level plot
+    if(ENSEMBLE == TRUE & (length(MODEL$CALL$MODEL_LIST) > 1)){
       tmp <- var_imp[["ENSEMBLE"]][["Percent"]] 
       boxplot(tmp$value ~ tmp$variable, axes = FALSE, 
               main = paste("Ensemble"), col = "gray50",
               xlab = "", ylab = "Variable importance (%)")
-      axis(side = 1, at = 1:ncol(features), labels = levels(tmp$variable), las = 2)
+      axis(side = 1, at = 1:ncol(features), labels = levels(tmp$variable), las = 2, cex.axis = 0.6)
       axis(side = 2, at = seq(0, 100, 10), labels = seq(0, 100, 10), las = 2)
       abline(h = seq(0, 100, 10), lty = "dotted")
       box()
     } # End if ensemble TRUE
-  } # End if model list > 1
+    
+  } # End if model list > 1 or FAST == FALSE
   
   # --- 6. Wrap up and save
   return(MODEL)
