@@ -33,7 +33,7 @@ eval_proportions <- function(CALL,
   
   # --- 1.5. Compute an over-fitting rate
   # Calculated as the deviation during training to deviation in testing ratio
-  resample_dev <- MODEL[[i]][["best_fit"]]
+  resample_dev <- MODEL[["MBTR"]][["best_fit"]]
   eval_dev <- sqrt(mean(as.matrix((y-y_hat)^2), na.rm=TRUE))
   MODEL[["MBTR"]][["eval"]][["OVF"]] <- ((resample_dev/eval_dev)-1)*100
   
@@ -80,7 +80,7 @@ eval_proportions <- function(CALL,
   # In this case the only algorithm available...
   for(i in MODEL$MODEL_LIST){
     # --- 3.1. Based on model performance
-    # Fixed at 0.3 for CBI value or NA (in case of a 0 & 1 binary model prediction) 
+    # Fixed at 0.1 for R2
     # /!\ /!\ /!\ /!\ treshold at 0.1 to be able to prototype something. TO CHANGE LATER OBVIOUSLY /!\ /!\ /!\ /!\
     if(MODEL[[i]][["eval"]][["R2"]] < 0.1 | is.na(MODEL[[i]][["eval"]][["R2"]])){
       MODEL$MODEL_LIST <- MODEL$MODEL_LIST[MODEL$MODEL_LIST != i]
@@ -104,7 +104,7 @@ eval_proportions <- function(CALL,
     # Simple barplot of the MBTR vip if the model passed QC
     barplot(var_imp, rep(1,length(var_imp)), axes = FALSE,
             main = paste("Model-level for : MBTR \n R2 =", 
-                         round(MODEL[["MBTR"]]$eval$CBI, 2), "; CUM_VIP =", round(MODEL[["MBTR"]]$eval$CUM_VIP, 0)), 
+                         round(MODEL[["MBTR"]]$eval$R2, 2), "; CUM_VIP =", round(MODEL[["MBTR"]]$eval$CUM_VIP, 0)), 
             col = pal, xlab = "", ylab = "Variable importance (%)", las = 2)
     axis(side = 2, at = seq(0, 100, 10), labels = seq(0, 100, 10), las = 2)
     abline(h = seq(0, 100, 10), lty = "dotted")

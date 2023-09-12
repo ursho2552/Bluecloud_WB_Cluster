@@ -22,64 +22,69 @@ query_env <- function(FOLDER_NAME = NULL,
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))
   
-  # --- 2. Open features gridded data and names
-  features <- stack(CALL$ENV_PATH) %>% readAll()
-  features_name <- features %>% names()
+  # --- 1.3. Get feature names
+  features_name <- CALL$ENV_DATA[[1]] %>% names()
 
-  # --- 3. Re-grid sample on the raster resolution and filter
-  # --- 3.1. Do the corresponding data computing
-  # (1) The cell centers are at .5, thus it is re-gridded to the nearest .5 value
-  # (2) /!\ Depth is not taken into account for now, neither year (1990-2016 = WOA)
-  res <- res(features)[[1]]
+  # --- 2. Re-grid sample on the raster resolution and filter
+  # --- 2.1. Do the aggregation
+  # The cell centers are at .5, thus it is re-gridded to the nearest .5 value
+  res <- res(CALL$ENV_DATA[[1]])[[1]]
   digit <- nchar(sub('^0+','',sub('\\.','',res)))-1
   sample <- QUERY$S %>%
     cbind(QUERY$Y) %>%
     mutate(decimallatitude = round(decimallatitude+0.5*res, digits = digit)-0.5*res) %>%
     mutate(decimallongitude = round(decimallongitude+0.5*res, digits = digit)-0.5*res)
 
-  # --- 3.2. Early return in case of no biological data
+  # --- 2.2. Remove NA in coordinates x month
+  sample <- sample %>% 
+    dplyr::filter(!is.na(decimallatitude) & !is.na(decimallongitude) & !is.na(month))
+  
+  # --- 2.3. Early return in case of no biological data
   if(nrow(sample) <= CALL$SAMPLE_SELECT$MIN_SAMPLE){
     log_sink(FILE = sinkfile, START = FALSE)
     return(NULL)
   } 
   
-  # --- 4. Select one sample per group of identical coordinates x month
+  # --- 3. Select one sample per group of identical coordinates x month
   # Among each group of identical lat and long, concatenates description
   # Updates the ID as the previous one is overwritten (we do not keep the raw data)
   S <- sample %>%
     dplyr::select(-names(QUERY$Y)) %>%
-    group_by(decimallongitude, decimallatitude) %>%
+    group_by(decimallongitude, decimallatitude, month) %>%
     reframe(across(everything(), ~ str_flatten(unique(.x), collapse = ";"))) %>% 
     mutate(ID = row_number())
   
-  # --- 5. Average measurement value per group of identical coordinates x month
-  # The corresponding biological value is averaged across all samples of identical lat and long
+  # --- 4. Average measurement value per group of identical coordinates x month
+  # The corresponding biological value is averaged across all row of S
   Y0 <- sample %>% 
-    dplyr::select(decimallongitude, decimallatitude, names(QUERY$Y)) 
+    dplyr::select(decimallongitude, decimallatitude, month, names(QUERY$Y)) 
   
   Y <- NULL
   for(n in 1:nrow(S)){
     tmp <- Y0 %>% 
-      inner_join(S[n,], by = c("decimallongitude", "decimallatitude")) %>% 
+      inner_join(S[n,], by = c("decimallongitude", "decimallatitude", "month")) %>% 
       dplyr::select(names(QUERY$Y))
     tmp <- apply(tmp, 2, mean)
     Y <- rbind(Y, tmp)
   }
   Y <- as.data.frame(Y)
 
-  # --- 6. Extract the environmental data in the data frame
+  # --- 5. Extract the environmental data in the data frame
   # If there is an NA, extract from nearest non-NA cells
   # within a certain radius - two grid cells
   X <- NULL
   to_remove <- NULL
   for(j in 1:nrow(S)){
-    # --- 6.1. First try to extrct environmental data
+    # --- 5.1. Point toward the right monthly raster
+    month <- as.numeric(S$month[j])
+    features <- CALL$ENV_DATA[[month]]
+    
+    # --- 5.2. First try to extract environmental data
     xy <- S[j,] %>% dplyr::select(x = decimallongitude, y = decimallatitude)
-
     tmp <- raster::extract(features, xy) %>%
       as.data.frame()
 
-    # --- 6.2. Use neighbor cell if NA is not far inland
+    # --- 5.3. Use neighbor cell if NA is not far inland
     if(is.na(sum(tmp))){
       r_dist <- distanceFromPoints(features, xy) # Compute distance to NA point
       r_dist <- synchroniseNA(stack(r_dist, features[[1]]))[[1]] # Synchronize NA
@@ -88,7 +93,7 @@ query_env <- function(FOLDER_NAME = NULL,
       tmp <- features[min_dist] %>%
         as.data.frame()
       
-      # --- 6.3. Remove if NA is too far inland
+      # --- 5.3. Remove if NA is too far inland
       if(sum(tmp)==0){
         to_remove <- c(to_remove, j)
       }

@@ -4,10 +4,13 @@
 #' projection data
 #' @param FOLDER_NAME name of the corresponding folder
 #' @param SUBFOLDER_NAME list of sub_folders to parallelize on.
+#' @param MONTH list corresponding to the groups of month to computes maps from.
 #' @return plots mean and uncertainty maps per model or ensemble
 
 standard_maps <- function(FOLDER_NAME = NULL,
-                          SUBFOLDER_NAME = NULL){
+                          SUBFOLDER_NAME = NULL, 
+                          MONTH = list(c(10,11,12,1,2,3),
+                                       4:9)){
   
   # --- 1. Initialize function
   # --- 1.1. Parameter loading
@@ -26,7 +29,7 @@ standard_maps <- function(FOLDER_NAME = NULL,
   
   # --- 1.4. Set initial plot layout & requirements
   par(mfrow = c(4,3), mar = c(2,2,4,1))
-  r0 <- raster(CALL$ENV_PATH)
+  r0 <- CALL$ENV_DATA[[1]][[1]]
   
   # --- 1.5 Land mask
   land <- r0
@@ -58,9 +61,19 @@ standard_maps <- function(FOLDER_NAME = NULL,
   hsi_pal <- inferno_pal(100)
   plot.new()
   # --- 3.1.1. Extract the plot true scale (average max across bootstrap)
-  plot_scale <- lapply(MODEL, FUN = function(z)(z = apply(MODEL$GLM$proj$y_hat, 1, function(x)(x = mean(x, na.rm = TRUE))) %>% max(na.rm = TRUE))) %>% 
-    unlist() %>% 
-    max(na.rm = TRUE)
+  if(CALL$DATA_TYPE == "continuous"){
+    plot_scale <- lapply(MODEL, FUN = function(z){
+      if(!is.null(names(z))){
+        z = z$proj$y_hat %>% apply(1, function(x)(x = mean(x, na.rm = TRUE))) %>% 
+          max(na.rm = TRUE)
+      }
+    }) %>% 
+      unlist() %>% 
+      max(na.rm = TRUE)
+  } else {
+    plot_scale <- 1
+  }
+  
   # --- 3.1.2. Plot the colorbar
   colorbar.plot(x = 0.5, y = 0, strip = seq(0,1,length.out = 100),
                 strip.width = 0.3, strip.length = 2.7,
@@ -85,7 +98,7 @@ standard_maps <- function(FOLDER_NAME = NULL,
   par(mar = c(2,2,4,1))
 
   # --- 4. Build model-level outputs
-  # --- 4.1. Initialize loop
+  # --- 4.1. Initialize loop of algorithm or targets
   if(CALL$DATA_TYPE == "proportions"){loop_over <- 1:ncol(QUERY$Y)
   }else if(CALL$FAST == FALSE){loop_over <- CALL$HP$MODEL_LIST
   }else {loop_over <- MODEL$MODEL_LIST}
@@ -93,67 +106,82 @@ standard_maps <- function(FOLDER_NAME = NULL,
   for(i in loop_over){
     # --- 4.2. Compute the different layers
     # --- 4.2.1. Extract projection data for the iteration
-    if(CALL$DATA_TYPE == "proportions"){val_raw <- MODEL[["MBTR"]][["proj"]][["y_hat"]][,,i]
+    if(CALL$DATA_TYPE == "proportions"){val_raw <- MODEL[["MBTR"]][["proj"]][["y_hat"]][,,i,]
     }else{val_raw <- MODEL[[i]][["proj"]][["y_hat"]]}
     
-    # --- 4.2.2. Mean value
-    # Rescaled by the maximum to match the colorbar
-    val <- apply(val_raw, 1, function(x)(x = mean(x, na.rm = TRUE)))
-    r_m <- r0 %>% setValues(val / plot_scale)
-
-    # --- 4.2.3. Coefficient of variation
-    val <- apply(val_raw, 1, function(x)(x = cv(x, na.rm = TRUE)))
-    r_cv <- r0 %>% setValues(val)
-    r_cv[r_cv > 100] <- 100
-    r_cv[r_cv <= 0] <- 1e-10 # temporary fix : modify bivarmap so that 0 is included
-
-    # --- 4.2.4. MESS
-    r_mess <- QUERY$MESS*-1
-    r_mess[r_mess<0] <- 1e-10 # temporary fix : modify bivarmap so that 0 is included
-    r_mess[r_mess>100] <- 100
-
-    # --- 4.3. Plot the corresponding maps
-    # --- 4.3.1. Plot the abundance
-    if(CALL$DATA_TYPE == "proportions"){
-      # Proportions
-      tmp <- which(QUERY$annotations$worms_id == colnames(QUERY$Y)[i])
-      plot(r_m, col = hsi_pal[max(1, floor(r_m@data@min*100)):min(100, ceiling(r_m@data@max*100))], legend=FALSE,
-           main = paste("Average proj. for", QUERY$annotations$scientificname[tmp]))
-    } else {
-      # Abundance or habitat suitability values
-      plot(r_m, col = hsi_pal[max(1, floor(r_m@data@min*100)):min(100, ceiling(r_m@data@max*100))], legend=FALSE,
-           main = paste("Average proj. for", i, names(MODEL[[i]][["eval"]][[1]]), "\n", 
-                        names(MODEL[[i]][["eval"]])[1], "=", MODEL[[i]][["eval"]][[1]]))
-    }
-    
-    # Land mask
-    plot(land, col = "antiquewhite4", legend=FALSE, add = TRUE)
-
-    # --- 4.3.2. Plot the observations
-    # --- 4.3.2.1. Top abundance quartile as contour
-    plot(r_m > quantile(r_m, 0.75), col = c("white","gray80"), legend=FALSE, main = "Observations")
-    # --- 4.3.2.2. Land mask
-    plot(land, col = "antiquewhite4", legend=FALSE, add = TRUE)
-    # --- 4.3.2.3. Observations location
-    if(CALL$DATA_TYPE == "proportions"){tmp <- QUERY$S
-    } else {tmp <- QUERY$S[which(QUERY$Y$measurementvalue > 0),]}
-    # --- 4.3.2.4. Observation colors
-    if(CALL$DATA_TYPE == "continuous"){
-      points(tmp$decimallongitude, tmp$decimallatitude,
-             col = col_numeric("inferno", domain = range(QUERY$Y$measurementvalue))(QUERY$Y$measurementvalue), pch = 20)
-    } else {
-      points(tmp$decimallongitude, tmp$decimallatitude,
-             col = "black", pch = 20)
-    }
-    
-    # --- 4.3.3. Plot the uncertainties
-    # Land mask
-    plot(land, col = "antiquewhite4", legend=FALSE, main = "Uncertainties")
-    # CV x MESS plot
-    r <- bivar_map(rasterx = r_cv, rastery = r_mess, colormatrix = bivar_pal,
-                   cutx = 0:100, cuty = 0:100)
-    plot(r[[1]], col = r[[2]], legend=FALSE, add = TRUE)
-
+    # --- 4.3. Loop over month for maps
+    for(j in 1:length(MONTH)){
+      m <- MONTH[[j]]
+      # --- 4.3.1. Mean value
+      # Rescaled by the maximum to match the colorbar
+      val <- apply(val_raw[,,m], 1, function(x)(x = mean(x, na.rm = TRUE)))
+      r_m <- r0 %>% setValues(val / plot_scale)
+      
+      # --- 4.3.2. Coefficient of variation
+      # Computes mean CV across bootstrap and than average across month
+      if(length(m) > 1){
+        val <- apply(val_raw[,,m], c(1,3), function(x)(x = cv(x, na.rm = TRUE))) %>% 
+          apply(1, function(x)(x = mean(x, na.rm = TRUE)))
+      } else {
+        val <- apply(val_raw[,,m], 1, function(x)(x = cv(x, na.rm = TRUE)))
+      }
+      
+      r_cv <- r0 %>% setValues(val)
+      r_cv[r_cv > 100] <- 100
+      r_cv[r_cv <= 0] <- 1e-10 # temporary fix : modify bivarmap so that 0 is included
+      
+      # --- 4.3.3. MESS
+      r_mess <- QUERY$MESS[[m]]*-1
+      if(nlayers(r_mess) > 1){r_mess <- calc(r_mess, mean, na.rm = TRUE)}
+      r_mess[r_mess<0] <- 1e-10 # temporary fix : modify bivarmap so that 0 is included
+      r_mess[r_mess>100] <- 100
+      
+      # --- 4.4. Plot the corresponding maps
+      # --- 4.4.1. Plot the habitat suitability map
+      if(CALL$DATA_TYPE == "proportions"){
+        # Proportions
+        tmp <- which(QUERY$annotations$worms_id == colnames(QUERY$Y)[i])
+        plot(r_m, col = hsi_pal[max(1, floor(r_m@data@min*100)):min(100, ceiling(r_m@data@max*100))], 
+             legend=FALSE, cex.main = 1,
+             main = paste("Average proj. for", QUERY$annotations$scientificname[tmp], "- m", paste(m, collapse = "."), "\n", 
+             names(MODEL[["MBTR"]][["eval"]])[1], "=", MODEL[["MBTR"]][["eval"]][[1]]))
+      } else {
+        # Abundance or habitat suitability values
+        plot(r_m, col = hsi_pal[max(1, floor(r_m@data@min*100)):min(100, ceiling(r_m@data@max*100))], 
+             legend=FALSE, cex.main = 1,
+             main = paste("Average proj. for", i, "- m", paste(m, collapse = "."), "\n", 
+                          names(MODEL[[i]][["eval"]])[1], "=", MODEL[[i]][["eval"]][[1]]))
+      }
+      
+      # Land mask
+      plot(land, col = "antiquewhite4", legend=FALSE, add = TRUE)
+      
+      # --- 4.4.2. Plot the observations
+      # --- 4.4.2.1. Top abundance quartile as contour
+      plot(r_m > quantile(r_m, 0.75), col = c("white","gray80"), legend=FALSE, main = "Observations")
+      # --- 4.4.2.2. Land mask
+      plot(land, col = "antiquewhite4", legend=FALSE, add = TRUE)
+      # --- 4.4.2.3. Observations location
+      if(CALL$DATA_TYPE == "proportions"){tmp <- QUERY$S
+      } else {tmp <- QUERY$S[which(QUERY$Y$measurementvalue > 0),]}
+      # --- 4.4.2.4. Observation colors
+      if(CALL$DATA_TYPE == "continuous"){
+        points(tmp$decimallongitude, tmp$decimallatitude,
+               col = col_numeric("inferno", domain = range(QUERY$Y$measurementvalue))(QUERY$Y$measurementvalue), pch = 20)
+      } else {
+        points(tmp$decimallongitude, tmp$decimallatitude,
+               col = "black", pch = 20)
+      }
+      
+      # --- 4.4.3. Plot the uncertainties
+      # Land mask
+      plot(land, col = "antiquewhite4", legend=FALSE, main = "Uncertainties")
+      # CV x MESS plot
+      r <- bivar_map(rasterx = r_cv, rastery = r_mess, colormatrix = bivar_pal,
+                     cutx = 0:100, cuty = 0:100)
+      plot(r[[1]], col = r[[2]], legend=FALSE, add = TRUE)
+      
+    } # End m month loop
   } # End i model loop
 
   # --- 5. Build ensemble outputs
@@ -161,8 +189,7 @@ standard_maps <- function(FOLDER_NAME = NULL,
     # --- 5.1. Build ensemble array, weighted by evaluation values, re-scale max=1
     y_ens <- NULL
     for(i in MODEL$MODEL_LIST){
-      y_ens <- cbind(y_ens,
-                     MODEL[[i]][["proj"]][["y_hat"]])
+      y_ens <- abind(y_ens, MODEL[[i]][["proj"]][["y_hat"]],  along = 2)
     }
     # --- 5.2. Compute the different layers
     # --- 5.2.1. Mean value

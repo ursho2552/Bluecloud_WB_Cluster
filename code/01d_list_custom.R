@@ -40,6 +40,7 @@ list_custom <- function(DATA_SOURCE,
         - decimallongitude : decimal, longitude of the sample (-180 to +180) \n
         - depth : integer, depth of the sample \n
         - year : integer, year of sampling \n
+        - month : integer, month of sample \n
         - measurementvalue : numeric or string (e.g. present) \n
         - measurementunit : information on the unit of the measurement \n
         - taxonrank : taxonomic ranking corresponding to the scientific name (e.g. species, gender, order...)")

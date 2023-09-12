@@ -60,7 +60,8 @@ query_omic <- function(FOLDER_NAME = NULL,
   # --- 5. Propagate selection to corresponding stations
   S <- CALL$LIST_BIO$S %>% 
     mutate(decimallatitude = as.numeric(decimallatitude),
-           decimallongitude = as.numeric(decimallongitude))
+           decimallongitude = as.numeric(decimallongitude),
+           month = as.numeric(month))
   S <- S[-to_remove,]
   
   # --- 6. Save in the QUERY object

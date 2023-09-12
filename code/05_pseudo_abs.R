@@ -26,7 +26,7 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
   # --- 1.3. Double check data type - plot observation locations anyway
   if(CALL$DATA_TYPE != "binary"){
     message("No Pseudo-absence generation necessary for this data type")
-    r <- raster(CALL$ENV_PATH)
+    r <- CALL$ENV_DATA[[1]][[1]]
     r[!is.na(r)] <- 0
     
     land <- r
@@ -64,8 +64,7 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
   } 
 
   # --- 2. Load features and create base raster
-  features <- stack(CALL$ENV_PATH) %>% readAll()
-  r <- features[[1]]
+  r <- CALL$ENV_DATA[[1]][[1]]
   r[!is.na(r)] <- 0
   
   # --- 3. Background definition
@@ -141,7 +140,7 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
   } # END if background_filter TRUE
 
   # --- 5. Sample within the background data
-  # --- 5.1. Conditional sampling
+  # --- 5.1. Conditional sampling locations
   # Add a resample option if there is not enough background available
   if(ncol(background == 3)){
     if(nrow(background) < CALL$NB_PA){
@@ -159,33 +158,45 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
     } 
   }
 
-  # --- 5.2. Subset the background coordinates
-  xy <- background[tmp,1:2]
+  # --- 5.2. Sampling month
+  # According to the same distribution as the one in the data
+  month_freq <- summary(as.factor(QUERY$S$month))
+  month_freq <- month_freq/sum(month_freq)
+  month_prob <- sample(x = 1:length(month_freq), size = CALL$NB_PA, replace = TRUE, prob = month_freq)
   
-  # --- 5.3. Fast PDF to check the absences location
+  # --- 5.2. Subset the background coordinates
+  xym <- background[tmp,1:2] %>% cbind(month_prob)
+  
+  # --- 5.4. Fast PDF to check the absences location
   pdf(paste0(project_wd,"/output/",FOLDER_NAME,"/",SUBFOLDER_NAME,"/01_pseudo_abs.pdf"))
   land <- r
   land[is.na(land)] <- 9999
   land[land != 9999] <- NA
   plot(land, col = "antiquewhite4", legend=FALSE, main = paste("Presence - Pseudo Abs for:", SUBFOLDER_NAME), 
        sub = paste("NB_OBS :",  nrow(QUERY$S),"// NB_PA :", CALL$NB_PA, "// METHOD_PA :", CALL$METHOD_PA))
-  points(xy, col = "red", pch = 3)
+  points(xym[,1:2], col = "red", pch = 3)
   points(QUERY$S$decimallongitude, QUERY$S$decimallatitude, col = "black", pch = 3)
   dev.off()
   
   # --- 6. Append the query
   # --- 6.1. Feature table
-  X <- raster::extract(features, xy) %>% 
-    as.data.frame()
+  # Extract from the corresponding monthly raster
+  X <- NULL
+  for(i in 1:nrow(xym)){
+    tmp <- raster::extract(CALL$ENV_DATA[[xym[i,3]]], xym[i,1:2]) %>% 
+      as.data.frame()
+    X <- rbind(X, tmp)
+  }
   QUERY$X <- rbind(QUERY$X, X)
   
   # --- 6.2. Target table - replace by 0 and 1's
   QUERY$Y <- data.frame(measurementvalue = c(rep(1, nrow(QUERY$Y)), 
-                                             rep(0, nrow(xy))))
+                                             rep(0, nrow(xym))))
   
   # --- 6.3. Sample table
-  S <- data.frame(decimallongitude = xy$x,
-                  decimallatitude = xy$y,
+  S <- data.frame(decimallongitude = xym$x,
+                  decimallatitude = xym$y,
+                  month = xym$month_prob,
                   measurementtype = "Pseudo-absence") %>% 
     mutate(ID = row_number()+nrow(QUERY$S))
   QUERY$S <- QUERY$S %>% 

@@ -12,21 +12,17 @@ proj_proportions <- function(QUERY,
                              CALL){
   
   # --- 1. Initialize function
-  # --- 1.1. Early stop function if model did not pass QC and fast = TRUE
+  # --- 1.1. Open base raster and values
+  r0 <- CALL$ENV_DATA[[1]][[1]]
+  r_val <- getValues(r0)
+  
+  # --- 1.2. Early stop function if model did not pass QC and fast = TRUE
   if(CALL$FAST == TRUE & (length(MODEL$MODEL_LIST) != 1)){
     return(MODEL)
   }
   
-  # --- 1.2. Source the MBTR functions
+  # --- 1.3. Source the MBTR functions
   source_python(paste0(project_wd,"/function/mbtr_function.py"))
-  
-  # --- 1.3. Load environmental data - TO FIX DYNAMICALLY
-  features <- stack(CALL$ENV_PATH) %>% 
-    readAll() %>% 
-    raster::subset(QUERY$SUBFOLDER_INFO$ENV_VAR) %>% 
-    rasterToPoints() %>% 
-    as.data.frame() %>% 
-    dplyr::select(-c(x, y))
   
   # --- 2. Define bootstraps
   # --- 2.1. Re-assemble all query tables
@@ -78,24 +74,36 @@ proj_proportions <- function(QUERY,
   }
   message("Bootstrap fitting - DONE")
   
-  # --- 4. Computing one prediction per bootstrap
-  boot_proj <- mclapply(boot_fit,
-                        function(a_boot) mbtr_predict(model = a_boot, X_pred = features, n_boosts = as.integer(MODEL$MBTR$final_wf$NBOOST)),
-                        mc.cores = CALL$N_BOOTSTRAP) %>% 
-    abind(along = 3)
-  
-  # --- 5. Re-assign to cells
-  # Open a raster to have the list of cells
-  r_val <- raster(CALL$ENV_PATH) %>% 
-    getValues()
-  
-  # Assign the desired values to the non-NA cells in the list
-  y_hat <- apply(boot_proj, c(2,3), function(x){
-    r <- r_val
-    r[!is.na(r)] <- x
-    x <- r
-  }) %>% 
-    aperm(c(1,3,2))
+  # --- 4. Loop over month for predictions
+  y_hat <- NULL
+  for(m in 1:length(CALL$ENV_DATA)){
+    
+    # --- 4.1. Load the right features
+    features <- CALL$ENV_DATA[[m]] %>% 
+      raster::subset(QUERY$SUBFOLDER_INFO$ENV_VAR) %>% 
+      rasterToPoints() %>% 
+      as.data.frame() %>% 
+      dplyr::select(-c(x, y))
+    
+    # --- 4.2. Computing one prediction per bootstrap
+    source_python(paste0(project_wd,"/function/mbtr_function.py")) # needed for some reason...
+    boot_proj <- mclapply(boot_fit,
+                          function(a_boot) mbtr_predict(model = a_boot, X_pred = features, n_boosts = as.integer(MODEL$MBTR$final_wf$NBOOST)),
+                          mc.cores = CALL$N_BOOTSTRAP) %>% 
+      abind(along = 3)
+    
+    # --- 4.3. Assign the desired values to the non-NA cells in the list
+    tmp <- apply(boot_proj, c(2,3), function(x){
+      r <- r_val
+      r[!is.na(r)] <- x
+      x <- r
+    }) %>% 
+      aperm(c(1,3,2))
+    
+    # --- 4.4. Concatenate with previous month
+    y_hat <- abind(y_hat, tmp, along = 4)
+    message(paste("--- PROJ : month", m, "done \t"))
+  } # for m month
   
   # --- 6. Compute the average CV across bootstrap runs as a QC
   AVG_CV <- apply(y_hat, c(1,3), function(x)(x = cv(x, na.rm = TRUE))) %>% 

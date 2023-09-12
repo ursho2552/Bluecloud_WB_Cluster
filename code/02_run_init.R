@@ -18,10 +18,10 @@
 #' @param DATA_TYPE the output type of the data, which can influence the sub-folder
 #' architecture. See details.
 
-#' @param ENV_VAR vector of names of environmental variables available within
-#' the climatologies available in Blue Cloud. If null all variables are taken.
-#' @param ENV_PATH string or vector of path to the .nc or raster of environmental variables
-
+#' @param ENV_VAR a two column data frame containing (i) the folder name corresponding
+#' to each environmental variable; (ii) the corresponding variable name in the .nc files
+#' @param ENV_PATH string or vector of path to the root where the folders containing
+#' the .nc are.
 #' @param METHOD_PA method of pseudo-absence, either "mindist" or "cumdist" or "density"
 #' @param NB_PA number of pseudo-absences to generate
 #' @param PER_RANDOM ratio of pseudo-absences that are sampled randomly in the background
@@ -72,9 +72,15 @@ run_init <- function(FOLDER_NAME = "test_run",
                      FAST = FALSE,
                      LOAD_FROM = NULL,
                      DATA_TYPE = NULL,
-                     ENV_VAR = NULL,
-                     ENV_PATH = c("/net/meso/work/aschickele/Bluecloud_WB_local/data/bio_oracle", 
-                                  "/net/meso/work/aschickele/Bluecloud_WB_local/data/features_mean_from_monthly"),
+                     ENV_VAR = data.frame(name = c("oxygen_monthly_WOA18", 
+                                                   "salinity_monthly_WOA18", 
+                                                   "mld_monthly_WOA18", 
+                                                   "silicate_monthly_WOA18",
+                                                   "nitrate_monthly_WOA18",
+                                                   "phosphate_monthly_WOA18",
+                                                   "temp_monthly_WOA18"),
+                                          ncvar = c("o_an", "s_an", "M_an", "i_an", "n_an", "p_an", "t_an")),
+                     ENV_PATH = "/net/meso/work/nknecht/Masterarbeit/Data/21_10_18_environmental_data",
                      METHOD_PA = "density",
                      NB_PA = NULL,
                      PER_RANDOM = 0.25,
@@ -146,27 +152,73 @@ run_init <- function(FOLDER_NAME = "test_run",
     }
   } # if DATA_TYPE and SOURCE
   
-  # --- 4. Check for environmental data homogeneity
-  # If a vector is provided in ENV_PATH, we need to make sure all layers have
-  # the same extent, resolution and NA's.
-  if(length(ENV_PATH) > 1){
-    ENV_PATH <- regrid_env(FOLDER_NAME = FOLDER_NAME,
-                           ENV_PATH = ENV_PATH)
-  }
+  # --- 4. Extract environmental raster from NCDF
+  # Provides a list per month, containing raster stack of all variables
+  ENV_DATA <- list()
+  
+  # --- Start loop over month
+  for(m in 1:12){
+    # --- Compute over variables
+    stack_month <- mclapply(X = 1:nrow(ENV_VAR), FUN = function(x){
+      
+      # --- 4.1. Open NC
+      nc <- list.dirs(ENV_PATH, full.names = TRUE) %>% 
+        .[grep(pattern = ENV_VAR$name[x], x = .)] %>% 
+        list.files(full.names = TRUE) %>% 
+        .[grep(pattern = paste0(str_pad(string = m, pad = "0", width = 2, side = "left"),"_"), x = .)] %>% 
+        nc_open()
+      
+      # --- 4.2. Open the variable
+      ncvar <- ncvar_get(nc, ENV_VAR$ncvar[x])
+      
+      # --- 4.3. Get the correct depth bounds
+      if(length(dim(ncvar)) == 3){
+        depth_id <- ncvar_get(nc, "depth_bnds") %>% t() %>% 
+          as.data.frame() %>% 
+          mutate(ID = row_number()) %>% 
+          dplyr::filter(V1 >= CALL$SAMPLE_SELECT$MIN_DEPTH & V2 <= CALL$SAMPLE_SELECT$MAX_DEPTH) %>% 
+          .$ID
+      }
+      
+      # --- 4.4. Filter the right layer if there is a depth dimension
+      if(length(dim(ncvar)) == 3){
+        ncvar <- ncvar[,,depth_id] %>% apply(c(1,2), function(x)(x = mean(x, na.rm = TRUE)))
+      }
+      
+      # --- 4.5. Get latitudes & longitudes
+      lon <- nc$dim$lon$vals %>% as.numeric()
+      lat <- nc$dim$lat$vals %>% as.numeric()
+      
+      # --- 4.6. Build the raster
+      r <- raster(t(ncvar), xmn = min(lon), xmx = max(lon), ymn = min(lat), ymx = max(lat)) %>% 
+        flip(direction = 'y') 
+    },
+    mc.cores = min(nrow(ENV_VAR), MAX_CLUSTERS)) %>% stack() %>% synchroniseNA()
+    
+    # --- 4.7. Pretty names
+    names(stack_month) <- ENV_VAR$name
+    
+    # --- 4.8. Assign to list
+    ENV_DATA[[m]] <- stack_month
+    message(paste(Sys.time(), "--- ENV. STACK : month", m, "done \t"))
+  } # end month loop
   
   # --- 5. Check for biological data homogeneity ?
   # To be implemented ?
   
   # --- 6. Update CALL object
-  # --- 6.1. Append CALL with DATA_TYPE
+  # --- 6.1. Append CALL with ENV_DATA
+  CALL[["ENV_DATA"]] <- ENV_DATA
+  
+  # --- 6.2. Append CALL with DATA_TYPE
   # Define it the same as DATA_SOURCE if left blank
   if(is.null(DATA_TYPE)){DATA_TYPE <- CALL$DATA_SOURCE}
   CALL[["DATA_TYPE"]] <- DATA_TYPE
   
-  # --- 6.2. Append CALL with all other objects
+  # --- 6.3. Append CALL with all other objects
   CALL[["SP_SELECT"]] <- SP_SELECT
   CALL[["FAST"]] <- FAST
-  CALL[["ENV_VAR"]] <- ENV_VAR
+  CALL[["ENV_VAR"]] <- ENV_VAR$name
   CALL[["ENV_PATH"]] <- ENV_PATH
   CALL[["METHOD_PA"]] <- METHOD_PA
   CALL[["NB_PA"]] <- NB_PA

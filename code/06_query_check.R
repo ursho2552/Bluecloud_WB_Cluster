@@ -101,7 +101,6 @@ query_check <- function(FOLDER_NAME = NULL,
     QUERY$SUBFOLDER_INFO$ENV_VAR <- names(features_keep)
   } # END if env_cor TRUE
   
-  
   # --- 3. Univariate variable importance analysis
   # Done with a Random forest using the method developed in the "Caret" library
   if(CALL$UNIVARIATE == TRUE){
@@ -166,27 +165,30 @@ query_check <- function(FOLDER_NAME = NULL,
   } # END if univariate TRUE
 
   # --- 4. MESS analysis
-  # --- 4.1. Load necessary data
-  features <- stack(CALL$ENV_PATH) %>% 
-    readAll() %>% 
-    raster::subset(QUERY$SUBFOLDER_INFO$ENV_VAR)
-  names(features) <- QUERY$SUBFOLDER_INFO$ENV_VAR
-  
-  # --- 4.2. Compute the mess analysis
-  # --- 4.2.1. Load environmental samples data
-  tmp <- QUERY$X %>% dplyr::select(all_of(QUERY$SUBFOLDER_INFO$ENV_VAR))
-  
-  # --- 4.2.2. Remove the pseudo-absences from the analysis
-  # We should not consider them as true input data as they are user defined
-  if(CALL$DATA_TYPE == "binary"){
-    tmp <- tmp[which(QUERY$Y != 0),]
-  } # if pres remove pseudo abs
-  
-  # --- 4.2.3. Analysis
-  r_mess <- dismo::mess(x = features, v = as.data.frame(tmp), full = FALSE)
+  r_mess <- NULL
+  for(m in 1:length(CALL$ENV_DATA)){
+    # --- 4.1. Load necessary data
+    features <- CALL$ENV_DATA[[m]] %>% 
+      raster::subset(QUERY$SUBFOLDER_INFO$ENV_VAR)
+    names(features) <- QUERY$SUBFOLDER_INFO$ENV_VAR
+    
+    # --- 4.2. Compute the mess analysis
+    # --- 4.2.1. Load environmental samples data
+    tmp <- QUERY$X %>% dplyr::select(all_of(QUERY$SUBFOLDER_INFO$ENV_VAR))
+    
+    # --- 4.2.2. Remove the pseudo-absences from the analysis
+    # We should not consider them as true input data as they are user defined
+    if(CALL$DATA_TYPE == "binary"){
+      tmp <- tmp[which(QUERY$Y != 0),]
+    } # if pres remove pseudo abs
+    
+    # --- 4.2.3. Analysis
+    r_mess[[m]] <- dismo::mess(x = features, v = as.data.frame(tmp), full = FALSE)
+    
+  } # for m month
   
   # --- 4.3. Append to query
-  QUERY$MESS <- r_mess
+  QUERY$MESS <- stack(r_mess)
   
   # --- 5. Wrap up and save
   # --- 5.1. Save file(s)

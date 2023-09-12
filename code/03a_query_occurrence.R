@@ -26,18 +26,18 @@ query_occurrence <- function(FOLDER_NAME = NULL,
     dplyr::filter(decimalLatitude != 0 | decimalLatitude < -90 | decimalLatitude > 90) %>% 
     dplyr::filter(decimalLongitude != 0 | decimalLongitude < -180 | decimalLongitude > 180) %>% 
     dplyr::filter(occurrenceStatus == "present") %>% 
-    dplyr::select(any_of(c("scientificName", "aphiaID", "decimalLatitude", "decimalLongitude", "depth", "date_year", "occurrenceStatus", "basisOfRecord", "taxonRank"))) %>% 
+    dplyr::select(any_of(c("scientificName", "aphiaID", "decimalLatitude", "decimalLongitude", "depth", "date_year", "month", "occurrenceStatus", "basisOfRecord", "taxonRank"))) %>% 
     dplyr::filter(date_year >= CALL$SAMPLE_SELECT$START_YEAR & date_year <= CALL$SAMPLE_SELECT$STOP_YEAR) %>% 
     dplyr::filter(depth >= CALL$SAMPLE_SELECT$MIN_DEPTH & depth <= CALL$SAMPLE_SELECT$MAX_DEPTH) %>% 
     distinct()
   
   # --- 2.2. Column repair
   if("taxonRank" %in% names(target) == FALSE){
-    target <- mutate(target, taxonrank = NA)
+    target <- mutate(target, taxonrank = "undefined")
   }
   
   # --- 2.3. Nice names
-  colnames(target) <- c("scientificname","worms_id","decimallatitude","decimallongitude","depth","year","measurementvalue","measurementunit", "taxonrank")
+  colnames(target) <- c("scientificname","worms_id","decimallatitude","decimallongitude","depth","year", "month","measurementvalue","measurementunit", "taxonrank")
   
   # --- 3. Query GBIF occurrences
   # --- 3.1. Prepare the scientific name - Aphia ID does not work for GBIF
@@ -61,9 +61,9 @@ query_occurrence <- function(FOLDER_NAME = NULL,
     # And re-select the scientificname as a double check
     target_gbif <- target_gbif %>% 
       dplyr::filter(grepl(SNAME, scientificName)) %>% 
-      dplyr::select(any_of(c("decimalLatitude","decimalLongitude","depth","year"))) %>% 
+      dplyr::select(any_of(c("decimalLatitude","decimalLongitude","depth","year","month"))) %>% 
       dplyr::filter(!is.na(decimalLatitude) & !is.na(decimalLongitude))
-    colnames(target_gbif) <- c("decimallatitude","decimallongitude","depth","year")
+    colnames(target_gbif) <- c("decimallatitude","decimallongitude","depth","year","month")
     
     # --- 3.3.2. Add missing columns
     target_gbif <- target_gbif %>% 
@@ -72,7 +72,7 @@ query_occurrence <- function(FOLDER_NAME = NULL,
              measurementvalue = "present",
              measurementunit = "Occurrence",
              taxonrank = target$taxonrank[1]) %>% 
-      dplyr::select(any_of(c("scientificname","worms_id","decimallatitude","decimallongitude","depth","year","measurementvalue","measurementunit", "taxonrank")))
+      dplyr::select(any_of(c("scientificname","worms_id","decimallatitude","decimallongitude","depth","year","month","measurementvalue","measurementunit", "taxonrank")))
     
   }
   
@@ -96,6 +96,7 @@ query_occurrence <- function(FOLDER_NAME = NULL,
     dplyr::select(-any_of(c("measurementvalue", "worms_id", "taxonrank", "scientificname", "nb_occ"))) %>% 
     mutate(decimallatitude = as.numeric(decimallatitude),
            decimallongitude = as.numeric(decimallongitude),
+           month = as.numeric(month),
            ID = row_number())
   
   # --- 7. Create an Annotation table

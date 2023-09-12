@@ -38,23 +38,37 @@ query_custom <- function(FOLDER_NAME = NULL,
   # --- 2.3. For proportion data
   if(CALL$DATA_TYPE == "proportions"){
     target_proportions <- CALL$LIST_BIO %>% 
-      dplyr::select("decimallatitude","decimallongitude", "depth","year","measurementvalue","worms_id") %>% 
+      dplyr::select("decimallatitude","decimallongitude", "depth","year","month","measurementvalue","worms_id") %>% 
       pivot_wider(names_from = "worms_id", values_from = "measurementvalue", values_fn = mean)
     
     Y <- target_proportions %>% 
-      dplyr::select(-decimallatitude, -decimallongitude, -depth, -year)
+      dplyr::select(-decimallatitude, -decimallongitude, -depth, -year, -month)
     Y[is.na(Y)] <- 0
     Y <- apply(Y, 1, function(x)(x = x/sum(x))) %>% aperm(c(2,1)) %>% as.data.frame()
   }
   
   # --- 3. Create S sample table
-  S <- CALL$LIST_BIO %>% 
-    dplyr::filter(worms_id == QUERY$SUBFOLDER_INFO$SP_SELECT) %>% 
-    dplyr::select(-any_of(c("measurementvalue", "worms_id", "taxonrank", "scientificname", "nb_occ"))) %>% 
-    mutate(decimallatitude = as.numeric(decimallatitude),
-           decimallongitude = as.numeric(decimallongitude),
-           ID = row_number())
+  # --- 3.1. For binary or continuous data
+  if(CALL$DATA_TYPE == "binary" | CALL$DATA_TYPE == "continuous"){
+    S <- CALL$LIST_BIO %>% 
+      dplyr::filter(worms_id == QUERY$SUBFOLDER_INFO$SP_SELECT) %>% 
+      dplyr::select(-any_of(c("measurementvalue", "worms_id", "taxonrank", "scientificname", "nb_occ"))) %>% 
+      mutate(decimallatitude = as.numeric(decimallatitude),
+             decimallongitude = as.numeric(decimallongitude),
+             month = as.numeric(month),
+             ID = row_number())
+  }
   
+  # --- 3.1. For proportions data
+  if(CALL$DATA_TYPE == "proportions"){
+    S <- target_proportions %>% 
+      dplyr::select(-any_of(c("measurementvalue", "worms_id", "taxonrank", "scientificname", "nb_occ", names(Y)))) %>% 
+      mutate(decimallatitude = as.numeric(decimallatitude),
+             decimallongitude = as.numeric(decimallongitude),
+             month = as.numeric(month),
+             ID = row_number())
+  }
+
   # --- 4. Create annotation table
   annotations <- CALL$LIST_BIO %>% 
     dplyr::filter(worms_id == QUERY$SUBFOLDER_INFO$SP_SELECT) %>% 

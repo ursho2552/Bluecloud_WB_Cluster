@@ -67,7 +67,9 @@ query_abundance <- function(FOLDER_NAME = NULL,
     dplyr::select(-measurementvalue, -worms_id, -taxonrank, -scientificname, -nb_occ) %>% 
     mutate(decimallatitude = as.numeric(decimallatitude),
            decimallongitude = as.numeric(decimallongitude),
+           month = as.numeric(month),
            ID = row_number())
+  
   # --- 6.2. For several targets; i.e. DATA_TYPE = "proportions"
   if(CALL$DATA_TYPE == "proportions"){
     S <- target %>% 
@@ -75,6 +77,7 @@ query_abundance <- function(FOLDER_NAME = NULL,
       unique() %>% 
       mutate(decimallatitude = as.numeric(decimallatitude),
              decimallongitude = as.numeric(decimallongitude),
+             month = as.numeric(month),
              ID = row_number())
   }
   
