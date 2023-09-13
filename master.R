@@ -14,13 +14,13 @@ rm(list=ls())
 closeAllConnections()
 setwd("/net/meso/work/aschickele/Bluecloud_WB_local")
 source(file = "./code/00_config.R")
-run_name <- "FFGM_and_GM"
+run_name <- "microplastic"
 
 # --- 1. List the available species
 # Within the user defined selection criteria
 list_bio <- list_bio_wrapper(FOLDER_NAME = run_name,
-                             DATA_SOURCE = "/net/meso/work/aschickele/Bluecloud_WB_local/data/SampledFFGM_and_GM.csv",
-                             SAMPLE_SELECT = list(MIN_SAMPLE = 50, MIN_DEPTH = 0, MAX_DEPTH = 200, START_YEAR = 1990, STOP_YEAR = 2016))
+                             DATA_SOURCE = "/net/meso/work/aschickele/Bluecloud_WB_local/data/giacomo_plastic_formatted.xlsx",
+                             SAMPLE_SELECT = list(MIN_SAMPLE = 50, MIN_DEPTH = 0, MAX_DEPTH = 50, START_YEAR = 1990, STOP_YEAR = 2016))
 
 # Define the list of species to consider
 sp_list <- list_bio$worms_id %>% unique()
@@ -36,7 +36,7 @@ subfolder_list <- run_init(FOLDER_NAME = run_name,
                            SP_SELECT = sp_list,
                            FAST = FALSE,
                            LOAD_FROM = NULL,
-                           DATA_TYPE = "proportions",
+                           DATA_TYPE = "continuous",
                            # ENV_VAR = NULL,
                            ENV_PATH = "/net/meso/work/nknecht/Masterarbeit/Data/21_10_18_environmental_data",
                            METHOD_PA = "density",

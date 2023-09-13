@@ -17,8 +17,10 @@ list_custom <- function(DATA_SOURCE,
   # --- 1.2. Conditional opening
   if(ext == "xlsx"){
     df <- readxl::read_xlsx(DATA_SOURCE)
+    colnames(df) <- tolower(colnames(df))
   } else if(ext == "txt" | ext == "csv"){
     df <- vroom(DATA_SOURCE)
+    colnames(df) <- tolower(colnames(df))
   } else {
     message("The file extension is not recognized. It should be either .xlsx, .txt or .csv")
     return(NULL)
@@ -26,7 +28,7 @@ list_custom <- function(DATA_SOURCE,
   
   # --- 2. Check for column presence
   # --- 2.1. Mandatory columns
-  names_qc <- c("scientificname","worms_id","decimallatitude","decimallongitude","depth","year","measurementvalue","measurementunit", "taxonrank")
+  names_qc <- c("scientificname","worms_id","decimallatitude","decimallongitude","depth","year","month","measurementvalue","measurementunit", "taxonrank")
   # --- 2.2. Extract corresponding names in the data
   names_df <- df %>% 
     dplyr::select(any_of(names_qc)) %>% 

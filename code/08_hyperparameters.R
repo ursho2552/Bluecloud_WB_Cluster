@@ -17,17 +17,29 @@ hyperparameter <- function(FOLDER_NAME = NULL){
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
   
   # --- 2. Fill up the object with a set of possible grids
-  # --- 2.1. RANDOM FOREST 
-  # --- 2.1.1. Define the model specifications
-  HP$RF$model_spec <- rand_forest(mode = "regression",
-                                  engine = "randomForest",
-                                  trees = tune(),
-                                  min_n = tune())
+  # --- 2.3. GENERALIZED LINEAR MODELS
+  # --- 2.3.1. Define the model specifications
+  if(CALL$DATA_TYPE == "binary"){
+    HP$GLM$model_spec <- linear_reg(mode = "regression") %>% 
+      set_engine("glm", 
+                 family = stats::binomial(link = "logit")) %>% 
+      step_normalize() %>% 
+      translate()
+  } else if(CALL$DATA_TYPE == "continuous"){
+    HP$GLM$model_spec <- linear_reg(mode = "regression",
+                                    engine = "glm") %>% 
+      step_log(offset = 1) %>% 
+      step_normalize() %>% 
+      translate()
+  } else {
+    HP$GLM$model_spec <- linear_reg(mode = "regression",
+                                    engine = "glm") %>% 
+      step_normalize() %>% 
+      translate()
+  }
   
-  # --- 2.1.2. Define the grid according to built in functions
-  HP$RF$model_grid <- grid_regular(trees(range = c(200, 1000)),
-                                   min_n(range = c(5, ceiling(CALL$SAMPLE_SELECT$MIN_SAMPLE*0.3))),
-                                   levels = CALL$LEVELS)
+  # --- 2.3.2. Define the grid according to built in functions
+  # No parameters to tune for engine "glm"
   
   # --- 2.2. GENERALIZED ADDITIVE MODELS 
   # --- 2.2.1. Define the model specifications
@@ -40,12 +52,19 @@ hyperparameter <- function(FOLDER_NAME = NULL){
       step_scale() %>% 
       step_normalize() %>% 
       translate()
+  } else if(CALL$DATA_TYPE == "continuous"){
+    HP$GAM$model_spec <- gen_additive_mod(mode = "regression",
+                                          engine = "mgcv",
+                                          adjust_deg_free = tune(),
+                                          select_features = TRUE) %>% 
+      step_log(offset = 1) %>% 
+      step_normalize() %>% 
+      translate()
   } else {
     HP$GAM$model_spec <- gen_additive_mod(mode = "regression",
                                           engine = "mgcv",
                                           adjust_deg_free = tune(),
                                           select_features = TRUE) %>% 
-      step_scale() %>% 
       step_normalize() %>% 
       translate()
   }
@@ -54,45 +73,52 @@ hyperparameter <- function(FOLDER_NAME = NULL){
   HP$GAM$model_grid <- grid_regular(adjust_deg_free(),
                                     levels = CALL$LEVELS)
   
-  # --- 2.3. GENERALIZED LINEAR MODELS
-  # --- 2.3.1. Define the model specifications
-  if(CALL$DATA_TYPE == "binary"){
-    HP$GLM$model_spec <- linear_reg(mode = "regression") %>% 
-      set_engine("glm", 
-                 family = stats::binomial(link = "logit")) %>% 
-      step_scale() %>% 
-      step_normalize() %>% 
-      translate()
-  } else {
-    HP$GLM$model_spec <- linear_reg(mode = "regression",
-                                    engine = "glm") %>% 
-      step_scale() %>% 
-      step_normalize() %>% 
-      translate()
-  }
-
-  # --- 2.3.2. Define the grid according to built in functions
-  # No parameters to tune for engine "glm"
+  
+  # --- 2.1. RANDOM FOREST 
+  # --- 2.1.1. Define the model specifications
+  HP$RF$model_spec <- rand_forest(mode = "regression",
+                                  engine = "randomForest",
+                                  trees = tune(),
+                                  min_n = tune())
+  
+  # --- 2.1.2. Define the grid according to built in functions
+  HP$RF$model_grid <- grid_regular(trees(range = c(200, 1000)),
+                                   min_n(range = c(5, ceiling(CALL$SAMPLE_SELECT$MIN_SAMPLE*0.3))),
+                                   levels = CALL$LEVELS)
   
   # --- 2.4. SINGLE LAYER NEURAL NETWORK
   # --- 2.4.1. Define the model specifications
-  HP$MLP$model_spec <- mlp(mode = "regression",
-                           engine = "nnet",
-                           hidden_units = tune(),
-                           penalty = 0.01,
-                           dropout = 0,
-                           epochs = 100,
-                           activation = NULL,
-                           learn_rate = 1e-1) %>% 
-    step_scale() %>% 
-    step_normalize() %>% 
-    translate()
+  if(CALL$DATA_TYPE == "continuous"){
+    HP$MLP$model_spec <- mlp(mode = "regression",
+                             engine = "nnet",
+                             hidden_units = tune(),
+                             penalty = 0.01,
+                             dropout = 0,
+                             epochs = 100,
+                             activation = NULL,
+                             learn_rate = 1e-1) %>% 
+      step_log(offset = 1) %>% 
+      step_normalize() %>% 
+      translate()
+  } else {
+    HP$MLP$model_spec <- mlp(mode = "regression",
+                             engine = "nnet",
+                             hidden_units = tune(),
+                             penalty = 0.01,
+                             dropout = 0,
+                             epochs = 100,
+                             activation = NULL,
+                             learn_rate = 1e-1) %>% 
+      step_normalize() %>% 
+      translate()
+  }
+  
   
   # --- 2.4.2. Define the grid according to built in functions
   HP$MLP$model_grid <- grid_regular(hidden_units(),
                                     levels = CALL$LEVELS)
   
-  # --- 2.5. Boosted Regression Tree
+  # --- 2.5. BOOSTED REGRESSION TREES
   # --- 2.5.1. Define the model specifications
   HP$BRT$model_spec <- boost_tree(mode = "regression",
                                   engine = "xgboost",
@@ -106,16 +132,27 @@ hyperparameter <- function(FOLDER_NAME = NULL){
                                     tree_depth(range = c(3, 10)),
                                     levels = CALL$LEVELS)
   
-  # --- 2.6. Support Vector Machine
+  # --- 2.6. SUPPORT VECTOR MACHINE
   # --- 2.6.1. Define the model specifications
-  HP$SVM$model_spec <- svm_rbf(mode = "regression",
-                               engine = "kernlab",
-                               cost = tune(),
-                               rbf_sigma = tune(),
-                               margin = tune()) %>% 
-    step_scale() %>% 
-    step_normalize() %>% 
-    translate()
+  if(CALL$DATA_TYPE == "continuous"){
+    HP$SVM$model_spec <- svm_rbf(mode = "regression",
+                                 engine = "kernlab",
+                                 cost = tune(),
+                                 rbf_sigma = tune(),
+                                 margin = tune()) %>% 
+      step_log(offset = 1) %>% 
+      step_normalize() %>% 
+      translate()
+  } else {
+    HP$SVM$model_spec <- svm_rbf(mode = "regression",
+                                 engine = "kernlab",
+                                 cost = tune(),
+                                 rbf_sigma = tune(),
+                                 margin = tune()) %>% 
+      step_normalize() %>% 
+      translate()
+  }
+
   
   # --- 2.6.2. Define the grid according to built in functions
   HP$SVM$model_grid <- grid_regular(cost(),
@@ -123,7 +160,7 @@ hyperparameter <- function(FOLDER_NAME = NULL){
                                     svm_margin(),
                                     levels = CALL$LEVELS)
   
-  # --- 2.7. Multivariate Boosted Regression Tree
+  # --- 2.7. MULTIVARIATE BOOSTED TREE REGRESSOR
   # Specific to proportions data
   HP$MBTR$model_grid <- data.frame(LEARNING_RATE = seq(1e-1, 5e-3, length.out = CALL$LEVELS),
                                    N_Q = 10,
