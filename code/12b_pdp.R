@@ -15,10 +15,16 @@ pdp <- function(FOLDER_NAME = NULL,
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/MODEL.RData"))
   
-  # --- 1.2. Source the MBTR functions
+  # --- 1.2. Early return - if no model have fitted
+  if(length(MODEL$MODEL_LIST) == 0){
+    message("No PDP are computed for this species - no algorithms passed the QC or fitted")
+    return(NULL)
+  }
+  
+  # --- 1.3. Source the MBTR functions
   source_python(paste0(project_wd,"/function/mbtr_function.py"))
   
-  # --- 1.3. Multivariate PDP function - for proportions
+  # --- 1.4. Multivariate PDP function - for proportions
   mpartial <- function(object, train, pred_var, nboosts, grid_resolution=10, cores=10) {
     #' @param object a fitted model for which a predict() method exists
     #' @param train training set on which the model was fitted
@@ -44,11 +50,11 @@ pdp <- function(FOLDER_NAME = NULL,
     return(yhat)
   }
   
-  # --- 1.4. For loop parameters
+  # --- 1.5. For loop parameters
   if(CALL$DATA_TYPE == "proportions"){loop_over <- 1:ncol(QUERY$Y)
   }else{loop_over <- MODEL$MODEL_LIST}
   
-  # --- 1.5. Initialize global PDP storage
+  # --- 1.6. Initialize global PDP storage
   pdp_all <- NULL
   
   # --- 2. Define bootstraps
@@ -207,9 +213,18 @@ pdp <- function(FOLDER_NAME = NULL,
   
   # --- 6.2.2. Plot scaling (average max across bootstrap)
   # Because continuous data are not between 0 and 1
-  plot_scale <- lapply(MODEL, FUN = function(z)(z = apply(MODEL$GLM$proj$y_hat, 1, function(x)(x = mean(x, na.rm = TRUE))) %>% max(na.rm = TRUE))) %>% 
-    unlist() %>% 
-    max(na.rm = TRUE)
+  if(CALL$DATA_TYPE == "continuous"){
+    plot_scale <- lapply(MODEL, FUN = function(z){
+      if(!is.null(names(z))){
+        z = z$proj$y_hat %>% apply(1, function(x)(x = mean(x, na.rm = TRUE))) %>% 
+          max(na.rm = TRUE)
+      }
+    }) %>% 
+      unlist() %>% 
+      max(na.rm = TRUE)
+  } else {
+    plot_scale <- 1
+  }
   
   # --- 6.3. Iteratively compute the plots
   for(i in QUERY$SUBFOLDER_INFO$ENV_VAR){

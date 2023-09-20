@@ -93,7 +93,7 @@ query_env <- function(FOLDER_NAME = NULL,
       tmp <- features[min_dist] %>%
         as.data.frame()
       
-      # --- 5.3. Remove if NA is too far inland
+      # --- 5.4. Remove if NA is too far inland
       if(sum(tmp)==0){
         to_remove <- c(to_remove, j)
       }
@@ -101,6 +101,13 @@ query_env <- function(FOLDER_NAME = NULL,
     
     X <- rbind(X, tmp)
   } # End for j
+  
+  # --- 6. Early return if no environmental data matching
+  if(length(X) == 0){
+    message("No environmental data could be extracted for these observation locations \n
+            Please check the coverage of the environmental predictors and the location of the observations")
+    return(NA)
+    }
   colnames(X) <- features_name
   
   # --- 7. Remove rows that are still NA - i.e. on land
@@ -110,7 +117,6 @@ query_env <- function(FOLDER_NAME = NULL,
     S <- dplyr::slice(S, -to_remove)
     message(paste("--- ENV EXTRACT : Removed row number", to_remove, "more than 2 grid cells on land \n"))
   }
-  
   
   # --- 8. Wrap up and save
   # --- 8.1. Remove rare targets and update sample list
@@ -141,9 +147,11 @@ query_env <- function(FOLDER_NAME = NULL,
   log_sink(FILE = sinkfile, START = FALSE)
   
   # --- 8.4. Update list of SUBFOLDER_NAME
-  if(nrow(S) >= CALL$SAMPLE_SELECT$MIN_SAMPLE){
+  if(nrow(Y) >= CALL$SAMPLE_SELECT$MIN_SAMPLE & nrow(Y)/ncol(Y) > 5){
     return(SUBFOLDER_NAME)
   } else {
+    message("The sample does not match the minimum sample size - or has a row/col ratio under 5:1 (for proportions data) \n
+            Please work on the data to increase the sample size")
     return(NA)
   }
   
