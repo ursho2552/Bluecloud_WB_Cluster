@@ -106,12 +106,14 @@ proj_proportions <- function(QUERY,
   } # for m month
   
   # --- 6. Compute the average CV across bootstrap runs as a QC
-  AVG_CV <- apply(y_hat, c(1,3), function(x)(x = cv(x, na.rm = TRUE))) %>% 
+  NSD <- apply(y_hat, c(1,3,4), function(x)(x = sd(x, na.rm = TRUE))) %>% 
     mean(na.rm = TRUE)
+  NSD <- NSD/mean(y_hat, na.rm = TRUE)
   
   # --- 7. Append the MODEL object
   MODEL[["MBTR"]][["proj"]][["y_hat"]] <- y_hat
-  MODEL[["MBTR"]][["eval"]][["AVG_CV"]] <- AVG_CV
+  MODEL[["MBTR"]][["eval"]][["NSD"]] <- NSD
+  
   return(MODEL)
   
 } # END FUNCTION

@@ -14,7 +14,7 @@ rm(list=ls())
 closeAllConnections()
 setwd("/net/meso/work/aschickele/Bluecloud_WB_local")
 source(file = "./code/00_config.R")
-run_name <- "new_nc_new_depth"
+run_name <- "NSD_QC"
 
 # --- 1. List the available species
 # Within the user defined selection criteria

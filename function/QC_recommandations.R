@@ -50,7 +50,7 @@ qc_recommandations <- function(MODEL,
   for(m in m_names){
     if(qc_matrix[m,1] >= 0.5 & !is.na(qc_matrix[m,1])){qc_matrix_01[m,1] <- 1} else {qc_matrix_01[m,1] <- 0}
     if(qc_matrix[m,2] >= 50 & !is.na(qc_matrix[m,2])){qc_matrix_01[m,2] <- 1} else {qc_matrix_01[m,2] <- 0}
-    if(qc_matrix[m,3] <= 50 & !is.na(qc_matrix[m,3])){qc_matrix_01[m,3] <- 1} else {qc_matrix_01[m,3] <- 0}
+    if(qc_matrix[m,3] <= 0.5 & !is.na(qc_matrix[m,3])){qc_matrix_01[m,3] <- 1} else {qc_matrix_01[m,3] <- 0}
   }
   qc_matrix_01 <- as.data.frame(qc_matrix_01) %>% 
     mutate(ID = row_number())

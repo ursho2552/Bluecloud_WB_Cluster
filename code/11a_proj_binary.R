@@ -109,12 +109,13 @@ proj_binary <- function(QUERY,
     } # if CUT
     
     # --- 6. Compute the average CV across bootstrap runs as a QC
-    AVG_CV <- apply(y_hat, 1, function(x)(x = cv(x, na.rm = TRUE))) %>% 
+    NSD <- apply(y_hat, c(1,3), function(x)(x = sd(x, na.rm = TRUE))) %>% 
       mean(na.rm = TRUE)
+    NSD <- NSD/mean(y_hat, na.rm = TRUE)
     
     # --- 7. Append the MODEL object
     MODEL[[i]][["proj"]][["y_hat"]] <- y_hat
-    MODEL[[i]][["eval"]][["AVG_CV"]] <- AVG_CV
+    MODEL[[i]][["eval"]][["NSD"]] <- NSD
     
   } # for i model loop
   
