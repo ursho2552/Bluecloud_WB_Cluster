@@ -19,8 +19,8 @@ list_occurrence <- function(DATA_SOURCE,
   # It will be filtered to MIN_SAMPLE after GBIF query
   data_list <- checklist(startdate = as.Date(as.character(SAMPLE_SELECT$START_YEAR), format = "%Y"),
                         enddate = as.Date(as.character(SAMPLE_SELECT$STOP_YEAR), format = "%Y"),
-                        startdepth = SAMPLE_SELECT$MIN_DEPTH,
-                        enddepth = SAMPLE_SELECT$MAX_DEPTH) %>% 
+                        startdepth = SAMPLE_SELECT$TARGET_MIN_DEPTH,
+                        enddepth = SAMPLE_SELECT$TARGET_MAX_DEPTH) %>% 
     dplyr::filter(records >= 2) %>% 
     dplyr::select(acceptedNameUsageID, taxonRank, acceptedNameUsage, records) %>% 
     distinct()
@@ -36,7 +36,7 @@ list_occurrence <- function(DATA_SOURCE,
                      FUN = function(NAME){
                        occ_count(scientificName = NAME,
                                  year = paste0(SAMPLE_SELECT$START_YEAR, ",", SAMPLE_SELECT$STOP_YEAR),
-                                 depth = paste0(SAMPLE_SELECT$MIN_DEPTH, ",", SAMPLE_SELECT$MAX_DEPTH),
+                                 depth = paste0(SAMPLE_SELECT$TARGET_MIN_DEPTH, ",", SAMPLE_SELECT$TARGET_MAX_DEPTH),
                                  occurrenceStatus = 'PRESENT')
                      },
                      mc.cores = MAX_CLUSTERS) %>% unlist()

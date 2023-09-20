@@ -22,13 +22,14 @@ query_occurrence <- function(FOLDER_NAME = NULL,
   # --- 2.1. Default univariate target
   target <- occurrence(taxonid = QUERY$SUBFOLDER_INFO$SP_SELECT) %>% 
     dplyr::filter(aphiaID == QUERY$SUBFOLDER_INFO$SP_SELECT) %>% # triple check !
-    dplyr::filter(basisOfRecord == "Occurrence" | basisOfRecord == "HumanObservation" | basisOfRecord == "LivingSpecimen") %>% 
+    dplyr::filter(basisOfRecord == "Occurrence" | basisOfRecord == "HumanObservation" | basisOfRecord == "LivingSpecimen" | basisOfRecord == "MachineObservation") %>% 
     dplyr::filter(decimalLatitude != 0 | decimalLatitude < -90 | decimalLatitude > 90) %>% 
     dplyr::filter(decimalLongitude != 0 | decimalLongitude < -180 | decimalLongitude > 180) %>% 
     dplyr::filter(occurrenceStatus == "present") %>% 
-    dplyr::select(any_of(c("scientificName", "aphiaID", "decimalLatitude", "decimalLongitude", "depth", "date_year", "month", "occurrenceStatus", "basisOfRecord", "taxonRank"))) %>% 
+    dplyr::mutate(date_month = format(as.Date(eventDate, format = "%Y-%m-%d"), "%m")) %>% # adding the month manually
+    dplyr::select(any_of(c("scientificName", "aphiaID", "decimalLatitude", "decimalLongitude", "depth", "date_year", "date_month", "occurrenceStatus", "basisOfRecord", "taxonRank"))) %>% 
     dplyr::filter(date_year >= CALL$SAMPLE_SELECT$START_YEAR & date_year <= CALL$SAMPLE_SELECT$STOP_YEAR) %>% 
-    dplyr::filter(depth >= CALL$SAMPLE_SELECT$MIN_DEPTH & depth <= CALL$SAMPLE_SELECT$MAX_DEPTH) %>% 
+    dplyr::filter(depth >= CALL$SAMPLE_SELECT$TARGET_MIN_DEPTH & depth <= CALL$SAMPLE_SELECT$TARGET_MAX_DEPTH) %>% 
     distinct()
   
   # --- 2.2. Column repair
@@ -48,7 +49,7 @@ query_occurrence <- function(FOLDER_NAME = NULL,
                  FUN = function(YEAR){
                    occ_data(scientificName = SNAME,
                             year = YEAR,
-                            depth = paste0(CALL$SAMPLE_SELECT$MIN_DEPTH, ",", CALL$SAMPLE_SELECT$MAX_DEPTH),
+                            depth = paste0(CALL$SAMPLE_SELECT$TARGET_MIN_DEPTH, ",", CALL$SAMPLE_SELECT$TARGET_MAX_DEPTH),
                             occurrenceStatus = 'PRESENT',
                             limit = 99000)$data
                  }) %>% 

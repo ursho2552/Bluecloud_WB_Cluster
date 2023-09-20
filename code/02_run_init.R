@@ -17,11 +17,9 @@
 #' and OTU ID for omics
 #' @param DATA_TYPE the output type of the data, which can influence the sub-folder
 #' architecture. See details.
-
-#' @param ENV_VAR a two column data frame containing (i) the folder name corresponding
-#' to each environmental variable; (ii) the corresponding variable name in the .nc files
-#' @param ENV_PATH string or vector of path to the root where the folders containing
-#' the .nc are.
+#' 
+#' @param ENV_VAR a list of .nc files to extract the main variable from, located in ENV_PATH
+#' @param ENV_PATH string or vector of path to the root where the .nc are.
 #' @param METHOD_PA method of pseudo-absence, either "mindist" or "cumdist" or "density"
 #' @param NB_PA number of pseudo-absences to generate
 #' @param PER_RANDOM ratio of pseudo-absences that are sampled randomly in the background
@@ -72,15 +70,8 @@ run_init <- function(FOLDER_NAME = "test_run",
                      FAST = FALSE,
                      LOAD_FROM = NULL,
                      DATA_TYPE = NULL,
-                     ENV_VAR = data.frame(name = c("oxygen_monthly_WOA18", 
-                                                   "salinity_monthly_WOA18", 
-                                                   "mld_monthly_WOA18", 
-                                                   "silicate_monthly_WOA18",
-                                                   "nitrate_monthly_WOA18",
-                                                   "phosphate_monthly_WOA18",
-                                                   "temp_monthly_WOA18"),
-                                          ncvar = c("o_an", "s_an", "M_an", "i_an", "n_an", "p_an", "t_an")),
-                     ENV_PATH = "/net/meso/work/nknecht/Masterarbeit/Data/21_10_18_environmental_data",
+                     ENV_VAR = NULL,
+                     ENV_PATH = "/net/meso/work/nknecht/Masterarbeit/General_Pipeline/Data/environmental_climatologies",
                      METHOD_PA = "density",
                      NB_PA = NULL,
                      PER_RANDOM = 0.25,
@@ -153,55 +144,57 @@ run_init <- function(FOLDER_NAME = "test_run",
   } # if DATA_TYPE and SOURCE
   
   # --- 4. Extract environmental raster from NCDF
-  # Provides a list per month, containing raster stack of all variables
-  ENV_DATA <- list()
+  # --- 4.1. Get the list of files
+  list_nc <- list.files(ENV_PATH) %>% 
+    .[grep(pattern = ".nc", x = .)]
   
-  # --- Start loop over month
+  # --- 4.2. Get the list of variables
+  if(is.null(ENV_VAR)){ENV_VAR <- str_sub(list_nc, 1, -4)}
+  
+  # --- 4.3. Provide a list per month, containing raster stack of all variables
+  # Add plot of the native predictor distribution
+  ENV_DATA <- list()
+  pdf(paste0(project_wd,"/output/",FOLDER_NAME,"/Available_predictors.pdf"))
+  
   for(m in 1:12){
-    # --- Compute over variables
-    stack_month <- mclapply(X = 1:nrow(ENV_VAR), FUN = function(x){
-      
-      # --- 4.1. Open NC
-      nc <- list.dirs(ENV_PATH, full.names = TRUE) %>% 
-        .[grep(pattern = ENV_VAR$name[x], x = .)] %>% 
-        list.files(full.names = TRUE) %>% 
-        .[grep(pattern = paste0(str_pad(string = m, pad = "0", width = 2, side = "left"),"_"), x = .)] %>% 
-        nc_open()
-      
-      # --- 4.2. Open the variable
-      ncvar <- ncvar_get(nc, ENV_VAR$ncvar[x])
-      
-      # --- 4.3. Get the correct depth bounds
-      if(length(dim(ncvar)) == 3){
-        depth_id <- ncvar_get(nc, "depth_bnds") %>% t() %>% 
-          as.data.frame() %>% 
-          mutate(ID = row_number()) %>% 
-          dplyr::filter(V1 >= CALL$SAMPLE_SELECT$MIN_DEPTH & V2 <= CALL$SAMPLE_SELECT$MAX_DEPTH) %>% 
-          .$ID
-      }
-      
-      # --- 4.4. Filter the right layer if there is a depth dimension
-      if(length(dim(ncvar)) == 3){
-        ncvar <- ncvar[,,depth_id] %>% apply(c(1,2), function(x)(x = mean(x, na.rm = TRUE)))
-      }
-      
-      # --- 4.5. Get latitudes & longitudes
-      lon <- nc$dim$lon$vals %>% as.numeric()
-      lat <- nc$dim$lat$vals %>% as.numeric()
-      
-      # --- 4.6. Build the raster
-      r <- raster(t(ncvar), xmn = min(lon), xmx = max(lon), ymn = min(lat), ymx = max(lat)) %>% 
-        flip(direction = 'y') 
-    },
-    mc.cores = min(nrow(ENV_VAR), MAX_CLUSTERS)) %>% stack() %>% synchroniseNA()
+    # --- 4.3.1. Extract the data from the .nc files
+    stack_month <- lapply(paste0(ENV_PATH, "/", ENV_VAR, ".nc"), 
+                          FUN = function(x){x = nc_to_raster(MONTH = m,
+                                                             NC = x,
+                                                             MIN_DEPTH = CALL$SAMPLE_SELECT$FEATURE_MIN_DEPTH,
+                                                             MAX_DEPTH = CALL$SAMPLE_SELECT$FEATURE_MAX_DEPTH)
+                          }) 
+    dim_info <- lapply(stack_month, FUN = function(x)(x = x[[2]])) %>% 
+      lapply(FUN = function(x)(x = paste0(names(x), "(", x, ")")) %>% paste(collapse = " ; "))
+    stack_month <- lapply(stack_month, FUN = function(x)(x = x[[1]])) %>% 
+      raster::stack()
     
-    # --- 4.7. Pretty names
-    names(stack_month) <- ENV_VAR$name
+    # --- 4.3.2. Pretty names
+    names(stack_month) <- ENV_VAR
     
-    # --- 4.8. Assign to list
-    ENV_DATA[[m]] <- stack_month
+    # --- 4.3.3. Plot native range in a PDF
+    # Enables user to see if one variables has a very different range than others
+    raster::plot(stack_month, main = paste(names(stack_month), "\n month n°:", m, "-", unlist(dim_info)), 
+         cex.main = 0.8, col = viridis_pal(100), nr = 4, nc = 2)
+    
+    # --- 4.3.4. SynchroniseNA across predictors - and assign to list
+    ENV_DATA[[m]] <- synchroniseNA(stack_month) %>% synchroniseNA()
     message(paste(Sys.time(), "--- ENV. STACK : month", m, "done \t"))
   } # end month loop
+  dev.off()
+  
+  # --- 4.4. SynchroniseNA across month
+  # --- 4.4.1. Extract the base layer of each month
+  base_r <- lapply(ENV_DATA, FUN = function(x)(x = x[[1]])) %>% 
+    raster::stack() %>% 
+    synchroniseNA() %>% 
+    .[[1]]
+  base_r <- base_r/base_r
+  
+  # --- 4.4.2. Multiply each month stack by the base
+  ENV_DATA <- lapply(ENV_DATA, FUN = function(x){x = x*base_r
+                                                 names(x) = ENV_VAR
+                                                 return(x)})
   
   # --- 5. Check for biological data homogeneity ?
   # To be implemented ?
@@ -218,7 +211,7 @@ run_init <- function(FOLDER_NAME = "test_run",
   # --- 6.3. Append CALL with all other objects
   CALL[["SP_SELECT"]] <- SP_SELECT
   CALL[["FAST"]] <- FAST
-  CALL[["ENV_VAR"]] <- ENV_VAR$name
+  CALL[["ENV_VAR"]] <- ENV_VAR
   CALL[["ENV_PATH"]] <- ENV_PATH
   CALL[["METHOD_PA"]] <- METHOD_PA
   CALL[["NB_PA"]] <- NB_PA

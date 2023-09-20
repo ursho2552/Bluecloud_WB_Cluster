@@ -1,6 +1,6 @@
 #' =============================================================================
 #' @name standard_maps
-#' @description Simple function for building standard mean and CV maps from
+#' @description Simple function for building standard mean and SD maps from
 #' projection data
 #' @param FOLDER_NAME name of the corresponding folder
 #' @param SUBFOLDER_NAME list of sub_folders to parallelize on.
@@ -89,11 +89,11 @@ standard_maps <- function(FOLDER_NAME = NULL,
   text(x = 0.2, y = 0.4, "Q75 Habitat Suitability Index", pos = 4)
   points(x = 0.1, y = 0.1, pch = 20, col = "black", cex = 2)
   text(x = 0.2, y = 0.1, "Observation", pos = 4)
-  # --- 3.3. MESS x CV 2D color scale
+  # --- 3.3. MESS x SD 2D color scale
   par(mar = c(5,5,3,2), xpd = FALSE)
   bivar_pal <- colmat(nbreaks = 100)
-  colmat_plot(bivar_pal, xlab = "Coefficient of variation", ylab = "MESS value")
-  axis(side = 1, at = c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = c(0, 0.2, 0.4, 0.6, 0.8, 1))
+  colmat_plot(bivar_pal, xlab = "Standard deviation", ylab = "MESS value")
+  axis(side = 1, at = c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = round(seq(0, 1 * plot_scale*0.25, length.out = 6), 2))
   axis(side = 2, at = c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = c(0, -20, -40, -60, -80, -100), las = 2)
   par(mar = c(2,2,4,1))
 
@@ -118,17 +118,17 @@ standard_maps <- function(FOLDER_NAME = NULL,
       r_m <- r0 %>% setValues(val / plot_scale)
       
       # --- 4.3.2. Coefficient of variation
-      # Computes mean CV across bootstrap and than average across month
+      # Computes mean SD across bootstrap and than average across month
       if(length(m) > 1){
-        val <- apply(val_raw[,,m], c(1,3), function(x)(x = cv(x, na.rm = TRUE))) %>% 
+        val <- apply(val_raw[,,m], c(1,3), function(x)(x = sd(x, na.rm = TRUE))) %>% 
           apply(1, function(x)(x = mean(x, na.rm = TRUE)))
       } else {
-        val <- apply(val_raw[,,m], 1, function(x)(x = cv(x, na.rm = TRUE)))
+        val <- apply(val_raw[,,m], 1, function(x)(x = sd(x, na.rm = TRUE)))
       }
       
-      r_cv <- r0 %>% setValues(val)
-      r_cv[r_cv > 100] <- 100
-      r_cv[r_cv <= 0] <- 1e-10 # temporary fix : modify bivarmap so that 0 is included
+      r_sd <- r0 %>% setValues(val)
+      r_sd[r_sd > plot_scale*25] <- plot_scale*25
+      r_sd[r_sd <= 0] <- 1e-10 # temporary fix : modify bivarmap so that 0 is included
       
       # --- 4.3.3. MESS
       r_mess <- QUERY$MESS[[m]]*-1
@@ -167,7 +167,7 @@ standard_maps <- function(FOLDER_NAME = NULL,
       # --- 4.4.2.4. Observation colors
       if(CALL$DATA_TYPE == "continuous"){
         points(tmp$decimallongitude, tmp$decimallatitude,
-               col = col_numeric("inferno", domain = range(QUERY$Y$measurementvalue))(QUERY$Y$measurementvalue), pch = 20)
+               col = col_numeric("inferno", domain = range(QUERY$Y$measurementvalue, na.rm = TRUE))(QUERY$Y$measurementvalue), pch = 20)
       } else {
         points(tmp$decimallongitude, tmp$decimallatitude,
                col = "black", pch = 20)
@@ -176,9 +176,9 @@ standard_maps <- function(FOLDER_NAME = NULL,
       # --- 4.4.3. Plot the uncertainties
       # Land mask
       plot(land, col = "antiquewhite4", legend=FALSE, main = "Uncertainties")
-      # CV x MESS plot
-      r <- bivar_map(rasterx = r_cv, rastery = r_mess, colormatrix = bivar_pal,
-                     cutx = 0:100, cuty = 0:100)
+      # SD x MESS plot
+      r <- bivar_map(rasterx = r_sd, rastery = r_mess, colormatrix = bivar_pal,
+                     cutx = seq(0,max(getValues(r_sd), na.rm = TRUE), length.out = 101), cuty = 0:100)
       plot(r[[1]], col = r[[2]], legend=FALSE, add = TRUE)
       
     } # End m month loop
@@ -199,11 +199,11 @@ standard_maps <- function(FOLDER_NAME = NULL,
       setValues(val / plot_scale)
 
     # --- 5.2.2. Coefficient of variation
-    val <- apply(y_ens, 1, function(x)(x = cv(x, na.rm = TRUE)))
-    r_cv <- r0 %>%
+    val <- apply(y_ens, 1, function(x)(x = sd(x, na.rm = TRUE)))
+    r_sd <- r0 %>%
       setValues(val)
-    r_cv[r_cv > 100] <- 100
-    r_cv[r_cv <= 0] <- 1e-10 # temporary fix : modify bivarmap so that 0 is included
+    r_sd[r_sd > plot_scale*0.25] <- plot_scale*0.25
+    r_sd[r_sd <= 0] <- 1e-10 # temporary fix : modify bivarmap so that 0 is included
 
     # --- 5.3. Plot the corresponding maps
     # --- 5.3.1. Plot the abundance
@@ -222,7 +222,7 @@ standard_maps <- function(FOLDER_NAME = NULL,
     tmp <- QUERY$S[which(QUERY$Y$measurementvalue > 0),]
     if(CALL$DATA_TYPE == "continuous"){
       points(tmp$decimallongitude, tmp$decimallatitude,
-             col = col_numeric("inferno", domain = range(QUERY$Y$measurementvalue))(QUERY$Y$measurementvalue), pch = 20)
+             col = col_numeric("inferno", domain = range(QUERY$Y$measurementvalue, na.rm = TRUE))(QUERY$Y$measurementvalue), pch = 20)
     } else {
       points(tmp$decimallongitude, tmp$decimallatitude,
              col = "black", pch = 20)
@@ -231,9 +231,9 @@ standard_maps <- function(FOLDER_NAME = NULL,
     # --- 5.3.3. Plot the uncertainties
     # Land mask
     plot(land, col = "antiquewhite4", legend=FALSE, main = "Uncertainties")
-    # CV x MESS plot
-    r <- bivar_map(rasterx = r_cv, rastery = r_mess, colormatrix = bivar_pal,
-                   cutx = 0:100, cuty = 0:100)
+    # SD x MESS plot
+    r <- bivar_map(rasterx = r_sd, rastery = r_mess, colormatrix = bivar_pal,
+                   cutx = seq(0,max(getValues(r_sd), na.rm = TRUE), length.out = 101), cuty = 0:100)
     plot(r[[1]], col = r[[2]], legend=FALSE, add = TRUE)
   } # End if ENSEMBLE = TRUE
 

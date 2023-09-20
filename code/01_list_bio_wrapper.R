@@ -8,7 +8,8 @@
 #' this parameter can also be a string path to a custom input table (i.e. "custom")
 #' @param SAMPLE_SELECT list of sample selection criteria, including :
 #' MIN_SAMPLE : minimum number of geographical points to consider the selection (i.e. non-zero records)
-#' MIN_DEPTH and MAX_DEPTH: minimum and maximum depth levels in m
+#' TARGET_MIN_DEPTH and TARGET_MAX_DEPTH: minimum and maximum depth levels in m (for target)
+#' FEATURE_MIN_DEPTH and FEATURE_MAX_DEPTH: minimum and maximum depth levels in m (for feature)
 #' START_YEAR and STOP_YEAR: start and stop years for the considered period
 #' @details For custom tables, the data table must contain the following columns and one row per sample :
 #' - scientificname : name of the taxa
@@ -32,6 +33,10 @@ list_bio_wrapper <- function(FOLDER_NAME = "test_run",
                              SAMPLE_SELECT = list(MIN_SAMPLE = 50, MIN_DEPTH = 0, MAX_DEPTH = 50, START_YEAR = 1990, STOP_YEAR = 2016)){
   
   # --- 1. Initialize
+  # --- 1.1. Add default predictor depth range if not specified
+  if(is.null(SAMPLE_SELECT$FEATURE_MIN_DEPTH)){SAMPLE_SELECT$FEATURE_MIN_DEPTH <- SAMPLE_SELECT$TARGET_MIN_DEPTH}
+  if(is.null(SAMPLE_SELECT$FEATURE_MAX_DEPTH)){SAMPLE_SELECT$FEATURE_MAX_DEPTH <- SAMPLE_SELECT$TARGET_MAX_DEPTH}
+  
   # --- 1.1. Parameter checking
   if(!is.character(DATA_SOURCE)){
     stop("The specified data source should be 'abundance', 'occurrence', 'omic' or a path to file")

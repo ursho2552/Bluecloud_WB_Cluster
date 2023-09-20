@@ -20,8 +20,8 @@ list_abundance <- function(DATA_SOURCE,
   # type and sample criteria
   message("--- LIST BIO : retrieving species available in ATLANTECO")
   data_list <- tbl(db, paste0(DATA_SOURCE,"_data")) %>% 
-    dplyr::filter(depth >= !!SAMPLE_SELECT$MIN_DEPTH & 
-                    depth <= !!SAMPLE_SELECT$MAX_DEPTH & 
+    dplyr::filter(depth >= !!SAMPLE_SELECT$TARGET_MIN_DEPTH & 
+                    depth <= !!SAMPLE_SELECT$TARGET_MAX_DEPTH & 
                     year >= !!SAMPLE_SELECT$START_YEAR & 
                     year <= !!SAMPLE_SELECT$STOP_YEAR &
                     measurementvalue != "Absence" &

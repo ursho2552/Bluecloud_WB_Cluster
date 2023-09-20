@@ -25,9 +25,6 @@ model_wrapper <- function(FOLDER_NAME = NULL,
   # --- 1.2. Parameter loading
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))
-  if(is.null(CALL$MODEL_LIST)){
-    MODEL_LIST <- CALL$HP$MODEL_LIST
-  }
   
   # --- 2. Redirection to BINARY model
   if(CALL$DATA_TYPE == "binary"){

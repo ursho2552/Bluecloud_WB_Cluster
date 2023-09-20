@@ -63,6 +63,7 @@ source(file = "./code/12c_diversity_maps.R")
 source(file = "./code/12d_user_synthesis.R")
 
 # --- Custom functions
+source("./function/nc_to_raster.R")
 source("./function/sample_raster_NA.R")
 source("./function/outlier_iqr_col.R")
 source("./function/viridis.R")

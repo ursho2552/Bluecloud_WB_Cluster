@@ -33,8 +33,8 @@ query_abundance <- function(FOLDER_NAME = NULL,
   # --- 4. Filter target according to SAMPLE_SELECT requirements
   # --- 4.1. Default univariate target
   target <- target %>% 
-    dplyr::filter(depth >= !!CALL$SAMPLE_SELECT$MIN_DEPTH & 
-                    depth <= !!CALL$SAMPLE_SELECT$MAX_DEPTH & 
+    dplyr::filter(depth >= !!CALL$SAMPLE_SELECT$TARGET_MIN_DEPTH & 
+                    depth <= !!CALL$SAMPLE_SELECT$TARGET_MAX_DEPTH & 
                     year >= !!CALL$SAMPLE_SELECT$START_YEAR & 
                     year <= !!CALL$SAMPLE_SELECT$STOP_YEAR &
                     measurementvalue != "Absence") %>% 

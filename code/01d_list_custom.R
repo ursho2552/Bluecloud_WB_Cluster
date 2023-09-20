@@ -52,7 +52,7 @@ list_custom <- function(DATA_SOURCE,
   
   # --- 3. List of available data
   data_list <- df %>% 
-    dplyr::filter(depth >= SAMPLE_SELECT$MIN_DEPTH & depth <= SAMPLE_SELECT$MAX_DEPTH) %>% 
+    dplyr::filter(depth >= SAMPLE_SELECT$TARGET_MIN_DEPTH & depth <= SAMPLE_SELECT$TARGET_MAX_DEPTH) %>% 
     dplyr::filter(year >= SAMPLE_SELECT$START_YEAR & year <= SAMPLE_SELECT$STOP_YEAR) %>% 
     distinct() %>% 
     group_by(scientificname) %>% 

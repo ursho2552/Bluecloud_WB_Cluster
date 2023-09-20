@@ -61,8 +61,8 @@ list_omic <- function(SAMPLE_SELECT){
            upper_size = `sample_size.fraction.upper.threshold`,
            ID = row_number()) %>% 
     dplyr::select(source_tbl, decimallatitude, decimallongitude, depth, year, month, measurementtype, measurementunit, lower_size, upper_size, ID) %>% 
-    dplyr::filter(depth >= !!SAMPLE_SELECT$MIN_DEPTH & 
-                    depth <= !!SAMPLE_SELECT$MAX_DEPTH & 
+    dplyr::filter(depth >= !!SAMPLE_SELECT$TARGET_MIN_DEPTH & 
+                    depth <= !!SAMPLE_SELECT$TARGET_MAX_DEPTH & 
                     year >= !!SAMPLE_SELECT$START_YEAR & 
                     year <= !!SAMPLE_SELECT$STOP_YEAR)
   

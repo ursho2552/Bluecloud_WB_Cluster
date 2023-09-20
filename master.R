@@ -14,13 +14,13 @@ rm(list=ls())
 closeAllConnections()
 setwd("/net/meso/work/aschickele/Bluecloud_WB_local")
 source(file = "./code/00_config.R")
-run_name <- "microplastic"
+run_name <- "new_nc_new_depth"
 
 # --- 1. List the available species
 # Within the user defined selection criteria
 list_bio <- list_bio_wrapper(FOLDER_NAME = run_name,
-                             DATA_SOURCE = "/net/meso/work/aschickele/Bluecloud_WB_local/data/giacomo_plastic_formatted.xlsx",
-                             SAMPLE_SELECT = list(MIN_SAMPLE = 50, MIN_DEPTH = 0, MAX_DEPTH = 50, START_YEAR = 1990, STOP_YEAR = 2016))
+                             DATA_SOURCE = "occurrence",
+                             SAMPLE_SELECT = list(MIN_SAMPLE = 50, TARGET_MIN_DEPTH = 0, TARGET_MAX_DEPTH = 50, START_YEAR = 1990, STOP_YEAR = 2020))
 
 # Define the list of species to consider
 sp_list <- list_bio$worms_id %>% unique()
@@ -36,11 +36,16 @@ subfolder_list <- run_init(FOLDER_NAME = run_name,
                            SP_SELECT = sp_list,
                            FAST = FALSE,
                            LOAD_FROM = NULL,
-                           DATA_TYPE = "continuous",
-                           # ENV_VAR = NULL,
-                           ENV_PATH = "/net/meso/work/nknecht/Masterarbeit/Data/21_10_18_environmental_data",
+                           DATA_TYPE = "binary",
+                           ENV_VAR = c("woa18_all_i_allmonths_surface",
+                                       "woa18_all_o_allmonths_surface",
+                                       "woa18_all_n_allmonths_surface",
+                                       "woa18_all_p_allmonths_surface",
+                                       "woa18_decav_t_allmonths_surfaceSST",
+                                       "chlor_a_SeaWIFS_allmonths"),
+                           ENV_PATH = "/net/meso/work/nknecht/Masterarbeit/General_Pipeline/Data/environmental_climatologies",
                            METHOD_PA = "density",
-                           PER_RANDOM = 0.25,
+                           PER_RANDOM = 0.05,
                            OUTLIER = TRUE,
                            UNIVARIATE = FALSE,
                            ENV_COR = 0.8,
