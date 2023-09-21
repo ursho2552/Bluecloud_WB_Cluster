@@ -119,6 +119,15 @@ proj_binary <- function(QUERY,
     
   } # for i model loop
   
+  # --- 7. Build the ensemble NSD if there is an ensemble
+  if(CALL$ENSEMBLE == TRUE & (length(MODEL$MODEL_LIST) > 1)){
+    MODEL[["ENSEMBLE"]][["eval"]][["NSD"]] <- lapply(MODEL$MODEL_LIST, 
+                                                     FUN = function(x){
+                                                       x <- MODEL[[x]]$eval$NSD
+                                                     }) %>% 
+      unlist() %>% mean()
+  } # End ENSEMBLE QC
+  
   return(MODEL)
   
 } # END FUNCTION

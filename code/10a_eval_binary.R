@@ -130,11 +130,29 @@ eval_binary <- function(CALL,
       mutate(variable = fct_reorder(variable, value, .desc = TRUE))
   } # End if ensemble TRUE
   
-  # --- 5. Variable importance - Plot
-  # --- 5.1. Graphical specification
+  # --- 5. Build the ensemble QC if there is an ensemble
+  if(CALL$ENSEMBLE == TRUE & (length(MODEL$MODEL_LIST) > 1)){
+    # --- 5.1. Ensemble CBI
+    MODEL[["ENSEMBLE"]][["eval"]][["CBI"]] <- lapply(MODEL$MODEL_LIST, 
+                                                     FUN = function(x){
+                                                       x <- MODEL[[x]]$eval$CBI
+                                                     }) %>% 
+      unlist() %>% mean()
+    
+    # --- 5.2. Ensemble cumulative VIP
+    MODEL[["ENSEMBLE"]][["eval"]][["CUM_VIP"]] <- var_imp[["ENSEMBLE"]][["Percent"]]  %>% 
+      group_by(variable) %>% 
+      summarise(average = mean(value)) %>% 
+      dplyr::slice(1:3) %>% 
+      dplyr::select(average) %>% 
+      sum()
+  } # End ENSEMBLE QC
+  
+  # --- 6. Variable importance - Plot
+  # --- 6.1. Graphical specification
   par(mfrow = c(3,3), mar = c(5,3,5,1))
   
-  # --- 5.2. Define plots to display
+  # --- 6.2. Define plots to display
   # All if FAST == FALSE; those that passed QC if there is more than 1
   if(CALL$FAST == FALSE){
     plot_display <- CALL$HP$MODEL_LIST
@@ -144,9 +162,9 @@ eval_binary <- function(CALL,
     plot_display <- NULL
   }
 
-  # --- 5.3. Plot algorithm level and ensemble variable importance
+  # --- 6.3. Plot algorithm level and ensemble variable importance
   if(!is.null(plot_display)){
-    # --- 5.3.1. Algorithm level plot
+    # --- 6.3.1. Algorithm level plot
     for(i in plot_display){
       # Define the color (green = QC passed; red = no)
       if(i %in% MODEL$MODEL_LIST == TRUE){pal <- "#1F867B"
@@ -164,11 +182,13 @@ eval_binary <- function(CALL,
       box()
     } # End i model loop
     
-    # --- 5.3.2. Ensemble level plot
+    # --- 6.3.2. Ensemble level plot
     if(CALL$ENSEMBLE == TRUE & (length(MODEL$MODEL_LIST) > 1)){
       tmp <- var_imp[["ENSEMBLE"]][["Percent"]] 
       boxplot(tmp$value ~ tmp$variable, axes = FALSE, 
-              main = paste("Ensemble"), col = "gray50",
+              main = paste("Ensemble",
+                           "\n CBI =", round(MODEL[["ENSEMBLE"]]$eval$CBI, 2), "; CUM_VIP =", round(MODEL[["ENSEMBLE"]]$eval$CUM_VIP, 0)), 
+              col = "gray50",
               xlab = "", ylab = "Variable importance (%)")
       axis(side = 1, at = 1:ncol(features), labels = levels(tmp$variable), las = 2, cex.axis = 0.6)
       axis(side = 2, at = seq(0, 100, 10), labels = seq(0, 100, 10), las = 2)
@@ -177,8 +197,8 @@ eval_binary <- function(CALL,
     } # End if ensemble TRUE
     
   } # End if model list > 1 or FAST == FALSE
-  
-  # --- 6. Wrap up and save
+
+  # --- 7. Wrap up and save
   return(MODEL)
   
 } # END FUNCTION

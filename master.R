@@ -14,18 +14,18 @@ rm(list=ls())
 closeAllConnections()
 setwd("/net/meso/work/aschickele/Bluecloud_WB_local")
 source(file = "./code/00_config.R")
-run_name <- "NSD_QC"
+run_name <- "Ensemble_eval4"
 
 # --- 1. List the available species
 # Within the user defined selection criteria
 list_bio <- list_bio_wrapper(FOLDER_NAME = run_name,
-                             DATA_SOURCE = "occurrence",
+                             DATA_SOURCE = "abundance",
                              SAMPLE_SELECT = list(MIN_SAMPLE = 50, TARGET_MIN_DEPTH = 0, TARGET_MAX_DEPTH = 50, START_YEAR = 1990, STOP_YEAR = 2020))
 
 # Define the list of species to consider
 sp_list <- list_bio$worms_id %>% unique()
 sp_list <- list_bio %>%
-  dplyr::filter(grepl("Thalassiosira ", scientificname)) %>%
+  dplyr::filter(grepl("Tripos ", scientificname)) %>%
   dplyr::select(worms_id) %>%
   unique() %>% pull()
 
@@ -36,7 +36,7 @@ subfolder_list <- run_init(FOLDER_NAME = run_name,
                            SP_SELECT = sp_list,
                            FAST = FALSE,
                            LOAD_FROM = NULL,
-                           DATA_TYPE = "binary",
+                           DATA_TYPE = "continuous",
                            ENV_VAR = c("woa18_all_i_allmonths_surface",
                                        "woa18_all_o_allmonths_surface",
                                        "woa18_all_n_allmonths_surface",

@@ -40,7 +40,9 @@ qc_recommandations <- function(MODEL,
   
   # --- 2.2. Fill up
   for(m in m_names){
-    tmp <- MODEL[[m]][["eval"]] %>% unlist() %>% .[c(1,3,4)]
+    tmp <- MODEL[[m]][["eval"]] %>% unlist()
+    id <- names(tmp) %>% grep(pattern = "CBI|R2|CUM_VIP|NSD")
+    tmp <- tmp[id]
     while(length(tmp) < length(qc_names)){tmp <- c(tmp, NA)}
     qc_matrix[m,] <- tmp
   }

@@ -214,17 +214,16 @@ pdp <- function(FOLDER_NAME = NULL,
   # --- 6.2.2. Plot scaling (average max across bootstrap)
   # Because continuous data are not between 0 and 1
   if(CALL$DATA_TYPE == "continuous"){
-    plot_scale <- lapply(MODEL, FUN = function(z){
-      if(!is.null(names(z))){
-        z = z$proj$y_hat %>% apply(1, function(x)(x = mean(x, na.rm = TRUE))) %>% 
-          max(na.rm = TRUE)
-      }
+    plot_scale <- lapply(MODEL$MODEL_LIST, FUN = function(z){
+      z = MODEL[[z]]$proj$y_hat %>% apply(1, function(x)(x = mean(x, na.rm = TRUE))) %>% 
+        max(na.rm = TRUE)
     }) %>% 
       unlist() %>% 
       max(na.rm = TRUE)
   } else {
     plot_scale <- 1
   }
+  
   
   # --- 6.3. Iteratively compute the plots
   for(i in QUERY$SUBFOLDER_INFO$ENV_VAR){
