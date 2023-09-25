@@ -47,7 +47,7 @@
 
 #' @param ENSEMBLE TRUE or FALSE; if TRUE, computes an ensemble at the evaluation and projection steps
 #' @param N_BOOTSTRAP number of bootstrap to do for the projections and partial dependency plots
-#' @param CUT numeric or NULL; if numeric, level at which the projections are considered to be 0.
+#' @param CUT numeric or NULL; if numeric, quantile (between 0 and 1) at which the projections are considered to be 0 
 #' Projection patches without observation are then removed.
 #' @param PROJ_PATH (optional) path to a environmental raster, potentially 
 #' different than the one given in the QUERY object. This is the case for 
@@ -149,7 +149,13 @@ run_init <- function(FOLDER_NAME = "test_run",
     .[grep(pattern = ".nc", x = .)]
   
   # --- 4.2. Get the list of variables
-  if(is.null(ENV_VAR)){ENV_VAR <- str_sub(list_nc, 1, -4)}
+  var_out <- ENV_VAR %>% .[grep("!", . , invert = FALSE)] %>% gsub("!", "", .)
+  var_in <- ENV_VAR %>% .[grep("!", . , invert = TRUE)]
+  
+  var_all <- str_sub(list_nc, 1, -4)
+  if(length(var_in) != 0){var_all <- var_all[var_all %in% var_in]}
+  if(length(var_out) != 0){var_all <- var_all[!c(var_all %in% var_out)]}
+  ENV_VAR <- var_all
   
   # --- 4.3. Provide a list per month, containing raster stack of all variables
   # Add plot of the native predictor distribution

@@ -89,7 +89,7 @@ proj_binary <- function(QUERY,
         xy <- xy[which(QUERY$Y == 1),] # specific to presence data
         
         # --- 5.2. Cut y_hat
-        x[x < CALL$CUT] <- 0
+        x[x < CALL$CUT*max(x, na.rm = TRUE)] <- 0
         r <- setValues(r0, x)
         
         # --- 5.3. Define patches and overlap with presence points

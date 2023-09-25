@@ -14,13 +14,13 @@ rm(list=ls())
 closeAllConnections()
 setwd("/net/meso/work/aschickele/Bluecloud_WB_local")
 source(file = "./code/00_config.R")
-run_name <- "Ensemble_eval4"
+run_name <- "var_exclude_test"
 
 # --- 1. List the available species
 # Within the user defined selection criteria
 list_bio <- list_bio_wrapper(FOLDER_NAME = run_name,
-                             DATA_SOURCE = "abundance",
-                             SAMPLE_SELECT = list(MIN_SAMPLE = 50, TARGET_MIN_DEPTH = 0, TARGET_MAX_DEPTH = 50, START_YEAR = 1990, STOP_YEAR = 2020))
+                             DATA_SOURCE = "occurrence",
+                             SAMPLE_SELECT = list(MIN_SAMPLE = 100, TARGET_MIN_DEPTH = 0, TARGET_MAX_DEPTH = 50, START_YEAR = 1990, STOP_YEAR = 2020))
 
 # Define the list of species to consider
 sp_list <- list_bio$worms_id %>% unique()
@@ -34,20 +34,15 @@ sp_list <- list_bio %>%
 # global parameters in an object, (3) Builds a local list of monthly raster
 subfolder_list <- run_init(FOLDER_NAME = run_name,
                            SP_SELECT = sp_list,
-                           FAST = FALSE,
+                           FAST = TRUE,
                            LOAD_FROM = NULL,
-                           DATA_TYPE = "continuous",
-                           ENV_VAR = c("woa18_all_i_allmonths_surface",
-                                       "woa18_all_o_allmonths_surface",
-                                       "woa18_all_n_allmonths_surface",
-                                       "woa18_all_p_allmonths_surface",
-                                       "woa18_decav_t_allmonths_surfaceSST",
-                                       "chlor_a_SeaWIFS_allmonths"),
+                           DATA_TYPE = "binary",
+                           ENV_VAR = c("!dist2coast_allmonths"),
                            ENV_PATH = "/net/meso/work/nknecht/Masterarbeit/General_Pipeline/Data/environmental_climatologies",
                            METHOD_PA = "density",
                            PER_RANDOM = 0.05,
                            OUTLIER = TRUE,
-                           UNIVARIATE = FALSE,
+                           UNIVARIATE = TRUE,
                            ENV_COR = 0.8,
                            NFOLD = 3,
                            FOLD_METHOD = "lon",
@@ -73,6 +68,7 @@ subfolder_list <- mcmapply(FUN = query_env,
                   mc.cores = min(length(subfolder_list), MAX_CLUSTERS)) %>% 
   unlist() %>% 
   na.omit(subfolder_list) %>% 
+  .[grep("Error", ., invert = TRUE)] %>% # to exclude any API error or else
   as.vector()
 
 # --- 5. Generate pseudo-absences if necessary

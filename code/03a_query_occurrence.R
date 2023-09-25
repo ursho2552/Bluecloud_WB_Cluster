@@ -48,7 +48,7 @@ query_occurrence <- function(FOLDER_NAME = NULL,
   target_gbif <- lapply(CALL$SAMPLE_SELECT$START_YEAR:CALL$SAMPLE_SELECT$STOP_YEAR,
                  FUN = function(YEAR){
                    occ_data(scientificName = SNAME,
-                            year = YEAR,
+                            year = as.numeric(YEAR),
                             depth = paste0(CALL$SAMPLE_SELECT$TARGET_MIN_DEPTH, ",", CALL$SAMPLE_SELECT$TARGET_MAX_DEPTH),
                             occurrenceStatus = 'PRESENT',
                             limit = 99000)$data

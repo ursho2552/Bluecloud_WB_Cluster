@@ -236,7 +236,7 @@ pdp <- function(FOLDER_NAME = NULL,
       if(j == 1){
         plot(tmp$x, tmp$y_hat_m, type = 'l', lwd = 1, col = pal[j],
              ylim = c(0, plot_scale),
-             xlab = "", ylab = "", main = i)
+             xlab = "", ylab = "", main = i, cex.main = 0.6)
         polygon(x = c(tmp$x, rev(tmp$x)),
                 y = c(tmp$y_hat_m-tmp$y_hat_m*tmp$y_hat_cv/100, rev(tmp$y_hat_m+tmp$y_hat_m*tmp$y_hat_cv/100)),
                 col = scales::alpha(pal[j], 0.3), border = NA)
