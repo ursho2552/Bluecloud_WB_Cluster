@@ -20,9 +20,22 @@ folds <- function(FOLDER_NAME = NULL,
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))
   
+  # --- 1.3. Target transformation
+  if(CALL$DATA_TYPE == "continuous" & !is.null(CALL$TARGET_TRANSFORMATION)){
+    message("FOLDS --- Transforming the target variable according to the provided function")
+    source(CALL$TARGET_TRANSFORMATION)
+    tmp <- target_transformation(QUERY$Y, REVERSE = FALSE)
+    Y <- data.frame(tmp$out)
+    colnames(Y) <- "measurementvalue"
+    QUERY[["target_transformation"]][["LAMBDA"]] <- tmp$LAMBDA
+    QUERY[["target_transformation"]][["GAMMA"]] <- tmp$GAMMA
+  } else {
+    Y <- QUERY$Y
+  }
+  
   # --- 2. Initial split
   # --- 2.1. Re-assemble all query tables
-  tmp <- cbind(QUERY$Y, QUERY$X, QUERY$S)
+  tmp <- cbind(Y, QUERY$X, QUERY$S)
   
   # --- 2.2. Do the initial split
   # --- 2.2.1. For univariate data - strata is possible so we do it

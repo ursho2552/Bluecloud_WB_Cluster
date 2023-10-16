@@ -58,13 +58,25 @@ pdp <- function(FOLDER_NAME = NULL,
   pdp_all <- NULL
   
   # --- 2. Define bootstraps
-  # --- 2.1. Re-assemble all query tables
-  tmp <- cbind(QUERY$Y, QUERY$X, QUERY$S)
+  # --- 2.1. Target transformation
+  if(CALL$DATA_TYPE == "continuous" & !is.null(CALL$TARGET_TRANSFORMATION)){
+    message("PROJ --- Transforming the target variable according to the provided function")
+    source(CALL$TARGET_TRANSFORMATION)
+    tmp <- target_transformation(QUERY$Y, REVERSE = FALSE)
+    Y <- data.frame(tmp$out)
+    colnames(Y) <- "measurementvalue"
+    QUERY[["target_transformation"]][["LAMBDA"]] <- tmp$LAMBDA
+    QUERY[["target_transformation"]][["GAMMA"]] <- tmp$GAMMA
+  } else {
+    Y <- QUERY$Y
+  }
+  # --- 2.2. Re-assemble all query tables
+  tmp <- cbind(Y, QUERY$X, QUERY$S)
   
-  # --- 2.2. Run the bootstrap generation from tidy models
+  # --- 2.3. Run the bootstrap generation from tidy models
   boot_split <- bootstraps(tmp, times = CALL$N_BOOTSTRAP)
   
-  # --- 2.3. Save bootstrap on disk for proportions
+  # --- 2.4. Save bootstrap on disk for proportions
   if(CALL$DATA_TYPE == "proportions"){
     for(b in 1:CALL$N_BOOTSTRAP){
       X_tr <- boot_split$splits[[b]] %>% analysis() %>%
@@ -165,8 +177,17 @@ pdp <- function(FOLDER_NAME = NULL,
         names(tmp) <- c("var","x","yhat") # Clean naming
         if(b == 1){pdp_m <- tmp
         }else {pdp_m <- cbind(pdp_m, tmp$yhat)}
+        
       } # if proportions or not
     } # End j bootstrap loop
+    
+    # --- 4.4. Reverse transformation
+    if(CALL$DATA_TYPE == "continuous" & !is.null(CALL$TARGET_TRANSFORMATION)){
+      message("--- PROJ : reverse transformation of the target")
+      pdp_m[,-c(1,2)] <- apply(pdp_m[,-c(1,2)], 2, function(x){
+        x <- target_transformation(x, REVERSE = TRUE, PARAM = QUERY$target_transformation)
+      }) %>% as.data.frame()
+    } # end if transformation
     
     # --- 5. Compute mean and coefficient of variation
     if(CALL$DATA_TYPE == "proportions"){

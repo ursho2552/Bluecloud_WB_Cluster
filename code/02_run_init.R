@@ -44,6 +44,7 @@
 #' @param MODEL_LIST list of algorithms from which to compute hyperparameter
 #' selection
 #' @param LEVELS maximum number of parameter values to test in each of the grids
+#' @param TARGET_TRANSFORMATION path to a function(x, REVERSE = T/F) to transform the target variable
 
 #' @param ENSEMBLE TRUE or FALSE; if TRUE, computes an ensemble at the evaluation and projection steps
 #' @param N_BOOTSTRAP number of bootstrap to do for the projections and partial dependency plots
@@ -84,6 +85,7 @@ run_init <- function(FOLDER_NAME = "test_run",
                      FOLD_METHOD = "lon",
                      MODEL_LIST = c("GLM","GAM","RF","MLP","SVM","BRT"),
                      LEVELS = 3,
+                     TARGET_TRANSFORMATION = "/net/meso/work/aschickele/Bluecloud_WB_local/function/target_transformation_boxcox.R",
                      ENSEMBLE = TRUE,
                      N_BOOTSTRAP = 10,
                      CUT = 0.1,
@@ -231,6 +233,7 @@ run_init <- function(FOLDER_NAME = "test_run",
   CALL[["FOLD_METHOD"]] <- FOLD_METHOD
   CALL[["MODEL_LIST"]] <- MODEL_LIST
   CALL[["LEVELS"]] <- LEVELS
+  CALL[["TARGET_TRANSFORMATION"]] <- TARGET_TRANSFORMATION
   CALL[["ENSEMBLE"]] <- ENSEMBLE
   CALL[["N_BOOTSTRAP"]] <- N_BOOTSTRAP
   CALL[["CUT"]] <- CUT

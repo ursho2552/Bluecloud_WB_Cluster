@@ -25,10 +25,23 @@ proj_continuous <- function(QUERY,
   }
   
   # --- 2. Define bootstraps
-  # --- 2.1. Re-assemble all query tables
-  tmp <- cbind(QUERY$Y, QUERY$X, QUERY$S)
+  # --- 2.1. Target transformation
+  if(CALL$DATA_TYPE == "continuous" & !is.null(CALL$TARGET_TRANSFORMATION)){
+    message("PROJ --- Transforming the target variable according to the provided function")
+    source(CALL$TARGET_TRANSFORMATION)
+    tmp <- target_transformation(QUERY$Y, REVERSE = FALSE)
+    Y <- data.frame(tmp$out)
+    colnames(Y) <- "measurementvalue"
+    QUERY[["target_transformation"]][["LAMBDA"]] <- tmp$LAMBDA
+    QUERY[["target_transformation"]][["GAMMA"]] <- tmp$GAMMA
+  } else {
+    Y <- QUERY$Y
+  }
   
-  # --- 2.2. Run the bootstrap generation from tidy models
+  # --- 2.2. Re-assemble all query tables
+  tmp <- cbind(Y, QUERY$X, QUERY$S)
+  
+  # --- 2.3. Run the bootstrap generation from tidy models
   boot_split <- bootstraps(tmp, times = CALL$N_BOOTSTRAP)
   
   # --- 3. Start the loop over algorithms
@@ -79,6 +92,14 @@ proj_continuous <- function(QUERY,
       y_hat <- abind(y_hat, tmp, along = 3)
       message(paste("--- PROJ : month", m, "done \t"))
     } # for m month
+    
+    # --- 4.6. Reverse transformation
+    if(CALL$DATA_TYPE == "continuous" & !is.null(CALL$TARGET_TRANSFORMATION)){
+      message("--- PROJ : reverse transformation of the target")
+      y_hat <- apply(y_hat, -1, function(x){
+        x <- target_transformation(x, REVERSE = TRUE, PARAM = QUERY$target_transformation)
+      })
+    } # end if transformation
     
     # --- 5. Cut spatial discontinuities
     if(!is.null(CALL$CUT)){
