@@ -184,7 +184,7 @@ run_init <- function(FOLDER_NAME = "test_run",
          cex.main = 0.8, col = viridis_pal(100), nr = 4, nc = 2)
     
     # --- 4.3.4. SynchroniseNA across predictors - and assign to list
-    ENV_DATA[[m]] <- synchroniseNA(stack_month) %>% synchroniseNA()
+    ENV_DATA[[m]] <- synchroniseNA(stack_month)
     message(paste(Sys.time(), "--- ENV. STACK : month", m, "done \t"))
   } # end month loop
   dev.off()

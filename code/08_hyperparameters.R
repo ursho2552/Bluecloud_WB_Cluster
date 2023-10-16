@@ -28,7 +28,6 @@ hyperparameter <- function(FOLDER_NAME = NULL){
   } else if(CALL$DATA_TYPE == "continuous"){
     HP$GLM$model_spec <- linear_reg(mode = "regression",
                                     engine = "glm") %>% 
-      step_log(offset = 1) %>% 
       step_normalize() %>% 
       translate()
   } else {
@@ -49,7 +48,6 @@ hyperparameter <- function(FOLDER_NAME = NULL){
                                           select_features = TRUE) %>% 
       set_engine("mgcv",
                  family = stats::binomial(link = "logit")) %>% 
-      step_scale() %>% 
       step_normalize() %>% 
       translate()
   } else if(CALL$DATA_TYPE == "continuous"){
@@ -57,7 +55,6 @@ hyperparameter <- function(FOLDER_NAME = NULL){
                                           engine = "mgcv",
                                           adjust_deg_free = tune(),
                                           select_features = TRUE) %>% 
-      step_log(offset = 1) %>% 
       step_normalize() %>% 
       translate()
   } else {
@@ -97,7 +94,6 @@ hyperparameter <- function(FOLDER_NAME = NULL){
                              epochs = 100,
                              activation = NULL,
                              learn_rate = 1e-1) %>% 
-      step_log(offset = 1) %>% 
       step_normalize() %>% 
       translate()
   } else {
@@ -140,7 +136,6 @@ hyperparameter <- function(FOLDER_NAME = NULL){
                                  cost = tune(),
                                  rbf_sigma = tune(),
                                  margin = tune()) %>% 
-      step_log(offset = 1) %>% 
       step_normalize() %>% 
       translate()
   } else {

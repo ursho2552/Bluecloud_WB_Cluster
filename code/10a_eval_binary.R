@@ -22,13 +22,30 @@ eval_binary <- function(CALL,
     y <- final_fit$measurementvalue
     y_hat <- final_fit$.pred
     
+    # --- 1.3. Compute Maximum Jaccard similarity into MODELS object
+    # jaccard <- 0
+    # for(j in seq(0.1,0.9,0.01)){
+    #   y_hat_bin <- y_hat
+    #   y_hat_bin[y_hat_bin < j] <- 0
+    #   y_hat_bin[y_hat_bin >= j] <- 1
+    # 
+    #   TP <- which(y_hat_bin == 1 & y == 1) %>% length()
+    #   FP <- which(y_hat_bin == 1 & y == 0) %>% length()
+    #   FN <- which(y_hat_bin == 0 & y == 1) %>% length()
+    #   # tmp <- TP/(TP+FP+FN)
+    #   tmp <- (2*TP)/((2*TP)+FP+FN)
+    #   if(tmp > jaccard){jaccard <- tmp}
+    # 
+    # } # for threshold
+    # MODEL[[i]][["eval"]][["CBI"]] <- jaccard
+    
     # --- 1.3. Compute Continuous Boyce Index into MODELS object
     MODEL[[i]][["eval"]][["CBI"]] <- ecospat.boyce(fit = y_hat,
-                                                            obs = y_hat[which(y == 1)],
-                                                            PEplot = FALSE,
-                                                            method = "spearman",
-                                                            rm.duplicate = TRUE,
-                                                            res = 100) %>%
+                                                   obs = y_hat[which(y == 1)],
+                                                   PEplot = FALSE,
+                                                   method = "pearson",
+                                                   rm.duplicate = FALSE,
+                                                   res = 100) %>%
       .$cor
     
     # --- 1.4. Compute an over-fitting rate

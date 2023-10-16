@@ -68,11 +68,10 @@ standard_maps <- function(FOLDER_NAME = NULL,
   # --- 3.1.1. Extract the plot true scale (average max across bootstrap)
   if(CALL$DATA_TYPE == "continuous"){
     plot_scale <- lapply(loop_over, FUN = function(z){
-        z = MODEL[[z]]$proj$y_hat %>% apply(1, function(x)(x = mean(x, na.rm = TRUE))) %>% 
-          max(na.rm = TRUE)
+        z = MODEL[[z]]$proj$y_hat %>% apply(1, function(x)(x = mean(x, na.rm = TRUE)))
     }) %>% 
       unlist() %>% 
-      max(na.rm = TRUE)
+      quantile(0.95, na.rm = TRUE)
   } else {
     plot_scale <- 1
   }
@@ -114,6 +113,9 @@ standard_maps <- function(FOLDER_NAME = NULL,
       # Rescaled by the maximum to match the colorbar
       val <- apply(val_raw[,,m], 1, function(x)(x = mean(x, na.rm = TRUE)))
       r_m <- r0 %>% setValues(val / plot_scale)
+      
+      # Save in the model object for later
+      MODEL[["ENSEMBLE"]][["proj"]][["y_hat"]] <- val
       
       # --- 4.2.2. Coefficient of variation
       # Computes mean SD across bootstrap and than average across month
@@ -165,7 +167,7 @@ standard_maps <- function(FOLDER_NAME = NULL,
       # --- 4.3.2.4. Observation colors
       if(CALL$DATA_TYPE == "continuous"){
         points(tmp$decimallongitude, tmp$decimallatitude,
-               col = col_numeric("inferno", domain = range(QUERY$Y$measurementvalue, na.rm = TRUE))(QUERY$Y$measurementvalue), pch = 20)
+               col = col_numeric("inferno", domain = range(QUERY$Y$measurementvalue, na.rm = TRUE), alpha = 0.2)(QUERY$Y$measurementvalue), pch = 20)
       } else {
         points(tmp$decimallongitude, tmp$decimallatitude,
                col = "black", pch = 20)
@@ -260,6 +262,9 @@ standard_maps <- function(FOLDER_NAME = NULL,
   # --- 7. Wrap up and save
   # --- 7.1. Stop PDF saving
   dev.off()
+  # --- 7.2. Save model ensemble
+  save(MODEL, file = paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/MODEL.RData"),
+       compress = "gzip", compression_level = 6)
   
 } # END FUNCTION
 

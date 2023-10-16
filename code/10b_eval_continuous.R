@@ -24,10 +24,10 @@ eval_continuous <- function(CALL,
     
     # --- 1.3. Compute R-squared into MODELS object
     df <- data.frame(truth = y, estimate = y_hat)
-    MODEL[[i]][["eval"]][["R2"]] <- yardstick::rsq(data = df, truth, estimate ) %>% 
-      .$.estimate %>% 
+    MODEL[[i]][["eval"]][["R2"]] <- yardstick::rsq(data = df, truth, estimate ) %>%
+      .$.estimate %>%
       round(3)
-    
+
     # --- 1.4. Compute an over-fitting rate
     # Calculated as the deviation during training to deviation in testing ratio
     resample_dev <- MODEL[[i]][["best_fit"]]$mean

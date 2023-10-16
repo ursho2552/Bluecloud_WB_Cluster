@@ -14,20 +14,24 @@ rm(list=ls())
 closeAllConnections()
 setwd("/net/meso/work/aschickele/Bluecloud_WB_local")
 source(file = "./code/00_config.R")
-run_name <- "VIRTUALSPECIES2_binary"
+run_name <- "VIRTUALSPECIES_binary_5_CBI_auto"
+
+# --- 0. Generate the virtual species
+source(file = "./preparation/generate_virtual.R")
+VIRTUAL <- generate_virtual(ENV_VAR = c("!dist2coast_allmonths"),
+                            ENV_PATH = "/net/meso/work/nknecht/Masterarbeit/General_Pipeline/Data/environmental_climatologies",
+                            MONTH = 4,
+                            DATA_TYPE = "binary")
 
 # --- 1. List the available species
 # Within the user defined selection criteria
 list_bio <- list_bio_wrapper(FOLDER_NAME = run_name,
                              DATA_SOURCE = "/net/meso/work/aschickele/Bluecloud_WB_local/data/virtual_binary.csv",
-                             SAMPLE_SELECT = list(MIN_SAMPLE = 50, TARGET_MIN_DEPTH = 0, TARGET_MAX_DEPTH = 100, START_YEAR = 1950, STOP_YEAR = 2020))
+                             SAMPLE_SELECT = list(MIN_SAMPLE = 20, TARGET_MIN_DEPTH = 0, TARGET_MAX_DEPTH = 50, START_YEAR = 1950, STOP_YEAR = 2020))
 
 # Define the list of species to consider
 sp_list <- list_bio$worms_id %>% unique()
-sp_list <- list_bio %>%
-  dplyr::filter(grepl("Tripos ", scientificname)) %>%
-  dplyr::select(worms_id) %>%
-  unique() %>% pull()
+save(VIRTUAL, file = paste0(project_wd, "/output/", run_name,"/VIRTUAL.RData"))
 
 # --- 2. Create the output folder, initialize parallelisation and parameters
 # (1) Create an output folder containing all species-level runs, (2) Stores the 
@@ -118,19 +122,16 @@ mcmapply(FUN = standard_maps,
          SUBFOLDER_NAME = subfolder_list,
          mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
-# --- 12.2. Partial dependency plots - TAKES AGES FOR LARGE OCCURRENCE NUMBER
-mcmapply(FUN = pdp,
-         FOLDER_NAME = run_name,
-         SUBFOLDER_NAME = subfolder_list,
-         mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
-
-# --- 12.3 Diversity
-diversity_maps(FOLDER_NAME = run_name,
-               SUBFOLDER_NAME = subfolder_list,
-               BUFFER = 1,
-               N_BOOTSTRAP = 10)
-
 # --- 12.4 User synthesis
 user_synthesis(FOLDER_NAME = run_name)
+
+# --- 0. Evaluate virtual species
+subfolder_list <- subfolder_list %>% 
+  .[grep("Error", ., invert = TRUE)] %>% # to exclude any API error or else
+  as.vector()
+
+evaluate_virtual(FOLDER_NAME = run_name)
+
+save(VIRTUAL, file = paste0(project_wd, "/output/", run_name,"/VIRTUAL.RData"))
 
 # --- END --- 
