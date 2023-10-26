@@ -9,7 +9,7 @@ target_transformation <- function(x, REVERSE = FALSE, PARAM = NULL){
   # --- 1. Forward transformation /w. REVERSE = FALSE
   if(REVERSE == FALSE){
     # --- 1.1. Define transformation parameters
-    LAMBDA <- 0.3
+    LAMBDA <- 0.2
     GAMMA <- 1
     # if(length(which(x <= 0)) == 0){GAMMA <- 0}
     
