@@ -23,9 +23,15 @@ eval_continuous <- function(CALL,
     y_hat <- final_fit$.pred
     
     # --- 1.3. Compute R-squared into MODELS object
-    df <- data.frame(truth = y, estimate = y_hat)
-    MODEL[[i]][["eval"]][["R2"]] <- yardstick::rsq(data = df, truth, estimate ) %>%
-      .$.estimate %>%
+    # df <- data.frame(truth = y, estimate = y_hat)
+    # MODEL[[i]][["eval"]][["R2"]] <- yardstick::rsq(data = df, truth, estimate ) %>%
+    #   .$.estimate %>%
+    #   round(3)
+    
+    # --- 1.3. Compute the slope of a LM
+    lm <- lm(y_hat~y-1)
+    MODEL[[i]][["eval"]][["R2"]] <- (1-abs(lm$coefficients-1)) %>% 
+      as.numeric() %>% 
       round(3)
 
     # --- 1.4. Compute an over-fitting rate

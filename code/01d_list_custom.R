@@ -54,6 +54,7 @@ list_custom <- function(DATA_SOURCE,
   data_list <- df %>% 
     dplyr::filter(depth >= SAMPLE_SELECT$TARGET_MIN_DEPTH & depth <= SAMPLE_SELECT$TARGET_MAX_DEPTH) %>% 
     dplyr::filter(year >= SAMPLE_SELECT$START_YEAR & year <= SAMPLE_SELECT$STOP_YEAR) %>% 
+    dplyr::filter(!is.na(measurementvalue)) %>% 
     distinct() %>% 
     group_by(scientificname) %>% 
     mutate(nb_occ = n()) %>% 

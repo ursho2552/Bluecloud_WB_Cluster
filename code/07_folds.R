@@ -22,13 +22,12 @@ folds <- function(FOLDER_NAME = NULL,
   
   # --- 1.3. Target transformation
   if(CALL$DATA_TYPE == "continuous" & !is.null(CALL$TARGET_TRANSFORMATION)){
-    message("FOLDS --- Transforming the target variable according to the provided function")
+    message("--- FOLDS : Transforming the target variable according to the provided function")
     source(CALL$TARGET_TRANSFORMATION)
-    tmp <- target_transformation(QUERY$Y, REVERSE = FALSE)
+    tmp <- target_transformation(x = QUERY$Y$measurementvalue, REVERSE = FALSE)
     Y <- data.frame(tmp$out)
     colnames(Y) <- "measurementvalue"
-    QUERY[["target_transformation"]][["LAMBDA"]] <- tmp$LAMBDA
-    QUERY[["target_transformation"]][["GAMMA"]] <- tmp$GAMMA
+    QUERY[["target_transformation"]][["yj_obj"]] <- tmp$yj_obj
   } else {
     Y <- QUERY$Y
   }

@@ -14,15 +14,20 @@ rm(list=ls())
 closeAllConnections()
 setwd("/net/meso/work/aschickele/Bluecloud_WB_local")
 source(file = "./code/00_config.R")
-run_name <- "VIRTUALSPECIES2_binary"
+run_name <- "diatom_div_continuous"
 
 # --- 1. List the available species
 # Within the user defined selection criteria
 list_bio <- list_bio_wrapper(FOLDER_NAME = run_name,
-                             DATA_SOURCE = "/net/meso/work/aschickele/Bluecloud_WB_local/data/virtual_binary.csv",
+                             DATA_SOURCE = "abundance",
                              SAMPLE_SELECT = list(MIN_SAMPLE = 50, TARGET_MIN_DEPTH = 0, TARGET_MAX_DEPTH = 100, START_YEAR = 1950, STOP_YEAR = 2020))
 
 # Define the list of species to consider
+sp_list <- list_bio %>% 
+  dplyr::filter(grepl("Diatom", source_tbl)) %>% 
+  dplyr::select(worms_id) %>%
+  unique() %>% pull()
+  
 sp_list <- list_bio$worms_id %>% unique()
 sp_list <- list_bio %>%
   dplyr::filter(grepl("Tripos ", scientificname)) %>%
@@ -48,6 +53,7 @@ subfolder_list <- run_init(FOLDER_NAME = run_name,
                            FOLD_METHOD = "lon",
                            MODEL_LIST = c("GLM","GAM","RF","MLP"),
                            LEVELS = 3,
+                           TARGET_TRANSFORMATION = "/net/meso/work/aschickele/Bluecloud_WB_local/function/target_transformation_yj_auto.R",
                            ENSEMBLE = TRUE,
                            N_BOOTSTRAP = 10,
                            CUT = 0)
