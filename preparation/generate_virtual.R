@@ -21,6 +21,7 @@ generate_virtual <- function(ENV_VAR = c("!dist2coast_allmonths"),
                              MONTH = 6,
                              SP_NB = 20,
                              N = c(50, 200, 1000),
+                             NOISE_SD = c(1,2,3),
                              DATA_TYPE = "binary"){
 
   # --- 1. Prepare the raster stack
@@ -126,6 +127,7 @@ generate_virtual <- function(ENV_VAR = c("!dist2coast_allmonths"),
   
   # --- 5.3. Sample continuous data
   # Weights have to use terra::rast format... we  **5 to increase the bias a bit
+  # --- 5.3.1. Generate samples
   if(DATA_TYPE == "continuous"){
     all_target <- lapply(1:nrow(sampling_par),
                          function(x){
@@ -147,9 +149,30 @@ generate_virtual <- function(ENV_VAR = c("!dist2coast_allmonths"),
                              dplyr::select(c("scientificname","worms_id","decimallatitude","decimallongitude","depth","year","month","measurementvalue","measurementunit", "taxonrank"))
                            return(target)
                          }) %>% 
-      bind_rows()
+      bind_rows()    
     
-    # Save as CSV file
+    # --- 5.3.2. Add noise
+    if(length(NOISE_SD) > 0){
+      new_target <- NULL
+      new_sampling_par <- NULL
+      
+      for(i in 1:length(NOISE_SD)){
+        noise <- rlnorm(n = nrow(all_target), mean = log(1), sd = log(NOISE_SD[i]))
+        tmp <- all_target %>% 
+          mutate(measurementvalue = measurementvalue*noise,
+                 worms_id = paste(worms_id, NOISE_SD[i]))
+        new_target <- bind_rows(new_target, tmp)
+        
+        tmp <- sampling_par %>% 
+          mutate(NOISE_SD = NOISE_SD[i])
+        new_sampling_par <- bind_rows(new_sampling_par, tmp)
+      } # for i in length noise
+    } # end if noise
+    
+    all_target <- new_target
+    sampling_par <- new_sampling_par
+    
+    # --- 5.3.3. Save as CSV file
     write.csv(all_target, file = "/net/meso/work/aschickele/Bluecloud_WB_local/data/virtual_continuous.csv", row.names = FALSE)
   } # if continuous
   
@@ -158,7 +181,7 @@ generate_virtual <- function(ENV_VAR = c("!dist2coast_allmonths"),
   
   # --- 6. Wrap up and save
   VIRTUAL <- list()
-  VIRTUAL[["par"]] <- list(MONTH = MONTH, SP_NB = SP_NB, N = N)
+  VIRTUAL[["par"]] <- list(MONTH = MONTH, SP_NB = SP_NB, N = N, NOISE_SD = NOISE_SD)
   VIRTUAL[["distribution"]] <- pca_sp
   VIRTUAL[["bias"]] <- bias
   VIRTUAL[["sample_parameters"]] <- sampling_par
@@ -195,7 +218,7 @@ evaluate_virtual <- function(FOLDER_NAME){
   # --- 1.3. Get parameter grid
   message("--- VIRTUAL : Get parameter grid")
   tmp <- VIRTUAL$sample_parameters %>% 
-    mutate(SUBFOLDER_NAME = paste(SP, N, BIAS))
+    mutate(SUBFOLDER_NAME = paste(SP, N, BIAS, NOISE_SD))
   virtual_grid <- merge(CALL$MODEL_LIST, tmp)
   colnames(virtual_grid)[1] <- "algorithm"
   
@@ -324,7 +347,8 @@ evaluate_virtual <- function(FOLDER_NAME){
     EST <- estimated_proj[, ID$algorithm, ID$SUBFOLDER_NAME]
     PREVALENCE <- VIRTUAL$distribution[[ID$SP]]$PA.conversion["species.prevalence"] %>% 
       as.numeric() %>% round(2) %>% .[]*100
-    COL <- pal[PREVALENCE]
+    # COL <- pal[PREVALENCE]
+    COL <- pal[ID$NOISE_SD]
     
     if(ID$IN_ENSEMBLE == "Y"){
       taylor.diagram(ref = REF, model = EST, normalize = TRUE, col = COL, add = TRUE)
@@ -365,7 +389,8 @@ evaluate_virtual <- function(FOLDER_NAME){
     ID <- metric_comparison[i,]
     PREVALENCE <- VIRTUAL$distribution[[ID$SP]]$PA.conversion["species.prevalence"] %>% 
       as.numeric() %>% round(2) %>% .[]*100
-    COL <- pal[PREVALENCE]
+    # COL <- pal[PREVALENCE]
+    COL <- pal[ID$NOISE_SD]
     
     if(ID$IN_ENSEMBLE == "Y"){
       points(x = ID$TRUE_FIT, y = ID$EST_FIT, bg = COL, pch = 21)
