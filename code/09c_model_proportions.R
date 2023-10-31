@@ -66,10 +66,9 @@ model_proportions <- function(CALL,
     
     # --- 2.3.2. Fitting hyperparameters
     message(paste0(Sys.time(), "--- MBTR: fit hyperparameters for cv = ", cv))
-    loss[[cv]] <- mcmapply(FUN = mbtr_hp_fit,
-                           path = paste0(project_wd, "/data/MBTR_cache/",cv,"_"),
-                           hp = hp,
-                           mc.cores = nrow(MODEL$MBTR$model_grid))
+    loss[[cv]] <- mapply(FUN = mbtr_hp_fit,
+                         path = paste0(project_wd, "/data/MBTR_cache/",cv,"_"),
+                         hp = hp)
     message("Algorithm fitting - DONE")
   } # cv loop
   

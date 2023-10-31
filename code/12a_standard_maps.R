@@ -168,6 +168,9 @@ standard_maps <- function(FOLDER_NAME = NULL,
       if(CALL$DATA_TYPE == "continuous"){
         points(tmp$decimallongitude, tmp$decimallatitude,
                col = col_numeric("inferno", domain = range(QUERY$Y$measurementvalue, na.rm = TRUE), alpha = 0.2)(QUERY$Y$measurementvalue), pch = 20)
+      } else if(CALL$DATA_TYPE == "proportions") {
+        points(tmp$decimallongitude, tmp$decimallatitude,
+               col = col_numeric("inferno", domain = range(QUERY$Y, na.rm = TRUE), alpha = 0.2)(QUERY$Y[,i]), pch = 20)
       } else {
         points(tmp$decimallongitude, tmp$decimallatitude,
                col = "black", pch = 20)

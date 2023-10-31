@@ -54,19 +54,18 @@ proj_proportions <- function(QUERY,
   # --- 3.2. Fit model
   # --- 3.2.1. Computing the model objects
   message(paste0(Sys.time(), "--- MBTR: re-fit model for bootstrap"))
-  boot_fit <- mcmapply(FUN = mbtr_fit,
-                       path = paste0(project_wd, "/data/MBTR_cache/",1:CALL$N_BOOTSTRAP,"_"),
-                       loss_type='mse',
-                       n_boosts = as.integer(1000),
-                       min_leaf= MODEL$MBTR$final_wf$MEAN_LEAF,
-                       learning_rate=MODEL$MBTR$final_wf$LEARNING_RATE,
-                       lambda_weights=MODEL$MBTR$final_wf$LEARNING_RATE/100,
-                       lambda_leaves=0,
-                       n_q= as.integer(MODEL$MBTR$final_wf$N_Q),
-                       early_stopping_rounds = 10,
-                       SIMPLIFY = FALSE,
-                       USE.NAMES = FALSE,
-                       mc.cores = CALL$N_BOOTSTRAP)
+  boot_fit <- mapply(FUN = mbtr_fit,
+                     path = paste0(project_wd, "/data/MBTR_cache/",1:CALL$N_BOOTSTRAP,"_"),
+                     loss_type='mse',
+                     n_boosts = as.integer(1000),
+                     min_leaf= MODEL$MBTR$final_wf$MEAN_LEAF,
+                     learning_rate=MODEL$MBTR$final_wf$LEARNING_RATE,
+                     lambda_weights=MODEL$MBTR$final_wf$LEARNING_RATE/100,
+                     lambda_leaves=0,
+                     n_q= as.integer(MODEL$MBTR$final_wf$N_Q),
+                     early_stopping_rounds = 10,
+                     SIMPLIFY = FALSE,
+                     USE.NAMES = FALSE)
 
   # --- 3.2.2. Reload them in R because of "previous session invalidity"
   for(b in 1:CALL$N_BOOTSTRAP){

@@ -260,7 +260,7 @@ pdp <- function(FOLDER_NAME = NULL,
         polygon(x = c(tmp$x, rev(tmp$x)),
                 y = c(tmp$y_hat_m-tmp$y_hat_m*tmp$y_hat_cv/100, rev(tmp$y_hat_m+tmp$y_hat_m*tmp$y_hat_cv/100)),
                 col = scales::alpha(pal[j], 0.3), border = NA)
-        mtext(side = 4, at = tail(tmp$y_hat_m, 1), text = MODEL$MODEL_LIST[j], col = pal[j], padj = 0.5, las = 1, cex = 0.6)
+        mtext(side = 4, at = tail(tmp$y_hat_m, 1), text = m_names[j], col = pal[j], padj = 0.5, las = 1, cex = 0.6)
         grid(col = "gray20")
       } else {
         lines(tmp$x, tmp$y_hat_m, type = 'l', ylim = c(0,1), lwd = 1, col = pal[j],
@@ -268,7 +268,7 @@ pdp <- function(FOLDER_NAME = NULL,
         polygon(x = c(tmp$x, rev(tmp$x)),
                 y = c(tmp$y_hat_m-tmp$y_hat_m*tmp$y_hat_cv/100, rev(tmp$y_hat_m+tmp$y_hat_m*tmp$y_hat_cv/100)),
                 col = scales::alpha(pal[j], 0.3), border = NA)
-        mtext(side = 4, at = tail(tmp$y_hat_m, 1), text = MODEL$MODEL_LIST[j], col = pal[j], padj = 0.5, las = 1, cex = 0.6)
+        mtext(side = 4, at = tail(tmp$y_hat_m, 1), text = m_names[j], col = pal[j], padj = 0.5, las = 1, cex = 0.6)
       } # End if
     } # End j model/target loop
   } # End i plot loop
