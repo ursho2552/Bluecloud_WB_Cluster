@@ -37,7 +37,8 @@ library(pastecs)
 library(ecospat)
 library(reticulate) 
 library(dendextend)
-library(mvrsquared) 
+library(mvrsquared)
+library(bestNormalize)
 
 # --- Seed
 set.seed(123)

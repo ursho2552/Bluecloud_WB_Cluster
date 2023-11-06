@@ -14,169 +14,166 @@
 
 diversity_maps <- function(FOLDER_NAME = NULL,
                            SUBFOLDER_NAME = NULL,
-                           N_BOOTSTRAP = 10,
-                           BETA = c("hellinger","bray","altGower"),
-                           BUFFER = 1){
+                           MONTH = list(c(10,11,12,1,2,3),
+                                        4:9)){
   
   # --- 1. Initialize function
   # --- 1.1. Global parameter loading
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
   
   # --- 1.2. Baseline raster
-  r0 <- raster(paste0(project_wd, "/data/features_mean_from_monthly"))
+  r0 <- CALL$ENV_DATA[[1]][[1]]
   
-  # --- 2. Extract and compute diversity indices
-  # --- 2.1. Create global object
-  div_all <- NULL
-  div_names <- c(paste("Alpha [", c("shannon","richness","evenness","invsimpson"), "]"), 
-                 paste("Beta [", BETA, "]"))
-  
-  # --- 2.2. Loop over BOOTSTRAP
-  # For memory efficiency - computing time trade off
-  for(b in 1:N_BOOTSTRAP){
-    message(paste(Sys.time(), "--- Computing diversity indices for bootstrap n°", b))
-    ens_by_b <- NULL
-    
-    # --- 2.2.1. Loop over SUBFOLDER_NAME
-    message(paste(Sys.time(), "--- Extract ensembles"))
-    for(s in SUBFOLDER_NAME){
-      # --- 2.2.1.1. Load MODEL object
-      load(paste0(project_wd, "/output/", FOLDER_NAME,"/", s, "/MODEL.RData"))
-      
-      # --- 2.2.1.2. Compute ensemble across each algorithm
-      ens_by_s <- NULL
-      if(length(MODEL$CALL$MODEL_LIST != 0)){
-        for(m in MODEL$CALL$MODEL_LIST){
-          tmp <- MODEL[[m]][["proj"]][["y_hat"]][,b]*MODEL[[m]][["eval"]][[1]] # Take care for abundances (sum at 1)
-          ens_by_s <- cbind(ens_by_s, tmp)
-        } # m model_list loop
-        ens_by_s <- ens_by_s/max(ens_by_s, na.rm = TRUE) # Divide by the sum of metrics, not by max (for abundances ?)
-        ens_by_s <- apply(ens_by_s, 1, function(x)(x = mean(x, na.rm = TRUE)))
-      } # if
-      ens_by_b <- cbind(ens_by_b, ens_by_s)
-    } # s sub folder name loop
-    ens_by_b[ens_by_b < 0] <- 0 # Security
-    
-    # --- 2.2.2. Compute diversity indices
-    message(paste(Sys.time(), "--- Compute diversity"))
-    # --- 2.2.2.1. Alpha diversity
-    a_shannon <- apply(ens_by_b, 1, function(x)(x = vegan::diversity(x, "shannon")))
-    a_richness <- apply(ens_by_b, 1, function(x)(x = sum(x, na.rm = TRUE)))
-    a_evenness <- a_shannon/(a_richness)
-    a_invsimpson <- apply(ens_by_b, 1, function(x)(x = vegan::diversity(x, "invsimpson")))
-    
-    div_by_b <- cbind(a_shannon, a_richness, a_evenness, a_invsimpson)
-    
-    # --- 2.2.2.2. Beta diversity
-    # --- 2.2.2.2.1. Define function
-    beta_div <- function(ID, NX, NY, VALUE, BUFFER, BETA){
-      # --- Get cell identifiers
-      cells <- get_cell_neighbors(NX = NX,
-                                  NY = NY, 
-                                  ID = ID,
-                                  BUFFER = BUFFER)
-      # --- Compute average pairwise dissimilarity
-      diss <- vegan::vegdist(VALUE[c(cells$center_id, cells$neighbors_id),], method = BETA, na.rm = TRUE) %>% 
-        as.matrix() %>% 
-        .[2:nrow(.), 1] %>% 
-        mean(na.rm = TRUE)
-      return(diss)
-    }
-    
-    # --- 2.2.2.2.2. List of cells
-    id <- 1:dim(ens_by_b)[[1]]
-    # --- 2.2.2.2.3. Compute indices
-    for(i in BETA){
-      tmp <- mclapply(id, function(x) beta_div(ID = x, NX = ncol(r0), NY = nrow(r0), BUFFER = BUFFER, 
-                                               VALUE = ens_by_b, BETA = i),
-                      mc.cores = MAX_CLUSTERS) %>% 
-        unlist()
-      div_by_b <- cbind(div_by_b, tmp)
-    } # i beta diversity loop
-    
-    # --- 2.2.3. Store diversity in global object
-    div_all <- abind(div_all, div_by_b, along = 3)
-    
-  } # b bootstrap loop
-  
-  # --- 2.4. Save the diversity object
-  save(div_all, file = paste0(project_wd, "/output/", FOLDER_NAME, "/DIVERSITY.RData"),
-       compress = "gzip", compression_level = 6)
-  
-  # --- 3. Extract MESS analysis
-  # --- 3.1. Create global object
-  mess_all <- NULL
-  
-  # --- 3.2. Loop over SUBFOLDER_NAME
-  message(paste(Sys.time(), "--- Extract MESS"))
-  for(s in SUBFOLDER_NAME){
-    # --- 3.2.1. Load QUERY and MODEL object
-    load(paste0(project_wd, "/output/", FOLDER_NAME,"/", s, "/QUERY.RData"))
-    load(paste0(project_wd, "/output/", FOLDER_NAME,"/", s, "/MODEL.RData"))
-    
-    # --- 3.2.2. Extract MESS
-    if(length(MODEL$CALL$MODEL_LIST != 0)){
-      mess_all <- cbind(mess_all, getValues(QUERY$MESS*-1))
-    } # if
-  } # s sub folder name loop
-  
-  # --- 4. Diversity plots
-  # --- 4.1. Compute necessary objects
-  # --- 4.1.1. Land mask
+  # --- 1.3. Land mask
   land <- r0
   land[is.na(land)] <- 9999
   land[land != 9999] <- NA
   
-  # --- 4.1.2. Average MESS
+  # --- 1.4. Beta diversity function
+  beta_div <- function(ID, NX, NY, VALUE, BUFFER, BETA){
+    # --- Get cell identifiers
+    cells <- get_cell_neighbors(NX = NX,
+                                NY = NY, 
+                                ID = ID,
+                                BUFFER = BUFFER)
+    # --- Compute average pairwise dissimilarity
+    diss <- vegan::vegdist(VALUE[c(cells$center_id, cells$neighbors_id),,,], method = BETA, na.rm = TRUE) %>% 
+      as.matrix() %>% 
+      .[2:nrow(.), 1] %>% 
+      mean(na.rm = TRUE)
+    return(diss)
+  }
+  
+  # --- 2. Extract ensembles by species
+  # --- 2.1. For binary or continuous data
+  if(CALL$DATA_TYPE != "proportions"){
+    all_ens <- mclapply(SUBFOLDER_NAME, FUN = function(s){
+      # --- 2.1.1. Load subfolder information
+      # We have a file exist security here in case the diversity is run later
+      f <- paste0(project_wd, "/output/", FOLDER_NAME,"/", s, "/MODEL.RData")
+      if(file.exists(f)){load(f)} else {MODEL$MODEL_LIST <- NULL}
+      
+      # --- 2.1.2. Early return if there is not enough algorithms passing QC
+      if(length(MODEL$MODEL_LIST) == 0){
+        s_ens <- NULL
+      } # if early return
+      
+      # --- 2.1.3. Compute ensemble across algorithms
+      if(length(MODEL$MODEL_LIST) != 0){
+        s_ens <- lapply(MODEL$MODEL_LIST, FUN = function(m){
+          MODEL[[m]]$proj$y_hat
+        }) %>% abind(along = 4) %>% apply(c(1,2,3), mean)
+      } # compute ensemble
+    },
+    mc.cores = MAX_CLUSTERS) %>% abind(along = 4) %>% aperm(c(1,4,2,3))
+  } # if binary or continuous
+  
+  # --- 2.2. For proportions
+  if(CALL$DATA_TYPE == "proportions"){
+    load(paste0(project_wd, "/output/", FOLDER_NAME,"/", s, "/MODEL.RData"))
+    s_ens <- MODEL$MBTR$proj$y_hat %>% aperm(c(1,3,2,4))
+  } # if proportions
+  
+  # --- 2.3. Return if not enough ensembles
+  if(dim(all_ens)[[2]] < 5){
+    message("--- DIVERSITY : not enough ensembles to compute diversity from")
+  }
+  
+  # --- 3. Compute alpha diversity indices
+  a_shannon <- apply(all_ens, c(1,3,4), function(x)(x = vegan::diversity(x, "shannon")))
+  a_richness <- apply(all_ens, c(1,3,4), function(x)(x = sum(x, na.rm = TRUE)))
+  a_evenness <- a_shannon/(a_richness)
+  a_invsimpson <- apply(all_ens, c(1,3,4), function(x)(x = vegan::diversity(x, "invsimpson")))
+  
+  # --- 4. Compute beta diversity indices
+  # To add
+  
+  # --- 5. Stack diversities
+  div_all <- abind(a_shannon, a_richness, a_evenness, a_invsimpson, along = 4)
+  div_m <- apply(div_all, c(1,3,4), mean)
+  div_sd <- apply(div_all, c(1,3,4), sd)
+  div_names <- c("a_shannon", "a_richness", "a_evenness", "a_invsimpson")
+  
+  # --- 6. Extract MESS analysis
+  message(paste(Sys.time(), "--- Extract MESS"))
+  mess_all <- lapply(SUBFOLDER_NAME, FUN = function(s){
+    # --- 6.1. Load corresponding objects
+    # We have a file exist security here in case the diversity is run later
+    f <- paste0(project_wd, "/output/", FOLDER_NAME,"/", s, "/MODEL.RData")
+    if(file.exists(f)){
+      load(paste0(project_wd, "/output/", FOLDER_NAME,"/", s, "/QUERY.RData"))
+      load(paste0(project_wd, "/output/", FOLDER_NAME,"/", s, "/MODEL.RData"))
+      
+      # --- 6.2. Extract mess
+      if(length(MODEL$MODEL_LIST) != 0){
+        mess_s <- getValues(QUERY$MESS*-1)
+      } # if ensemble
+    } # if exist
+  }) %>% abind(along = 3) %>% apply(c(1,2), mean)
+  
+  # --- 6.3. Final adjustments
   mess_all[mess_all > 100] <- 100
-  r_mess <- r0 %>% 
-    setValues(apply(mess_all, 1, function(x)(x = mean(x, na.rm = TRUE))))
-  r_mess[r_mess<0] <- NA
   
-  # --- 4.1.3. Average diversity
-  div_m <- apply(div_all, c(1,2), function(x)(x = mean(x, na.rm = TRUE)))
-  
-  # --- 4.1.3. Average diversity
-  div_cv <- apply(div_all, c(1,2), function(x)(x = cv(x, na.rm = TRUE)))
-  div_cv[div_cv > 100] <- 100
-  
-  # --- 4.2. Start PDF saving
+  # --- 7. Diversity plots
+  # --- 7.1. Initialize pdf and plot
   pdf(paste0(project_wd,"/output/",FOLDER_NAME,"/diversity_maps.pdf"))
-  
-  # --- 4.3. Plot the legends
   par(mfrow = c(4,2), mar = c(2,3,3,3))
-  # --- 4.3.1. Diversity legend
-  hsi_pal <- inferno_pal(100)
+  
+  # --- 7.2. Plot the legends
+  # --- 7.2.1. Diversity legend
   plot.new()
   colorbar.plot(x = 0.5, y = 0, strip = seq(0,1,length.out = 100),
                 strip.width = 0.3, strip.length = 2.1,
-                col = hsi_pal, border = "black")
+                col = inferno_pal(100), border = "black")
   axis(side = 1)
   text(x = 0.5, y = 0.3, "Diversity value [0 - 1]", adj = 0.5)
-  # --- 4.3.2. MESS x CV 2D color scale
+  
+  # --- 7.2.2. MESS x CV 2D color scale
   par(mar = c(5,5,1,2))
-  bivar_pal <- colmat(xmax = "deepskyblue4", ymax = "darkgoldenrod2", nbreaks = 100)
-  colmat_plot(bivar_pal, xlab = "Coefficient of variation", ylab = "MESS value")
-  axis(side = 1, at = c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = c(0, 0.2, 0.4, 0.6, 0.8, 1))
+  bivar_pal <- colmat(nbreaks = 100)
+  colmat_plot(bivar_pal, xlab = "Standard deviation", ylab = "MESS value")
+  axis(side = 1, at = c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = round(seq(0, 0.25, length.out = 6), 2))
   axis(side = 2, at = c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = c(0, -20, -40, -60, -80, -100), las = 2)
   par(mar = c(1,3,3,1))
   
-  # --- 4.4. Plot the diversity maps
-  for(i in 1:dim(div_all)[[2]]){
-    # --- 4.4.1. Average map
-    r_m <- r0 %>% setValues(div_m[,i])
-    plot(r_m, col = hsi_pal, legend = FALSE,  main = div_names[i])
-    plot(land, col = "antiquewhite4", legend=FALSE, add = TRUE)
-    
-    # --- 4.4.2. Uncertainties map
-    r_cv <- r0 %>% setValues(div_cv[,i])
-    plot(land, col = "antiquewhite4", legend=FALSE, main = "Uncertainties")
-    r <- bivar_map(rasterx = r_cv, rastery = r_mess, colormatrix = bivar_pal,
-                   cutx = 0:100, cuty = 0:100)
-    plot(r[[1]], col = r[[2]], legend=FALSE, add = TRUE)
-  } # i diversity loop
+  # --- 7.3. Plot diversity maps
+  # Loop over diversity maps and projections
+  for(i in 1:dim(div_m)[[3]]){
+    for(m in MONTH){
+      
+      # --- 7.3.1. Prepare the data
+      tmp_m <- div_m[,m,] %>% apply(c(1,3), mean) %>% .[,i]
+      tmp_sd <- div_sd[,m,] %>% apply(c(1,3), mean) %>% .[,i]
+      plot_scale <- quantile(tmp_m, 0.95, na.rm = TRUE)
+      
+      # --- 7.3.2. Assign to raster
+      # Average raster is cut at plot scale (Q95)
+      r_m <- r0 %>% setValues(tmp_m)
+      r_m[r_m > plot_scale] <- plot_scale
+      
+      r_sd <- r0 %>% setValues(tmp_sd)
+      
+      r_mess <- r0 %>% setValues(apply(mess_all[, m], 1, mean))
+      r_mess[r_mess<0] <- 1e-10 # temporary fix : modify bivarmap so that 0 is included
+      r_mess[r_mess>100] <- 100
+      
+      # --- 7.3.3. Average projection
+      plot(r_m, col = inferno_pal(100), legend=FALSE,
+           main = paste(div_names[i], "\n month:", paste(m, collapse = ","), "--- scale f.:", round(plot_scale,2)))
+      plot(land, col = "antiquewhite4", legend=FALSE, add = TRUE)
+      
+      # --- 7.3.4. Uncertainties projection
+      # First we draw a land mask
+      plot(land, col = "antiquewhite4", legend=FALSE, main = "Uncertainties")
+      # Then compute and plot the 2-dimensional color scale for SD x MESS
+      r <- bivar_map(rasterx = r_sd, rastery = r_mess, colormatrix = bivar_pal,
+                     cutx = seq(0,max(getValues(r_sd), na.rm = TRUE), length.out = 101), cuty = 0:100)
+      plot(r[[1]], col = r[[2]], legend=FALSE, add = TRUE)
+      
+    } # m month
+  } # i diversity
   
-  # --- 4.5. Stop PDF
+  # --- 8. Stop PDF
   dev.off()
   
 } # END FUNCTION

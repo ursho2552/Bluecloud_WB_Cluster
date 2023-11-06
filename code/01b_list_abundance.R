@@ -21,11 +21,13 @@ list_abundance <- function(DATA_SOURCE,
   message("--- LIST BIO : retrieving species available in ATLANTECO")
   data_list <- tbl(db, paste0(DATA_SOURCE,"_data")) %>% 
     dplyr::filter(depth >= !!SAMPLE_SELECT$TARGET_MIN_DEPTH & 
-                    depth <= !!SAMPLE_SELECT$TARGET_MAX_DEPTH & 
-                    year >= !!SAMPLE_SELECT$START_YEAR & 
-                    year <= !!SAMPLE_SELECT$STOP_YEAR &
-                    measurementvalue != "Absence" &
-                    measurementvalue != 0) %>% 
+                  depth <= !!SAMPLE_SELECT$TARGET_MAX_DEPTH & 
+                  year >= !!SAMPLE_SELECT$START_YEAR & 
+                  year <= !!SAMPLE_SELECT$STOP_YEAR &
+                  measurementvalue != "Absence" &
+                  measurementvalue != 0,
+                  !is.na(measurementvalue),
+                  worms_id != "Not found") %>% 
     group_by(worms_id) %>% 
     mutate(nb_occ = n()) %>% 
     dplyr::select(-c(decimallongitude, decimallatitude, month, depth, year, measurementvalue, measurementunit)) %>% 

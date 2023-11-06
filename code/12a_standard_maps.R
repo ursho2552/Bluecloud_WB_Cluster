@@ -114,9 +114,6 @@ standard_maps <- function(FOLDER_NAME = NULL,
       val <- apply(val_raw[,,m], 1, function(x)(x = mean(x, na.rm = TRUE)))
       r_m <- r0 %>% setValues(val / plot_scale)
       
-      # Save in the model object for later
-      MODEL[["ENSEMBLE"]][["proj"]][["y_hat"]] <- val
-      
       # --- 4.2.2. Coefficient of variation
       # Computes mean SD across bootstrap and than average across month
       if(length(m) > 1){
