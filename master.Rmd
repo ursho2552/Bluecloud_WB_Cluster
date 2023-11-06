@@ -1,0 +1,276 @@
+---
+title: "master"
+output: html_document
+date: "2023-11-03"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Bluecloud 2026 - Ecosystem Workbench
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>. When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document.
+
+This document serves as a comprehensive guide to the marine plankton species distribution model pipeline developed for Workbench 3 of the Bluecloud2026 project. The pipeline is designed to predict the distribution and diversity of marine plankton species, essential for understanding ecosystem dynamics. This document will guide you through each critical step of the pipeline.
+
+### 0. Start up the environment
+
+In this initial step, we prepare the R environment for the analysis. We clean the work environment and set the working directory and location of the outputs. Additionally, we load essential functions and scripts, ensuring that the subsequent steps have access to the required tools and libraries. We establish the variable `run_name` to provide a unique identifier for this run.
+
+```{r}
+rm(list=ls())
+closeAllConnections()
+setwd("/net/meso/work/aschickele/Bluecloud_WB_local")
+source(file = "./code/00_config.R")
+run_name <- "BLUECLOUD_GA_LIVE"
+```
+
+### 1. List the available species
+
+We kickstart the modeling process by identifying the marine plankton species available for analysis, from a defined source. We select these species based on specific criteria, such as a minimum sample size, the depth range for sampling, and the temporal range of the data. This selection ensures that the subsequent modeling efforts focus on species that meet the desired criteria. **Parameters are the following :**
+
+`DATA_SOURCE`: either "occurrence", "abundance", "omics", "custom". This parameter will redirect the query to the appropriate database to source the data from.
+
+`SAMPLE_SELECT`: a list containing the minimum sample size, target depth range and sample temporal range.
+
+```{r}
+list_bio <- list_bio_wrapper(FOLDER_NAME = run_name,
+                             DATA_SOURCE = "abundance",
+                             SAMPLE_SELECT = list(MIN_SAMPLE = 50, TARGET_MIN_DEPTH = 0, TARGET_MAX_DEPTH = 100, START_YEAR = 1950, STOP_YEAR = 2020))
+
+```
+
+### 2. Initialize the run
+
+In step 2, we set the stage for the modeling process. Among the critical steps:
+
+-   We create a dedicated output folder to store the results of each species-level run, simplifying data management.
+
+-   We configure global parameters for modeling, including the choice of environmental variables, data type (e.g., proportions), and the use of specific modeling methods. All subsequent steps will refer to this parameter list that are stored in a `CALL.Rdata` object, to limit memory use and simplify each step.
+
+-   We establish a local collection of monthly environmental climatologies based on .nc data. This step is critical to ensure a common set and format for environmental predictors, as well as limited memory use.
+
+Parameters are the following:
+
+-   `FOLDER_NAME` name of the run folder we want to work in
+
+-   `SP_SELECT` vector of IDs, corresponding to the species to parallelize on
+
+-   `FAST` `TRUE` or `FALSE`; if `TRUE`, does not compute projections and plot for algorithms that did not pass the Quality Checks
+
+-   `LOAD_FROM` load a previous list_bio object from another folder to be duplicated in the new `FOLDER_NAME`. It avoids re-doing the initial list_bio step that can be long for omics data
+
+-   `DATA_TYPE` the output type of the data, which can influence the sub-folder architecture. See details in the corresponding function
+
+-   `ENV_VAR` a list of .`nc` files to extract the main variable from, located in `ENV_PATH`
+
+-   `ENV_PATH` string or vector of path to the root where the .`nc` are.
+
+-   `METHOD_PA` method of pseudo-absence, either "`mindist`" or "`cumdist`" or "`density`" (recommended)
+
+-   `NB_PA` number of pseudo-absences to generate
+
+-   `PER_RANDOM` ratio of pseudo-absences that are sampled randomly in the background
+
+-   `DIST_PA` if `METHOD_PA = "mindist"`, distance from presences (in meters), from which to define the background data. Expert use only
+
+-   `BACKGROUND_FILTER` additional background filter for finer tuning, such as selecting pseudo-absences within the sampled background of a given campaign or instrument deployment. Passed by the user in the form of a 2 column data frame, x = longitude and y = latitude where the pseudo-absences can be sampled. Or a path to a raster object where pseudo-absences are sampled in non NA cells, weighted by the cell values.
+
+-   `OUTLIER` if `TRUE`, remove outliers further than 2.5 standard deviation from the mean of the observations
+
+-   `UNIVARIATE` if `TRUE`, performs a uni-variate predictor pre-selection; discards predictors that do not present significant importance in explaining the patterns in the observations.
+
+-   `ENV_COR` numeric, removes the correlated environmental predictors from the query objects and `CALL` according to the defined threshold. Else `NULL`.
+
+-    `NFOLD` number of folds, used defined integer
+
+-   `FOLD_METHOD` method used to create the folds, integer between "`kfold`" and "`lon`"; respectively for normal k-fold or longitudinal block of observations (recommended to deal with spatial autocorrelation issues).
+
+-   `MODEL_LIST` list of algorithms from which to compute hyperparameter selection
+
+-   `LEVELS` maximum number of parameter values to test in each of the hyperparameter grids
+
+-   `TARGET_TRANSFORMATION` path to a `function(x, REVERSE = T/F)` to transform the target variable
+
+-   `ENSEMBLE` `TRUE` or `FALSE`; if `TRUE`, computes an ensemble at the evaluation and projection steps
+
+-   `N_BOOTSTRAP` number of bootstrap to do for the projections and partial dependency plots
+
+-   `CUT` numeric or `NULL`; if numeric, quantile (between 0 and 1) at which the projections are considered to be 0. Projection patches without observation are then removed.
+
+The function is assigned to `subfolder_list` as it also returns the list of species to parallelize on.
+
+```{r}
+subfolder_list <- run_init(FOLDER_NAME = run_name,
+                           SP_SELECT = sp_list,
+                           FAST = FALSE,
+                           LOAD_FROM = NULL,
+                           DATA_TYPE = "continuous",
+                           ENV_VAR = c("!dist2coast_allmonths", "!bbp_443_gsm_SeaWIFS_allmonths", "!chlor_a_SeaWIFS_allmonths", "!EKE_allmonths","!Kd_490_SeaWIFS_allmonths","!MLD_SODA","!par_SeaWIFS_allmonths",
+"!pco2_related_vars","!pic_SeaWIFS_allmonths","!wind_allmonths","!Zeu_lee_SeaWIFS_allmonths"),
+                           ENV_PATH = "/net/meso/work/nknecht/Masterarbeit/General_Pipeline/Data/environmental_climatologies",
+                           METHOD_PA = "density",
+                           PER_RANDOM = 0.05,
+                           OUTLIER = TRUE,
+                           UNIVARIATE = TRUE,
+                           ENV_COR = 0.8,
+                           NFOLD = 3,
+                           FOLD_METHOD = "lon",
+                           MODEL_LIST = c("GLM","GAM","RF","MLP"),
+                           LEVELS = 3,
+                           TARGET_TRANSFORMATION = "/net/meso/work/aschickele/Bluecloud_WB_local/function/target_transformation_yj_auto.R",
+                           ENSEMBLE = TRUE,
+                           N_BOOTSTRAP = 10,
+                           CUT = 0)
+```
+
+### 3. Build the biological dataset
+
+This step focuses on retrieving the biological data for the selected marine plankton species to extrapolate the distribution from. These data form the foundation for training and validating species distribution models. The availability and quality of this data are crucial for the success of the modeling process.
+
+The function is built in parallel over each species considered. It does not provide output in the console, as all the retrieve data are saved in a QUERY.RData object. As for all subsequent functions, the parameters are following:
+
+`FOLDER_NAME`: the name of the folder in which the run is saved
+
+`SUBFOLDER_NAME`: the name of all sub folders corresponding to each species to parallelize over
+
+```{r}
+mcmapply(FUN = query_bio_wrapper,
+         FOLDER_NAME = run_name,
+         SUBFOLDER_NAME = subfolder_list,
+         mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
+```
+
+### 4. Build environmental data
+
+This steps extracts the environmental data corresponding to each biological sample at the time and location of the sample. In addition, the data is regridded and binned on a 1 x 1° monthly resolution. Species that do not meet the minimum number of occurrence after binning are discarded. Therefore, we assign the ouput of this function to an updated `subfolder_list` object.
+
+```{r}
+subfolder_list <- mcmapply(FUN = query_env,
+                  FOLDER_NAME = run_name,
+                  SUBFOLDER_NAME = subfolder_list,
+                  mc.cores = min(length(subfolder_list), MAX_CLUSTERS)) %>% 
+  unlist() %>% 
+  na.omit(subfolder_list) %>% 
+  .[grep("Error", ., invert = TRUE)] %>%
+  as.vector()
+```
+
+### 5. Generate pseudo-absences if necessary
+
+For occurrence data, we need to artificially generate pseudo-absences to have a balanced dataset between 0 and 1's. This balance is crucial for accurate model training and predictive performance and best practices recommend pseudo-absences following the same biases as presences. They are by default generated following the nearby presence density. The function provides a .`PDF` file with the presence and pseudo-absence distribution in the geographical space (or the observations for continuous or proportion data types).
+
+```{r}
+mcmapply(FUN = pseudo_abs,
+         FOLDER_NAME = run_name,
+         SUBFOLDER_NAME = subfolder_list,
+         mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
+```
+
+### 6. Input data check
+
+In step 6, we rigorously check the biological and environmental dataset quality:
+
+-   We identify and handle biological outliers in the data to avoid introducing bias in the model training and extrapolated maps.
+
+-   We assess the quality and relevance of environmental predictor variables used in modeling by discarding correlated environmental predictors and discarding predictors that do not explain a significant portion of the observed data. This step is crucial for a parsimonious modelling design.
+
+-   We perform a Multivariate Environmental Similarity Surface (MESS) analysis to identify the geographical areas outside the range of environmental values in which the model has been trained (i.e., environmental extrapolation).
+
+Several .`PDF` files are provided in this steps, including a dendrogram of environmental predictor correlation, an a priori predictor importance and ranking of the predictors, as well as the corresponding loss after which, adding a predictor would not significantly increase the model performance.
+
+```{r}
+mcmapply(FUN = query_check,
+         FOLDER_NAME = run_name,
+         SUBFOLDER_NAME = subfolder_list,
+         mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
+```
+
+### 7. Generate training, test and evaluation splits
+
+This step is pivotal for model training and evaluation. We create data splits and resampling folds to facilitate the training and assessment of species distribution models. Proper partitioning of data is essential for robust modeling results, and assessing model performance in reproducing the observed patterns. The model training design is oriented around a n-time cross validation between train and test set to find the best hyperparameters for each algorithm. Then, each algorithm is tested against a final evaluation set to assess its performance against an independent dataset.
+
+```{r}
+mcmapply(FUN = folds,
+         FOLDER_NAME = run_name,
+         SUBFOLDER_NAME = subfolder_list,
+         mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
+```
+
+### 8. Definition of hyperparameters
+
+The step focuses on configuring hyperparameters for training the species distribution models algorithms. These hyperparameters dictate the model's behavior during training and significantly influence model performance.
+
+```{r}
+hyperparameter(FOLDER_NAME = run_name)
+```
+
+### 9. Algorithm training
+
+In step 9, we fit species distribution models to the data. We employ various modeling algorithms, such as Generalized Linear Models (`GLM`), Generalized Additive Models (`GAM`), Random Forest (`RF`), and Multilayer Perceptrons (`MLP`), to capture the relationships between environmental variables and species biological datasets.
+
+From this steps on, all outputs are saved in a `MODEL.Rdata` object in each species corresponding sub folder. The input parameters remain the same as all other steps, except the step 1 and 2.
+
+```{r}
+mcmapply(FUN = model_wrapper,
+         FOLDER_NAME = run_name,
+         SUBFOLDER_NAME = subfolder_list,
+         mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
+```
+
+### 10. Algorithm evaluation
+
+In this step, we assess the algorothm's performance. The performed quality checks contain:
+
+-   `FIT`: the metric quantifying the fitting performance of the algorithm. How well does it reproduces the patterns in the observed data?
+
+-   `VIP`: the variable importance (PDF output), that quantifies the contribution of each environmental predictor.
+
+-   `OVF`: the over-fitting rate, that quantifies the performance difference between the training and evaluation set.
+
+```{r}
+mcmapply(FUN = eval_wrapper,
+         FOLDER_NAME = run_name,
+         SUBFOLDER_NAME = subfolder_list,
+         mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
+```
+
+### 11. Spatial projections
+
+In this step, we built the projections for each algorithm. We retrain a full model with the parameters and hyperparameters previously selected and perform spatial projections for n-bootstrap resamples to estimate the associated uncertainty. A quality check is performed on this uncertainty estimation.
+
+```{r}
+mcmapply(FUN = proj_wrapper,
+         FOLDER_NAME = run_name,
+         SUBFOLDER_NAME = subfolder_list,
+         mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
+```
+
+### 12. Standard outputs
+
+This steps provides a summarized `PDF` output of the projections and quality checks for each species, algorithm and ensembles. The projections can be provided in a monthly resolution or any lower temporal resolution.
+
+```{r}
+mcmapply(FUN = standard_maps,
+         FOLDER_NAME = run_name,
+         SUBFOLDER_NAME = subfolder_list,
+         mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
+```
+
+In addition, we are also performing partial dependency plots for each species and environmental predictors. It shows the marginal response of the habitat suitability to each environmental predictor. The corresponding outputs are also saved in a `PDF` file.
+
+```{r}
+mcmapply(FUN = pdp,
+         FOLDER_NAME = run_name,
+         SUBFOLDER_NAME = subfolder_list,
+         mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
+```
+
+Finally, all PDF files present in each species folder can be summarized in a unique summary for users, concatenating all quality checks and outputs of the present workbench ecosystem run.
+
+```{r}
+user_synthesis(FOLDER_NAME = run_name)
+```
+
+Supplementary analysis such as diversity estimates can be performed by any user based on the information, data and output stored in the `QUERY` and `MODEL.Rdata` objects.
