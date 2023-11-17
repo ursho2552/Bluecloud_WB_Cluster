@@ -37,23 +37,18 @@ folds <- function(FOLDER_NAME = NULL,
   tmp <- cbind(Y, QUERY$X, QUERY$S)
   
   # --- 2.2. Do the initial split
+  # The initial split is done on 30% of the data, stratified, 
+  # to have a well representative evaluation sample
   # --- 2.2.1. For univariate data - strata is possible so we do it
-  if(CALL$FOLD_METHOD == "kfold" & CALL$DATA_TYPE != "proportions"){
+  if(CALL$DATA_TYPE != "proportions"){
     init_split <- tmp %>% 
-      initial_split(prop = 0.8,
+      initial_split(prop = 0.7,
                     strata = measurementvalue)
   }
   # --- 2.2.2. For multivariate data - strata is not possible
-  if(CALL$FOLD_METHOD == "kfold" & CALL$DATA_TYPE == "proportions"){
+  if(CALL$DATA_TYPE == "proportions"){
     init_split <- tmp %>% 
-      initial_split(prop = 0.8)
-  }
-  
-  # --- 2.2.3. Longitudinal block re sampling
-  if(CALL$FOLD_METHOD == "lon"){
-    init_split <- tmp %>% 
-      group_initial_split(prop = 0.8,
-                          group = c(decimallongitude))
+      initial_split(prop = 0.7)
   }
   
   # --- 2.2.3. Append FOLD object
@@ -100,8 +95,9 @@ folds <- function(FOLDER_NAME = NULL,
   # --- 5. Wrap up and save
   # --- 5.1. Save file(s)
   save(QUERY, file = paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))
-  
   # --- 5.2. Stop logs
   log_sink(FILE = sinkfile, START = FALSE)
+  # --- 5.3. Pretty return
+  return(SUBFOLDER_NAME)
   
 } # END FUNCTION

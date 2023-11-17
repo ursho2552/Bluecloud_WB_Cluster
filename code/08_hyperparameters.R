@@ -25,11 +25,6 @@ hyperparameter <- function(FOLDER_NAME = NULL){
                  family = stats::binomial(link = "logit")) %>% 
       step_normalize() %>% 
       translate()
-  } else if(CALL$DATA_TYPE == "continuous"){
-    HP$GLM$model_spec <- linear_reg(mode = "regression",
-                                    engine = "glm") %>% 
-      step_normalize() %>% 
-      translate()
   } else {
     HP$GLM$model_spec <- linear_reg(mode = "regression",
                                     engine = "glm") %>% 
@@ -48,13 +43,6 @@ hyperparameter <- function(FOLDER_NAME = NULL){
                                           select_features = TRUE) %>% 
       set_engine("mgcv",
                  family = stats::binomial(link = "logit")) %>% 
-      step_normalize() %>% 
-      translate()
-  } else if(CALL$DATA_TYPE == "continuous"){
-    HP$GAM$model_spec <- gen_additive_mod(mode = "regression",
-                                          engine = "mgcv",
-                                          adjust_deg_free = tune(),
-                                          select_features = TRUE) %>% 
       step_normalize() %>% 
       translate()
   } else {
@@ -85,29 +73,16 @@ hyperparameter <- function(FOLDER_NAME = NULL){
   
   # --- 2.4. SINGLE LAYER NEURAL NETWORK
   # --- 2.4.1. Define the model specifications
-  if(CALL$DATA_TYPE == "continuous"){
-    HP$MLP$model_spec <- mlp(mode = "regression",
-                             engine = "nnet",
-                             hidden_units = tune(),
-                             penalty = 0.01,
-                             dropout = 0,
-                             epochs = 100,
-                             activation = NULL,
-                             learn_rate = 1e-1) %>% 
-      step_normalize() %>% 
-      translate()
-  } else {
-    HP$MLP$model_spec <- mlp(mode = "regression",
-                             engine = "nnet",
-                             hidden_units = tune(),
-                             penalty = 0.01,
-                             dropout = 0,
-                             epochs = 100,
-                             activation = NULL,
-                             learn_rate = 1e-1) %>% 
-      step_normalize() %>% 
-      translate()
-  }
+  HP$MLP$model_spec <- mlp(mode = "regression",
+                           engine = "nnet",
+                           hidden_units = tune(),
+                           penalty = 0.01,
+                           dropout = 0,
+                           epochs = 100,
+                           activation = NULL,
+                           learn_rate = 1e-1) %>% 
+    step_normalize() %>% 
+    translate()
   
   
   # --- 2.4.2. Define the grid according to built in functions
@@ -130,25 +105,14 @@ hyperparameter <- function(FOLDER_NAME = NULL){
   
   # --- 2.6. SUPPORT VECTOR MACHINE
   # --- 2.6.1. Define the model specifications
-  if(CALL$DATA_TYPE == "continuous"){
-    HP$SVM$model_spec <- svm_rbf(mode = "regression",
-                                 engine = "kernlab",
-                                 cost = tune(),
-                                 rbf_sigma = tune(),
-                                 margin = tune()) %>% 
-      step_normalize() %>% 
-      translate()
-  } else {
-    HP$SVM$model_spec <- svm_rbf(mode = "regression",
-                                 engine = "kernlab",
-                                 cost = tune(),
-                                 rbf_sigma = tune(),
-                                 margin = tune()) %>% 
-      step_normalize() %>% 
-      translate()
-  }
+  HP$SVM$model_spec <- svm_rbf(mode = "regression",
+                               engine = "kernlab",
+                               cost = tune(),
+                               rbf_sigma = tune(),
+                               margin = tune()) %>% 
+    step_normalize() %>% 
+    translate()
 
-  
   # --- 2.6.2. Define the grid according to built in functions
   HP$SVM$model_grid <- grid_regular(cost(),
                                     rbf_sigma(),
@@ -173,7 +137,8 @@ hyperparameter <- function(FOLDER_NAME = NULL){
     HP$MODEL_LIST <- "MBTR"
   }
   
-  # --- 4. Append CALL and save
+  # --- 4. Wrap up and save
+  # --- 4.1. Append CALL and save
   CALL[["HP"]] <- HP
   save(CALL, file = paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
   
