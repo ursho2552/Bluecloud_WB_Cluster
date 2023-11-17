@@ -102,13 +102,15 @@ eval_proportions <- function(CALL,
     } else {pal <- "#B64A60"}
     
     # Simple barplot of the MBTR vip if the model passed QC
-    barplot(var_imp, rep(1,length(var_imp)), axes = FALSE,
-            main = paste("Model-level for : MBTR \n R2 =", 
-                         round(MODEL[["MBTR"]]$eval$R2, 2), "; CUM_VIP =", round(MODEL[["MBTR"]]$eval$CUM_VIP, 0)), 
-            col = pal, xlab = "", ylab = "Variable importance (%)", las = 2)
-    axis(side = 2, at = seq(0, 100, 10), labels = seq(0, 100, 10), las = 2)
-    abline(h = seq(0, 100, 10), lty = "dotted")
+    par(mar = c(6,2,3,20))
+    barplot(var_imp, rep(1,length(var_imp)), axes = FALSE, horizontal = TRUE,
+            main = "PREDICTOR IMPORTANCE ( MBTR )",
+            sub = paste("Predictive performance (R2) =", round(MODEL[["MBTR"]]$eval$R2, 2), "; Cumulated var. importance (%; top 3) =", round(MODEL[["MBTR"]]$eval$CUM_VIP, 0)), 
+            col = pal, ylab = "", xlab = "Variable importance (%)", las = 2)
+    axis(side = 4, at = seq(0, 100, 10), labels = seq(0, 100, 10), las = 2)
+    abline(v = seq(0, 100, 10), lty = "dotted")
     box()
+    box("figure", col = "black", lwd = 1)
   }
 
   # --- 5. Wrap up and save

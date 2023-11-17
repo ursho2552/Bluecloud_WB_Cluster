@@ -35,44 +35,53 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
   if(CALL$DATA_TYPE != "binary"){
     message("No Pseudo-absence generation necessary for this data type")
     pdf(paste0(project_wd,"/output/",FOLDER_NAME,"/",SUBFOLDER_NAME,"/01_observations.pdf"))
-    par(mfrow = c(2,2))
+    par(mfrow = c(2,2), mar = c(7,3,7,3))
     
     # --- 2.1.1. Geographical plot for continuous data
     # We plot an artificial land with the scale of the observation first, for the legend
     if(CALL$DATA_TYPE == "continuous"){
-      tmp <- (land-9998)*max(QUERY$Y$measurementvalue)
+      plot_scale <- quantile(QUERY$Y$measurementvalue, 0.95)
+      tmp <- (land-9998)*plot_scale
       tmp[1] <- 0
-      plot(tmp, col = inferno_pal(100), main = paste("Observation locations for:", SUBFOLDER_NAME), 
-           sub = paste("NB_OBS :",  nrow(QUERY$S)))
+      plot(tmp, col = inferno_pal(100), main = paste("OBSERVATIONS \n samples for ID:", SUBFOLDER_NAME), 
+           sub = paste("Nb. of observations after binning:",  nrow(QUERY$S)))
       plot(land, col = "antiquewhite4", legend=FALSE, add = TRUE)
+      # Now we scale the observation values
+      tmp <- QUERY$Y$measurementvalue
+      tmp[tmp>plot_scale] <- plot_scale
       points(QUERY$S$decimallongitude, QUERY$S$decimallatitude, 
-             col = col_numeric("inferno", domain = range(QUERY$Y$measurementvalue, na.rm = TRUE))(QUERY$Y$measurementvalue),
+             col = col_numeric("inferno", domain = c(0, plot_scale))(tmp),
              pch = 20)
+      box("figure", col="black", lwd = 1)
     }
 
     # --- 2.1.2. Geographical plot for proportion type
     if(CALL$DATA_TYPE == "proportions"){
-      plot(land, col = "antiquewhite4", legend=FALSE, main = paste("Observation locations for:", SUBFOLDER_NAME), 
-           sub = paste("NB_OBS :",  nrow(QUERY$S)))
+      plot(land, col = "antiquewhite4", legend=FALSE, main = paste("OBSERVATIONS \n samples for ID:", SUBFOLDER_NAME), 
+           sub = paste("Nb. of observations after binning:",  nrow(QUERY$S)))
       points(QUERY$S$decimallongitude, QUERY$S$decimallatitude, 
              col = "black", pch = 20)
+      box("figure", col="black", lwd = 1)
     }
     
     # --- 2.2. Histogram of values
-    hist(unlist(QUERY$Y), breaks = 25, col = alpha("black", 0.5), main = "Histogram of values", xlab = CALL$DATA_TYPE)
+    hist(unlist(QUERY$Y), breaks = 25, col = alpha("black", 0.5), main = "OBSERVATIONS \n Histogram of raw values", 
+         xlab = paste(CALL$DATA_TYPE, "observed values"))
+    box("figure", col="black", lwd = 1)
     
     # --- 2.3. Longitude and latitude profile
     hist(QUERY$S$decimallongitude, breaks = seq(-180,180, 10), col = alpha("black", 0.5), 
-         main = "Longitudinal spectrum", xlab = "Longitude")
+         main = "OBSERVATIONS \n Longitudinal spectrum", xlab = "Longitude")
+    box("figure", col="black", lwd = 1)
     
     hist(QUERY$S$decimallatitude, breaks = seq(-90,90, 10), col = alpha("black", 0.5), 
-         main = "Latitudinal spectrum", xlab = "Latitude")
-    
+         main = "OBSERVATIONS \n Latitudinal spectrum", xlab = "Latitude")
+    box("figure", col="black", lwd = 1)
     
     dev.off()
     
     log_sink(FILE = sinkfile, START = FALSE)
-    return(NULL)
+    return(SUBFOLDER_NAME)
   } # if datatype !binary
   
   # --- 3. Initialize background definition
@@ -186,25 +195,29 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
   
   # --- 5.Fast PDF to check the absences location
   pdf(paste0(project_wd,"/output/",FOLDER_NAME,"/",SUBFOLDER_NAME,"/01_pseudo_abs.pdf"))
-  par(mfrow = c(2,2))
+  par(mfrow = c(2,2), mar = c(7,3,7,3))
   
   # --- 5.1. Geographical distribution
-  plot(land, col = "antiquewhite4", legend=FALSE, main = paste("Obs. presence for:", SUBFOLDER_NAME), 
-       sub = paste("NB_OBS :",  nrow(QUERY$S)))
+  plot(land, col = "antiquewhite4", legend=FALSE, main = paste("OBSERVATIONS \n presence samples for ID:", SUBFOLDER_NAME), 
+       sub = paste("Nb. of observations after binning:",  nrow(QUERY$S)))
   points(QUERY$S$decimallongitude, QUERY$S$decimallatitude, col = alpha("black", 0.2), pch = 20)
+  box("figure", col="black", lwd = 1)
   
-  plot(land, col = "antiquewhite4", legend=FALSE, main = paste("Pseudo Abs for:", SUBFOLDER_NAME), 
+  plot(land, col = "antiquewhite4", legend=FALSE, main = paste("PSEUDO_ABSENCES \n location for ID:", SUBFOLDER_NAME), 
        sub = paste("NB_PA :", CALL$NB_PA, "// METHOD_PA :", CALL$METHOD_PA))
   points(xym[,1:2], col = alpha("red", 0.2), pch = 20)
+  box("figure", col="black", lwd = 1)
   
   # --- 5.2. Longitude and latitude profile
   hist(QUERY$S$decimallongitude, breaks = seq(-180,180, 10), col = alpha("black", 0.5), 
-       main = "Longitudinal spectrum", xlab = "Longitude")
+       main = "TARGET \n Longitudinal spectrum", xlab = "Longitude")
   hist(xym$x, breaks = seq(-180,180, 10), col = alpha("red", 0.5), add = TRUE)
+  box("figure", col="black", lwd = 1)
   
   hist(QUERY$S$decimallatitude, breaks = seq(-180,180, 10), col = alpha("black", 0.5), 
-       main = "Latitudinal spectrum", xlab = "Latitude")
+       main = "TARGET \n Latitudinal spectrum", xlab = "Latitude")
   hist(xym$y, breaks = seq(-180,180, 10), col = alpha("red", 0.5), add = TRUE)
+  box("figure", col="black", lwd = 1)
   dev.off()
   
   # --- 6. Append the query
@@ -236,5 +249,7 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
   save(QUERY, file = paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))
   # --- 7.2. Stop logs
   log_sink(FILE = sinkfile, START = FALSE)
+  # --- 7.3. Pretty return
+  return(SUBFOLDER_NAME)
   
 } # END FUNCTION

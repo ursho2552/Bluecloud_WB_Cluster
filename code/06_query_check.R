@@ -87,14 +87,15 @@ query_check <- function(FOLDER_NAME = NULL,
     
     # --- 2.6. Plot the corresponding dendrogram
     pdf(paste0(project_wd, "/output/", FOLDER_NAME, "/", SUBFOLDER_NAME,"/02_env_cor.pdf"))
-    par(mfrow = c(2,1), mar = c(8,5,5,3), cex = 0.6)
+    par(mfrow = c(1,1), mar = c(3,2,4,30), cex = 0.6)
     pal <- rep("#B64A60", length(features))
     pal[get_leaves_attr(features_clust, "label") %in% names(features_keep)] <- "#1F867B"
     labels_colors(features_clust) = pal
-    plot(features_clust, axes = FALSE, main = "Env. variable Pearson's correlation (r) at the sampling stations", cex = 0.5)
-    axis(side = 2, at = seq(0,1,0.2), labels = seq(1,0,-0.2), las = 1, cex.axis = 0.6)
-    abline(h = seq(0,1,0.2), col = "gray50", lty = "dashed")
-    abline(h = 1-CALL$ENV_COR, col = "#B64A60")
+    plot(features_clust, horiz = TRUE, axes = FALSE, 
+         main = "ENVIRONMENTAL PREDICTORS \n Pearson's correlation (r) at the sampling stations", cex = 0.5)
+    axis(side = 1, at = seq(0,1,0.2), labels = seq(1,0,-0.2), las = 1, cex.axis = 1)
+    abline(v = seq(0,1,0.2), col = "gray50", lty = "dashed")
+    abline(v = 1-CALL$ENV_COR, col = "#B64A60")
     dev.off()
     
     # --- 2.7. Update ENV_VAR
@@ -142,19 +143,25 @@ query_check <- function(FOLDER_NAME = NULL,
       message(paste("--- UNIVARIATE : Selecting", ENV_VAR, "\n"))
       
       # --- 3.6. Produce an information plot
-      pdf(paste0(project_wd, "/output/", FOLDER_NAME, "/", SUBFOLDER_NAME,"/03_univariate_predictor_selection.pdf"))
-      par(mfrow = c(2,1))
+      pdf(paste0(project_wd, "/output/", FOLDER_NAME, "/", SUBFOLDER_NAME,"/03_predictor_pre_selection.pdf"))
+      par(mfrow = c(2,1), mar = c(4,4,3,20))
       # --- Variable importance
-      boxplot(rfe_vip$Overall ~ rfe_vip$var, main = paste("Univariate predictor importance for:", SUBFOLDER_NAME), 
-              xlab = "", ylab = "", axes = FALSE, outline = FALSE,
-              col = c(rep("#1F867B", id), rep("#B64A60", ncol(features)-id)))
-      axis(side = 1, at = 1:ncol(features), labels = levels(rfe_vip$var), las = 2, cex.axis = 0.3)
-      axis(side = 2, at = c(seq(0, 15, 5), seq(0, 100, 20)), labels = c(seq(0, 15, 5), seq(0, 100, 20)), las = 2)
-      abline(h = c(seq(0, 15, 5), seq(0, 100, 20)), lty = "longdash", col = "gray50")
+      boxplot(rfe_vip$Overall ~ rfe_vip$var, 
+              main = paste("ENVIRONMENTAL PREDICTORS \n A-priori importance for ID:", SUBFOLDER_NAME), 
+              xlab = "Estimated importance (%)", ylab = "", axes = FALSE, outline = FALSE, horizontal = TRUE, 
+              col = c(rep("#1F867B", id), rep("#B64A60", ncol(features)-id)), cex.main = 0.7, cex.lab = 0.7)
+      axis(side = 4, at = 1:ncol(features), labels = levels(rfe_vip$var), las = 2, cex.axis = 0.8)
+      axis(side = 1, at = c(seq(0, 15, 5), seq(0, 100, 20)), labels = c(seq(0, 15, 5), seq(0, 100, 20)))
+      abline(v = c(seq(0, 15, 5), seq(0, 100, 20)), lty = "longdash", col = "gray50")
+      box()
+      box("figure", col="black", lwd = 1)
       # --- Number of variables
-      plot(rfe_fit$results$Variables, rfe_fit$results$RMSE, pch = 20, lwd = 3,
+      par(mar = c(4,4,3,20))
+      plot(rfe_fit$results$RMSE, rfe_fit$results$Variables, pch = 18, cex = 2,
            col = c(rep("#1F867B", id), rep("#B64A60", ncol(features)-id)),
-           main = paste("Optimal predictor number for:", SUBFOLDER_NAME), xlab = "Nb. of predictors", ylab = "RMSE")
+           main = paste("ENVIRONMENTAL PREDICTORS \n Optimal number for ID:", SUBFOLDER_NAME), 
+           ylab = "Nb. of considered predictors", xlab = "Loss metric (RMSE)", cex.main = 0.7, cex.lab = 0.7)
+      axis(side = 4, at = 1:ncol(features), labels = levels(rfe_vip$var), las = 2, cex.axis = 0.8)
       grid(col = "gray50")
       dev.off()
       
@@ -193,8 +200,9 @@ query_check <- function(FOLDER_NAME = NULL,
   # --- 5. Wrap up and save
   # --- 5.1. Save file(s)
   save(QUERY, file = paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))
-  
   # --- 5.2. Stop logs
   log_sink(FILE = sinkfile, START = FALSE)
+  # --- 5.3. Pretty return
+  return(SUBFOLDER_NAME)
   
 } # END FUNCTION

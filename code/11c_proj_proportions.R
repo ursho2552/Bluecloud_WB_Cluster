@@ -110,8 +110,16 @@ proj_proportions <- function(QUERY,
   NSD <- NSD/mean(y_hat, na.rm = TRUE)
   
   # --- 7. Append the MODEL object
+  # --- 7.1. Save the evaluation metric and projections
   MODEL[["MBTR"]][["proj"]][["y_hat"]] <- y_hat
   MODEL[["MBTR"]][["eval"]][["NSD"]] <- NSD
+  
+  # --- 7.2. Discard low quality models according to NSD
+  # Fixed at 50% average across the projection
+  if(MODEL[["MBTR"]][["eval"]][["NSD"]] > 0.5 | is.na(MODEL[["MBTR"]][["eval"]][["NSD"]])){
+    MODEL$MODEL_LIST <- MODEL$MODEL_LIST[MODEL$MODEL_LIST != "MBTR"]
+    message(paste("--- EVAL : discarded", "MBTR", "due to NSD =", MODEL[["MBTR"]][["eval"]][["NSD"]], "> 0.5 \n"))
+  }
   
   return(MODEL)
   

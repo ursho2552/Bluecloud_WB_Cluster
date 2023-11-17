@@ -72,5 +72,7 @@ query_bio_wrapper <- function(FOLDER_NAME = NULL,
   save(QUERY, file = paste0(project_wd, "/output/", FOLDER_NAME, "/", SUBFOLDER_NAME,"/QUERY.RData"))
   # --- 6.2. Stop logs
   log_sink(FILE = sinkfile, START = FALSE)
+  # --- 6.3. Pretty return
+  return(SUBFOLDER_NAME)
   
 } # END FUNCTION

@@ -222,24 +222,24 @@ pdp <- function(FOLDER_NAME = NULL,
   # --- 6. Plotting PDPs
   # --- 6.1 Create PDF saving
   pdf(paste0(project_wd,"/output/",FOLDER_NAME,"/",SUBFOLDER_NAME,"/06_pdp.pdf"))
-  par(mfrow = c(4,4), mar = c(2,2,4,5))
+  par(mfrow = c(4,3), mar = c(4,4,3,4))
   
   # --- 6.2. Initialize 
   # --- 6.2.1. Color palette
   if(CALL$DATA_TYPE == "proportions"){m_names <- names(pdp_all)
-  } else {m_names <- CALL$HP$MODEL_LIST}
+  } else {m_names <- MODEL$MODEL_LIST}
   pal <- brewer.pal(length(m_names), "Paired")
   if(CALL$DATA_TYPE != "proportions"){pal <- pal[which(m_names %in% MODEL$MODEL_LIST)]}
   
-  # --- 6.2.2. Plot scaling (average max across bootstrap)
+  # --- 6.2.2. Plot scaling (average Q95 across bootstrap)
   # Because continuous data are not between 0 and 1
   if(CALL$DATA_TYPE == "continuous"){
     plot_scale <- lapply(MODEL$MODEL_LIST, FUN = function(z){
-      z = MODEL[[z]]$proj$y_hat %>% apply(1, function(x)(x = mean(x, na.rm = TRUE))) %>% 
-        max(na.rm = TRUE)
+      z = MODEL[[z]]$proj$y_hat %>% apply(1, function(x)(x = mean(x, na.rm = TRUE)))
     }) %>% 
       unlist() %>% 
-      max(na.rm = TRUE)
+      quantile(0.95, na.rm = TRUE)
+    
   } else {
     plot_scale <- 1
   }
@@ -256,15 +256,16 @@ pdp <- function(FOLDER_NAME = NULL,
       if(j == 1){
         plot(tmp$x, tmp$y_hat_m, type = 'l', lwd = 1, col = pal[j],
              ylim = c(0, plot_scale),
-             xlab = "", ylab = "", main = i, cex.main = 0.6)
+             xlab = "Environmental value", ylab = "Norm. response", main = paste("PARTIAL DEPENDENCE \n (", i, ")"), cex.main = 0.8)
         polygon(x = c(tmp$x, rev(tmp$x)),
                 y = c(tmp$y_hat_m-tmp$y_hat_m*tmp$y_hat_cv/100, rev(tmp$y_hat_m+tmp$y_hat_m*tmp$y_hat_cv/100)),
                 col = scales::alpha(pal[j], 0.3), border = NA)
         mtext(side = 4, at = tail(tmp$y_hat_m, 1), text = m_names[j], col = pal[j], padj = 0.5, las = 1, cex = 0.6)
         grid(col = "gray20")
+        box("figure", col="black", lwd = 1)
       } else {
         lines(tmp$x, tmp$y_hat_m, type = 'l', ylim = c(0,1), lwd = 1, col = pal[j],
-             xlab = "", ylab = "", main = i)
+             xlab = "", ylab = "", main = "")
         polygon(x = c(tmp$x, rev(tmp$x)),
                 y = c(tmp$y_hat_m-tmp$y_hat_m*tmp$y_hat_cv/100, rev(tmp$y_hat_m+tmp$y_hat_m*tmp$y_hat_cv/100)),
                 col = scales::alpha(pal[j], 0.3), border = NA)
@@ -276,6 +277,8 @@ pdp <- function(FOLDER_NAME = NULL,
   # --- 7. Wrap up and save
   # --- 7.1. Stop PDF saving
   dev.off()
+  # --- 7.2. Pretty return
+  return(SUBFOLDER_NAME)
   
 } # END FUNCTION
 

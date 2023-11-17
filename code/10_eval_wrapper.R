@@ -65,5 +65,7 @@ eval_wrapper <- function(FOLDER_NAME = NULL,
   log_sink(FILE = sinkfile, START = FALSE)
   # --- 5.3. Stop PDF
   dev.off()
+  # --- 5.4. Pretty return
+  return(SUBFOLDER_NAME)
   
 } # END FUNCTION

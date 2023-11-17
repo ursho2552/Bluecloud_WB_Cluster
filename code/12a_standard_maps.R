@@ -33,7 +33,7 @@ standard_maps <- function(FOLDER_NAME = NULL,
   pdf(paste0(project_wd,"/output/",FOLDER_NAME,"/",SUBFOLDER_NAME,"/05_standard_maps.pdf"))
   
   # --- 1.5. Set initial plot layout & requirements
-  par(mfrow = c(4,3), mar = c(2,2,4,1))
+  par(mfrow = c(4,3), mar = c(2,2,7,1))
   r0 <- CALL$ENV_DATA[[1]][[1]]
   
   # --- 1.6 Land mask
@@ -43,18 +43,19 @@ standard_maps <- function(FOLDER_NAME = NULL,
   
   # --- 2. Plot the quality checks
   # --- 2.1. Compute the recommendation table
-  rec <- qc_recommandations(MODEL = MODEL)
+  rec <- qc_recommandations(MODEL = MODEL, DATA_TYPE = CALL$DATA_TYPE)
   traffic_col <- rep(rec$COL, each = 3)
   traffic_val <- rec[,1:3] %>% as.matrix() %>% t() %>% c()
   traffic_col[which(traffic_val == 0)] <- "white"
   # --- 2.2. Plot the traffic lights and recommendations
   plot.new()
-  if(CALL$DATA_TYPE != "proportions"){mtext(paste("QC for", QUERY$annotations$scientificname))}
-  par(mar = c(1,5,3,1), xpd = NA)
-  plot(x = rep(1:3, nrow(rec)), y = rep(nrow(rec):1, each = 3), axes = FALSE, cex = 4,
+  if(CALL$DATA_TYPE != "proportions"){mtext(paste("QUALITY CHECK \n", QUERY$annotations$scientificname, "\n ID:", QUERY$annotations$worms_id))}
+  if(CALL$DATA_TYPE == "proportions"){mtext(paste("QUALITY CHECK \n", QUERY$annotations$scientificname[loop_over], "\n ID:", QUERY$annotations$worms_id[loop_over]))}
+  par(mar = c(1,5,7,1), xpd = NA)
+  plot(x = rep(1:3, nrow(rec)), y = rep(nrow(rec):1, each = 3), axes = FALSE, cex = 3,
        xlim = c(0,4), ylim = c(0,nrow(rec)+1), ylab = "", xlab = "",
        pch = 21, col = "black", bg = traffic_col)
-  axis(side = 3, at = 1:3, labels = c("FIT","VIP","DEV"), tick = FALSE, line = NA, cex.axis = 1)
+  axis(side = 3, at = 1:3, labels = c("Perdictive \n performance","Cumulative \n var. imp.","Projection \n uncertainty"), tick = FALSE, line = NA, cex.axis = 1, las = 2)
   axis(side = 2, at = nrow(rec):1, labels = rownames(rec), tick = FALSE, line = NA, las = 2, cex.axis = 1)
   axis(side = 4, at = nrow(rec):1, labels = rec$Recommandation, tick = FALSE, line = NA, las = 2, cex.axis = 1)
   abline(h = 0) # PDF wide separator
@@ -84,7 +85,6 @@ standard_maps <- function(FOLDER_NAME = NULL,
   # This is only informative and the raster will be rescaled by the maximum
   axis(side = 1, at = seq(0, 1, length.out = 5), labels = round(seq(0, 1 * plot_scale, length.out = 5), 2))
   text(x = 0.5, y = 0.3, "Habitat Suitability Index", adj = 0.5)
-  abline(h = -0.5) # PDF wide separator
   # --- 3.2. Observation vs 75% quartile
   plot.new()
   points(x = 0.1, y = 0.4, pch = 22, col = "black", bg = "gray80", cex = 5)
@@ -97,7 +97,7 @@ standard_maps <- function(FOLDER_NAME = NULL,
   colmat_plot(bivar_pal, xlab = "Standard deviation", ylab = "MESS value")
   axis(side = 1, at = c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = round(seq(0, 1 * plot_scale*0.25, length.out = 6), 2))
   axis(side = 2, at = c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = c(0, -20, -40, -60, -80, -100), las = 2)
-  par(mar = c(2,2,4,1))
+  par(mar = c(4,2.5,3,1))
 
   # --- 4. Build model-level outputs
   for(i in loop_over){
@@ -113,6 +113,7 @@ standard_maps <- function(FOLDER_NAME = NULL,
       # Rescaled by the maximum to match the colorbar
       val <- apply(val_raw[,,m], 1, function(x)(x = mean(x, na.rm = TRUE)))
       r_m <- r0 %>% setValues(val / plot_scale)
+      r_m[r_m>1] <- 1 # set the maximum at Q95
       
       # --- 4.2.2. Coefficient of variation
       # Computes mean SD across bootstrap and than average across month
@@ -140,24 +141,28 @@ standard_maps <- function(FOLDER_NAME = NULL,
         tmp <- which(QUERY$annotations$worms_id == colnames(QUERY$Y)[i])
         plot(r_m, col = hsi_pal[max(1, floor(r_m@data@min*100)):min(100, ceiling(r_m@data@max*100))], 
              legend=FALSE, cex.main = 1,
-             main = paste("Average proj. for", QUERY$annotations$scientificname[tmp], "- m", paste(m, collapse = "."), "\n", 
-             names(MODEL[["MBTR"]][["eval"]])[1], "=", MODEL[["MBTR"]][["eval"]][[1]]))
+             main = paste("Projection for", QUERY$annotations$scientificname[tmp], "\n Month:", paste(m, collapse = ",")))
+        mtext(text = paste("Predictive performance (", names(MODEL[["MBTR"]][["eval"]])[1], ") =", MODEL[["MBTR"]][["eval"]][[1]]),
+              side = 1, line = 2, cex = 0.7)
       } else {
         # Abundance or habitat suitability values
         plot(r_m, col = hsi_pal[max(1, floor(r_m@data@min*100)):min(100, ceiling(r_m@data@max*100))], 
              legend=FALSE, cex.main = 1,
-             main = paste("Average proj. for", i, "- m", paste(m, collapse = "."), "\n", 
-                          names(MODEL[[i]][["eval"]])[1], "=", MODEL[[i]][["eval"]][[1]]))
+             main = paste("Projection (", i, ") \n Month:", paste(m, collapse = ",")))
+        mtext(text = paste("Predictive performance (", names(MODEL[[i]][["eval"]])[1], ") =", MODEL[[i]][["eval"]][[1]]),
+              side = 1, line = 2, cex = 0.7)
       }
       
       # Land mask
       plot(land, col = "antiquewhite4", legend=FALSE, add = TRUE)
+      box("figure", col="black", lwd = 1)
       
       # --- 4.3.2. Plot the observations
       # --- 4.3.2.1. Top abundance quartile as contour
       plot(r_m > quantile(r_m, 0.75), col = c("white","gray80"), legend=FALSE, main = "Observations")
       # --- 4.3.2.2. Land mask
       plot(land, col = "antiquewhite4", legend=FALSE, add = TRUE)
+      box("figure", col="black", lwd = 1)
       # --- 4.3.2.3. Observations location
       if(CALL$DATA_TYPE == "proportions"){tmp <- QUERY$S
       } else {tmp <- QUERY$S[which(QUERY$Y$measurementvalue > 0),]}
@@ -176,10 +181,20 @@ standard_maps <- function(FOLDER_NAME = NULL,
       # --- 4.3.3. Plot the uncertainties
       # Land mask
       plot(land, col = "antiquewhite4", legend=FALSE, main = "Uncertainties")
+      box("figure", col="black", lwd = 1)
       # SD x MESS plot
       r <- bivar_map(rasterx = r_sd, rastery = r_mess, colormatrix = bivar_pal,
                      cutx = seq(0,max(getValues(r_sd), na.rm = TRUE), length.out = 101), cuty = 0:100)
       plot(r[[1]], col = r[[2]], legend=FALSE, add = TRUE)
+      # Subtitle display of NSD
+      if(CALL$DATA_TYPE == "proportions"){
+        mtext(text = paste("Projection uncertainty (", names(MODEL[["MBTR"]][["eval"]])[4], ") =", round(MODEL[["MBTR"]][["eval"]][[4]],2)),
+              side = 1, line = 2, cex = 0.7)
+      } else {
+        mtext(text = paste("Projection uncertainty (", names(MODEL[[i]][["eval"]])[4], ") =", round(MODEL[[i]][["eval"]][[4]],2)),
+              side = 1, line = 2, cex = 0.7)
+      }
+      
       
     } # End m month loop
   } # End i model loop
@@ -187,24 +202,22 @@ standard_maps <- function(FOLDER_NAME = NULL,
   # --- 5. Build ensemble quality checks
   if(CALL$ENSEMBLE == TRUE & (length(MODEL$MODEL_LIST) > 1)){
     # --- 5.1. Compute the recommendation table
-    rec <- qc_recommandations(MODEL = MODEL, ENSEMBLE = TRUE)
+    rec <- qc_recommandations(MODEL = MODEL, DATA_TYPE = CALL$DATA_TYPE, ENSEMBLE = TRUE)
     traffic_col <- rep(rec$COL, each = 3)
     traffic_val <- rec[,1:3] %>% as.matrix() %>% t() %>% c()
     traffic_col[which(traffic_val == 0)] <- "white"
     # --- 2.2. Plot the traffic lights and recommendations
     plot.new()
-    par(mar = c(1,5,3,1), xpd = NA)
-    plot(x = rep(1:3, nrow(rec)), y = rep(nrow(rec):1, each = 3), axes = FALSE, cex = 4,
+    par(mar = c(1,5,7,1), xpd = NA)
+    plot(x = rep(1:3, nrow(rec)), y = rep(nrow(rec):1, each = 3), axes = FALSE, cex = 3,
          xlim = c(0,4), ylim = c(0,nrow(rec)+1), ylab = "", xlab = "",
          pch = 21, col = "black", bg = traffic_col)
-    axis(side = 3, at = 1:3, labels = c("FIT","VIP","DEV"), tick = FALSE, line = NA, cex.axis = 1)
+    axis(side = 3, at = 1:3, labels = c("Perdictive \n performance","Cumulative \n var. imp.","Projection \n uncertainty"), tick = FALSE, line = NA, cex.axis = 1, las = 2)
     axis(side = 2, at = nrow(rec):1, labels = rownames(rec), tick = FALSE, line = NA, las = 2, cex.axis = 1)
     axis(side = 4, at = nrow(rec):1, labels = rec$Recommandation, tick = FALSE, line = NA, las = 2, cex.axis = 1)
-    abline(h = 0) # PDF wide separator
     plot.new()
-    par(mar = c(2,2,4,1))
+    par(mar = c(4,2.5,3,1))
   } # End ensemble QC
-  
 
   # --- 6. Build ensemble outputs
   if(CALL$ENSEMBLE == TRUE & (length(MODEL$MODEL_LIST) > 1)){
@@ -217,8 +230,8 @@ standard_maps <- function(FOLDER_NAME = NULL,
     # --- 6.2.1. Mean value
     # Rescaled by the maximum to match the colorbar
     val <- apply(y_ens, 1, function(x)(x = mean(x, na.rm = TRUE)))
-    r_m <- r0 %>%
-      setValues(val / plot_scale)
+    r_m <- r0 %>% setValues(val / plot_scale)
+    r_m[r_m>1] <- 1 # set maximum at Q95
 
     # --- 6.2.2. Coefficient of variation
     val <- apply(y_ens, 1, function(x)(x = sd(x, na.rm = TRUE)))
@@ -231,15 +244,19 @@ standard_maps <- function(FOLDER_NAME = NULL,
     # --- 6.3.1. Plot the abundance
     # Abundance or habitat suitability values
     plot(r_m, col = hsi_pal[max(1, floor(r_m@data@min*100)):min(100, ceiling(r_m@data@max*100))], legend=FALSE,
-         main = "Average Ensemble proj.")
+         main = "Projection ( Ensemble )")
+    mtext(text = paste("Predictive performance (", names(MODEL[["ENSEMBLE"]][["eval"]])[1], ") =", round(MODEL[["ENSEMBLE"]][["eval"]][[1]],2)),
+          side = 1, line = 2, cex = 0.7)
     # Land mask
     plot(land, col = "antiquewhite4", legend=FALSE, add = TRUE)
+    box("figure", col="black", lwd = 1)
 
     # --- 6.3.2. Plot the observations
     # --- 6.3.2.1. Top abundance quartile as contour
     plot(r_m > quantile(r_m, 0.75), col = c("white","gray80"), legend=FALSE, main = "Observations")
     # --- 6.3.2.2. Land mask
     plot(land, col = "antiquewhite4", legend=FALSE, add = TRUE)
+    box("figure", col="black", lwd = 1)
     # --- 6.3.2.3. Observations 
     tmp <- QUERY$S[which(QUERY$Y$measurementvalue > 0),]
     if(CALL$DATA_TYPE == "continuous"){
@@ -253,10 +270,13 @@ standard_maps <- function(FOLDER_NAME = NULL,
     # --- 6.3.3. Plot the uncertainties
     # Land mask
     plot(land, col = "antiquewhite4", legend=FALSE, main = "Uncertainties")
+    box("figure", col="black", lwd = 1)
     # SD x MESS plot
     r <- bivar_map(rasterx = r_sd, rastery = r_mess, colormatrix = bivar_pal,
                    cutx = seq(0,max(getValues(r_sd), na.rm = TRUE), length.out = 101), cuty = 0:100)
     plot(r[[1]], col = r[[2]], legend=FALSE, add = TRUE)
+    mtext(text = paste("Predictive performance (", names(MODEL[["ENSEMBLE"]][["eval"]])[3], ") =", round(MODEL[["ENSEMBLE"]][["eval"]][[3]],2)),
+          side = 1, line = 2, cex = 0.7)
   } # End if ENSEMBLE = TRUE
 
   # --- 7. Wrap up and save
@@ -265,6 +285,8 @@ standard_maps <- function(FOLDER_NAME = NULL,
   # --- 7.2. Save model ensemble
   save(MODEL, file = paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/MODEL.RData"),
        compress = "gzip", compression_level = 6)
+  # --- 7.3. Pretty return
+  return(SUBFOLDER_NAME)
   
 } # END FUNCTION
 

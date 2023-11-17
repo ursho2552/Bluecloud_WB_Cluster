@@ -63,5 +63,7 @@ proj_wrapper <- function(FOLDER_NAME = NULL,
        compress = "gzip", compression_level = 6)
   # --- 5.2. Stop logs
   log_sink(FILE = sinkfile, START = FALSE)
+  # --- 5.3. Pretty return
+  return(SUBFOLDER_NAME)
   
 } # END FUNCTION

@@ -14,25 +14,20 @@ rm(list=ls())
 closeAllConnections()
 setwd("/net/meso/work/aschickele/Bluecloud_WB_local")
 source(file = "./code/00_config.R")
-run_name <- "diatom_div_continuous"
+run_name <- "nielja4"
 
 # --- 1. List the available species
 # Within the user defined selection criteria
 list_bio <- list_bio_wrapper(FOLDER_NAME = run_name,
-                             DATA_SOURCE = "abundance",
-                             SAMPLE_SELECT = list(MIN_SAMPLE = 50, TARGET_MIN_DEPTH = 0, TARGET_MAX_DEPTH = 100, START_YEAR = 1950, STOP_YEAR = 2020))
+                             DATA_SOURCE = "/net/meso/work/aschickele/Bluecloud_WB_local/data/Nielja_pteropods_NO_FUCKING_CPR.csv",
+                             SAMPLE_SELECT = list(MIN_SAMPLE = 30, TARGET_MIN_DEPTH = 0, TARGET_MAX_DEPTH = 200, START_YEAR = 1950, STOP_YEAR = 2020))
 
 # Define the list of species to consider
-sp_list <- list_bio %>% 
-  dplyr::filter(grepl("Diatom", source_tbl)) %>% 
-  dplyr::select(worms_id) %>%
-  unique() %>% pull()
-  
 sp_list <- list_bio$worms_id %>% unique()
-sp_list <- list_bio %>%
-  dplyr::filter(grepl("Tripos ", scientificname)) %>%
-  dplyr::select(worms_id) %>%
-  unique() %>% pull()
+# sp_list <- list_bio %>%
+#   dplyr::filter(grepl("Tripos ", scientificname)) %>%
+#   dplyr::select(worms_id) %>%
+#   unique() %>% pull()
 
 # --- 2. Create the output folder, initialize parallelisation and parameters
 # (1) Create an output folder containing all species-level runs, (2) Stores the 
@@ -41,9 +36,9 @@ subfolder_list <- run_init(FOLDER_NAME = run_name,
                            SP_SELECT = sp_list,
                            FAST = FALSE,
                            LOAD_FROM = NULL,
-                           DATA_TYPE = "binary",
-                           ENV_VAR = c("!dist2coast_allmonths"),
-                           ENV_PATH = "/net/meso/work/nknecht/Masterarbeit/General_Pipeline/Data/environmental_climatologies",
+                           DATA_TYPE = "continuous",
+                           ENV_VAR = NULL,
+                           ENV_PATH = "/net/meso/work/clercc/Predictors/PIPELINE_SET/TEST_SET",
                            METHOD_PA = "density",
                            PER_RANDOM = 0.05,
                            OUTLIER = TRUE,
@@ -63,7 +58,7 @@ subfolder_list <- run_init(FOLDER_NAME = run_name,
 mcmapply(FUN = query_bio_wrapper,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
-         mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
+         mc.cores = min(length(subfolder_list), MAX_CLUSTERS), USE.NAMES = FALSE)
 
 # --- 4. Query environmental data
 # This functions returns an updated subfolder_list object to avoid computing
@@ -81,60 +76,58 @@ subfolder_list <- mcmapply(FUN = query_env,
 mcmapply(FUN = pseudo_abs,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
-         mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
+         mc.cores = min(length(subfolder_list), MAX_CLUSTERS), USE.NAMES = FALSE)
 
 # --- 6. Outliers, Environmental predictor and MESS check 
 mcmapply(FUN = query_check,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
-         mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
+         mc.cores = min(length(subfolder_list), MAX_CLUSTERS), USE.NAMES = FALSE)
 
 # --- 7. Generate split and re sampling folds
 mcmapply(FUN = folds,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
-         mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
+         mc.cores = min(length(subfolder_list), MAX_CLUSTERS), USE.NAMES = FALSE)
 
 # --- 8. Hyper parameters to train
 hyperparameter(FOLDER_NAME = run_name)
 
-# --- 9. Model fit -- FIX : RF is very long for big data
+# --- 9. Model fit
 mcmapply(FUN = model_wrapper,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
-         mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
+         mc.cores = min(length(subfolder_list), MAX_CLUSTERS), USE.NAMES = FALSE)
 
 # --- 10. Model evaluation
 # Performance metric and variable importance
 mcmapply(FUN = eval_wrapper,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
-         mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
+         mc.cores = min(length(subfolder_list), MAX_CLUSTERS), USE.NAMES = FALSE)
 
 # ---11. Model projections
 mcmapply(FUN = proj_wrapper,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
-         mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
+         mc.cores = min(length(subfolder_list), MAX_CLUSTERS), USE.NAMES = FALSE)
 
 # --- 12. Output plots
 # --- 12.1. Standard maps per algorithms
 mcmapply(FUN = standard_maps,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
-         mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
+         mc.cores = min(length(subfolder_list), MAX_CLUSTERS), USE.NAMES = FALSE)
 
-# --- 12.2. Partial dependency plots - TAKES AGES FOR LARGE OCCURRENCE NUMBER
+# --- 12.2. Partial dependency plots
 mcmapply(FUN = pdp,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
-         mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
+         mc.cores = min(length(subfolder_list), MAX_CLUSTERS), USE.NAMES = FALSE)
 
 # --- 12.3 Diversity
 diversity_maps(FOLDER_NAME = run_name,
-               SUBFOLDER_NAME = subfolder_list,
-               BUFFER = 1,
-               N_BOOTSTRAP = 10)
+               SUBFOLDER_NAME = subfolder_list)
 
 # --- 12.4 User synthesis
 user_synthesis(FOLDER_NAME = run_name)

@@ -23,16 +23,16 @@ eval_continuous <- function(CALL,
     y_hat <- final_fit$.pred
     
     # --- 1.3. Compute R-squared into MODELS object
-    # df <- data.frame(truth = y, estimate = y_hat)
-    # MODEL[[i]][["eval"]][["R2"]] <- yardstick::rsq(data = df, truth, estimate ) %>%
-    #   .$.estimate %>%
-    #   round(3)
-    
-    # --- 1.3. Compute the slope of a LM
-    lm <- lm(y_hat~y-1)
-    MODEL[[i]][["eval"]][["R2"]] <- (1-abs(lm$coefficients-1)) %>% 
-      as.numeric() %>% 
+    df <- data.frame(truth = y, estimate = y_hat)
+    MODEL[[i]][["eval"]][["R2"]] <- yardstick::rsq(data = df, truth, estimate ) %>%
+      .$.estimate %>%
       round(3)
+    
+    # # --- 1.3. Compute the slope of a LM
+    # lm <- lm(y_hat~y-1)
+    # MODEL[[i]][["eval"]][["R2"]] <- (1-abs(lm$coefficients-1)) %>% 
+    #   as.numeric() %>% 
+    #   round(3)
 
     # --- 1.4. Compute an over-fitting rate
     # Calculated as the deviation during training to deviation in testing ratio
@@ -100,10 +100,9 @@ eval_continuous <- function(CALL,
   # --- 3. Removing low quality algorithms
   for(i in MODEL$MODEL_LIST){
     # --- 3.1. Based on model performance
-    # Fixed at 0.3 for CBI value or NA (in case of a 0 & 1 binary model prediction)
-    if(MODEL[[i]][["eval"]][["R2"]] < 0.5 | is.na(MODEL[[i]][["eval"]][["R2"]])){
+    if(MODEL[[i]][["eval"]][["R2"]] < 0.25 | is.na(MODEL[[i]][["eval"]][["R2"]])){
       MODEL$MODEL_LIST <- MODEL$MODEL_LIST[MODEL$MODEL_LIST != i]
-      message(paste("--- EVAL : discarded", i, "due to R2 =", MODEL[[i]][["eval"]][["R2"]], "< 0.5 \n"))
+      message(paste("--- EVAL : discarded", i, "due to R2 =", MODEL[[i]][["eval"]][["R2"]], "< 0.25 \n"))
     }
     
     # --- 3.2. Based on cumulative variable importance
@@ -155,7 +154,7 @@ eval_continuous <- function(CALL,
   
   # --- 6. Variable importance - Plot
   # --- 6.1. Graphical specification
-  par(mfrow = c(3,3), mar = c(5,3,5,1))
+  par(mfrow = c(3,1), mar = c(6,2,3,20))
   
   # --- 6.2. Define plots to display
   # All if FAST == FALSE; those that passed QC if there is more than 1
@@ -177,27 +176,29 @@ eval_continuous <- function(CALL,
       
       # Do the plot
       tmp <- var_imp[[i]][["Percent"]]
-      boxplot(tmp$value ~ tmp$variable, axes = FALSE, 
-              main = paste("Model-level for :", i, 
-                           "\n R2 =", round(MODEL[[i]]$eval$R2, 2), "; CUM_VIP =", round(MODEL[[i]]$eval$CUM_VIP, 0)), 
-              col = pal, xlab = "", ylab = "Variable importance (%)")
-      axis(side = 1, at = 1:ncol(features), labels = levels(tmp$variable), las = 2, cex.axis = 0.6)
-      axis(side = 2, at = seq(0, 100, 10), labels = seq(0, 100, 10), las = 2)
-      abline(h = seq(0, 100, 10), lty = "dotted")
+      boxplot(tmp$value ~ tmp$variable, axes = FALSE, horizontal = TRUE,
+              main = paste("PREDICTOR IMPORTANCE (", i, ")"),
+              sub = paste("Predictive performance (R2) =", round(MODEL[[i]]$eval$R2, 2), "; Cumulated var. importance (%; top 3) =", round(MODEL[[i]]$eval$CUM_VIP, 0)),
+              col = pal, ylab = "", xlab = "Variable importance (%)")
+      axis(side = 4, at = 1:ncol(features), labels = levels(tmp$variable), las = 2, cex.axis = 0.6)
+      axis(side = 1, at = seq(0, 100, 10), labels = seq(0, 100, 10))
+      abline(v = seq(0, 100, 10), lty = "dotted")
       box()
+      box("figure", col="black", lwd = 1)
     } # End i model loop
     
     # --- 6.3.2. Ensemble level plot
     if(CALL$ENSEMBLE == TRUE & (length(MODEL$MODEL_LIST) > 1)){
       tmp <- var_imp[["ENSEMBLE"]][["Percent"]] 
-      boxplot(tmp$value ~ tmp$variable, axes = FALSE, 
-              main = paste("Ensemble",
-                           "\n R2 =", round(MODEL[["ENSEMBLE"]]$eval$R2, 2), "; CUM_VIP =", round(MODEL[["ENSEMBLE"]]$eval$CUM_VIP, 0)), 
-              col = "gray50", xlab = "", ylab = "Variable importance (%)")
-      axis(side = 1, at = 1:ncol(features), labels = levels(tmp$variable), las = 2, cex.axis = 0.6)
-      axis(side = 2, at = seq(0, 100, 10), labels = seq(0, 100, 10), las = 2)
-      abline(h = seq(0, 100, 10), lty = "dotted")
+      boxplot(tmp$value ~ tmp$variable, axes = FALSE, horizontal = TRUE,
+              main = "PREDICTOR IMPORTANCE ( Ensemble )",
+              sub = paste("Predictive performance (R2) =", round(MODEL[["ENSEMBLE"]]$eval$R2, 2), "; Cumulated var. importance (%; top 3) =", round(MODEL[["ENSEMBLE"]]$eval$CUM_VIP, 0)), 
+              col = "gray50", ylab = "", xlab = "Variable importance (%)")
+      axis(side = 4, at = 1:ncol(features), labels = levels(tmp$variable), las = 2, cex.axis = 0.6)
+      axis(side = 1, at = seq(0, 100, 10), labels = seq(0, 100, 10))
+      abline(v = seq(0, 100, 10), lty = "dotted")
       box()
+      box("figure", col="black", lwd = 1)
     } # End if ensemble TRUE
     
   } # End if model list > 1 or FAST == FALSE

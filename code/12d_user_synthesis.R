@@ -47,7 +47,7 @@ the user, however.")
   
   text(x = 0, y = 0.9, cex = 0.7, font = 1, adj = c(0,1), "The following parameters are related to the biological sample selection:")
   text(x = 0, y = 0.85, cex = 0.7, font = 1, adj = c(0,1), paste("     - Minimum number of sample per species:", CALL$SAMPLE_SELECT$MIN_SAMPLE))
-  text(x = 0, y = 0.8, cex = 0.7, font = 1, adj = c(0,1), paste("     - Depth range of the samples:", CALL$SAMPLE_SELECT$MIN_DEPTH, "to", CALL$SAMPLE_SELECT$MAX_DEPTH, "m"))
+  text(x = 0, y = 0.8, cex = 0.7, font = 1, adj = c(0,1), paste("     - Depth range of the samples:", CALL$SAMPLE_SELECT$TARGET_MIN_DEPTH, "to", CALL$SAMPLE_SELECT$TARGET_MAX_DEPTH, "m"))
   text(x = 0, y = 0.75, cex = 0.7, font = 1, adj = c(0,1), paste("     - Time range of the samples:", CALL$SAMPLE_SELECT$START_YEAR, "to", CALL$SAMPLE_SELECT$STOP_YEAR))
   
   text(x = 0, y = 0.65, cex = 0.7, font = 1, adj = c(0,1), "The following parameters are related to the type of data used:")

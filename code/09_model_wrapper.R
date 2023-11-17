@@ -61,5 +61,7 @@ model_wrapper <- function(FOLDER_NAME = NULL,
   save(MODEL, file = paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/MODEL.RData"))
   # --- 5.2. Stop logs
   log_sink(FILE = sinkfile, START = FALSE)
+  # --- 5.3. Pretty return
+  return(SUBFOLDER_NAME)
 
 } # END FUNCTION

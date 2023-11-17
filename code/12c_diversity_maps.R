@@ -117,7 +117,7 @@ diversity_maps <- function(FOLDER_NAME = NULL,
   # --- 7. Diversity plots
   # --- 7.1. Initialize pdf and plot
   pdf(paste0(project_wd,"/output/",FOLDER_NAME,"/diversity_maps.pdf"))
-  par(mfrow = c(4,2), mar = c(2,3,3,3))
+  par(mfrow = c(3,2), mar = c(2,3,3,3))
   
   # --- 7.2. Plot the legends
   # --- 7.2.1. Diversity legend
@@ -134,7 +134,7 @@ diversity_maps <- function(FOLDER_NAME = NULL,
   colmat_plot(bivar_pal, xlab = "Standard deviation", ylab = "MESS value")
   axis(side = 1, at = c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = round(seq(0, 0.25, length.out = 6), 2))
   axis(side = 2, at = c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = c(0, -20, -40, -60, -80, -100), las = 2)
-  par(mar = c(1,3,3,1))
+  par(mar = c(5,3,3,1))
   
   # --- 7.3. Plot diversity maps
   # Loop over diversity maps and projections
@@ -159,16 +159,23 @@ diversity_maps <- function(FOLDER_NAME = NULL,
       
       # --- 7.3.3. Average projection
       plot(r_m, col = inferno_pal(100), legend=FALSE,
-           main = paste(div_names[i], "\n month:", paste(m, collapse = ","), "--- scale f.:", round(plot_scale,2)))
+           main = paste("DIVERSITY (",div_names[i], ") \n Month:", paste(m, collapse = ",")), cex.main = 1)
+      mtext(text = paste("Projection rescaling factor: ", round(plot_scale,2), 
+                         "\n Number of species ensembles:", dim(all_ens)[[2]]),
+            side = 1, line = 3, cex = 0.7)
       plot(land, col = "antiquewhite4", legend=FALSE, add = TRUE)
+      plot(raster::rasterToContour(r_m, nlevels = 4), add = TRUE)
+      box("figure", col="black", lwd = 1)
       
       # --- 7.3.4. Uncertainties projection
       # First we draw a land mask
-      plot(land, col = "antiquewhite4", legend=FALSE, main = "Uncertainties")
+      plot(land, col = "antiquewhite4", legend=FALSE, main = "Uncertainties", cex.main = 1)
       # Then compute and plot the 2-dimensional color scale for SD x MESS
       r <- bivar_map(rasterx = r_sd, rastery = r_mess, colormatrix = bivar_pal,
                      cutx = seq(0,max(getValues(r_sd), na.rm = TRUE), length.out = 101), cuty = 0:100)
       plot(r[[1]], col = r[[2]], legend=FALSE, add = TRUE)
+      plot(raster::rasterToContour(r_sd, nlevels = 4), add = TRUE)
+      box("figure", col="black", lwd = 1)
       
     } # m month
   } # i diversity

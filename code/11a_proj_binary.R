@@ -114,12 +114,20 @@ proj_binary <- function(QUERY,
     NSD <- NSD/mean(y_hat, na.rm = TRUE)
     
     # --- 7. Append the MODEL object
+    # --- 7.1. Save the evaluation metric and projections
     MODEL[[i]][["proj"]][["y_hat"]] <- y_hat
     MODEL[[i]][["eval"]][["NSD"]] <- NSD
     
+    # --- 7.2. Discard low quality models according to NSD
+    # Fixed at 50% average across the projection
+    if(MODEL[[i]][["eval"]][["NSD"]] > 0.5 | is.na(MODEL[[i]][["eval"]][["NSD"]])){
+      MODEL$MODEL_LIST <- MODEL$MODEL_LIST[MODEL$MODEL_LIST != i]
+      message(paste("--- EVAL : discarded", i, "due to NSD =", MODEL[[i]][["eval"]][["NSD"]], "> 0.5 \n"))
+    }
+    
   } # for i model loop
   
-  # --- 7. Build the ensemble NSD if there is an ensemble
+  # --- 8. Build the ensemble NSD if there is an ensemble
   if(CALL$ENSEMBLE == TRUE & (length(MODEL$MODEL_LIST) > 1)){
     MODEL[["ENSEMBLE"]][["eval"]][["NSD"]] <- lapply(MODEL$MODEL_LIST, 
                                                      FUN = function(x){
