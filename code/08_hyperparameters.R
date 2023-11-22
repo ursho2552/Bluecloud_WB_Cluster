@@ -39,8 +39,8 @@ hyperparameter <- function(FOLDER_NAME = NULL){
   # --- 2.2.1. Define the model specifications
   if(CALL$DATA_TYPE == "binary"){
     HP$GAM$model_spec <- gen_additive_mod(mode = "regression",
-                                          adjust_deg_free = tune(),
-                                          select_features = TRUE) %>% 
+                                          # adjust_deg_free = tune(),
+                                          select_features = FALSE) %>% 
       set_engine("mgcv",
                  family = stats::binomial(link = "logit")) %>% 
       step_normalize() %>% 
@@ -48,15 +48,15 @@ hyperparameter <- function(FOLDER_NAME = NULL){
   } else {
     HP$GAM$model_spec <- gen_additive_mod(mode = "regression",
                                           engine = "mgcv",
-                                          adjust_deg_free = tune(),
-                                          select_features = TRUE) %>% 
+                                          # adjust_deg_free = tune(),
+                                          select_features = FALSE) %>% 
       step_normalize() %>% 
       translate()
   }
   
   # --- 2.2.2. Define the grid according to built in functions
-  HP$GAM$model_grid <- grid_regular(adjust_deg_free(),
-                                    levels = CALL$LEVELS)
+  # HP$GAM$model_grid <- grid_regular(adjust_deg_free(range = c(0.5, 1.5)),
+  #                                   levels = CALL$LEVELS)
   
   
   # --- 2.1. RANDOM FOREST 
