@@ -5,6 +5,7 @@ Sys.setenv(RETICULATE_PYTHON = "/UP_home/aschickele/.virtualenvs/r-reticulate/bi
 # --- 2. R Packages
 # --- 2.1. General use
 if(!require("devtools")){install.packages("devtools")}
+if(!require("abind")){install.packages("abind")}
 
 # --- 2.2. Tidy environment-related
 if(!require("tidyverse")){install.packages("tidyverse")}

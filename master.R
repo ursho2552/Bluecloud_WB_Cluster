@@ -14,7 +14,7 @@ rm(list=ls())
 closeAllConnections()
 setwd("/net/meso/work/aschickele/Bluecloud_WB_local")
 source(file = "./code/00_config.R")
-run_name <- "meike3"
+run_name <- "meike2"
 
 # --- 1. List the available species
 # Within the user defined selection criteria
@@ -46,7 +46,7 @@ subfolder_list <- run_init(FOLDER_NAME = run_name,
                            ENV_COR = 0.8,
                            NFOLD = 3,
                            FOLD_METHOD = "lon",
-                           MODEL_LIST = c("GLM","GAM","RF","MLP"),
+                           MODEL_LIST = c("GLM","GAM","RF","MLP","BRT","SVM"),
                            LEVELS = 3,
                            TARGET_TRANSFORMATION = "/net/meso/work/aschickele/Bluecloud_WB_local/function/target_transformation_yj_auto.R",
                            ENSEMBLE = TRUE,

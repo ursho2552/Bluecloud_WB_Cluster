@@ -28,6 +28,11 @@ list_occurrence <- function(DATA_SOURCE,
   # --- 1.2. Nice names
   colnames(data_list) <- c("worms_id","taxonrank","scientificname","obis_occ")
   
+  # --- 1.3. Remove spurious names from OBIS (e.g., including NA, brackets etc...)
+  # There has been a OBIS update and now some names contain brackets...
+  data_list <- data_list %>% 
+    dplyr::filter(!grepl("\\[", scientificname)) # double backslash to escape the meaning of "["
+  
   # --- 2. Complete with GBIF
   # --- 2.1. Retrieve occurrence number
   # We cannot apply year and depth filter here. It will be done later in the query check step
