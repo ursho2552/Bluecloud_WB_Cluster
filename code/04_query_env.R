@@ -141,6 +141,14 @@ query_env <- function(FOLDER_NAME = NULL,
   QUERY[["Y"]] <- Y
   QUERY[["S"]] <- S
   QUERY[["X"]] <- X
+  # And a QC on the sample size or col/row ratio after env. binning
+  if(nrow(Y) >= CALL$SAMPLE_SELECT$MIN_SAMPLE & nrow(Y)/ncol(Y) > 5){
+    QUERY[["eval"]][["SAMPLE_SIZE"]] <- TRUE
+  } else {
+    QUERY[["eval"]][["SAMPLE_SIZE"]] <- FALSE
+  } # end if
+  
+  # Save
   save(QUERY, file = paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))
   
   # --- 8.3. Stop logs
