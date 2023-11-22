@@ -1,44 +1,51 @@
 # --- 1. System arguments
-Sys.setenv(HDF5_USE_FILE_LOCKING="FALSE") # to be able to open .nc from complex
+Sys.setenv(HDF5_USE_FILE_LOCKING="FALSE") # to be able to open .nc
 Sys.setenv(RETICULATE_PYTHON = "/UP_home/aschickele/.virtualenvs/r-reticulate/bin/python")
 
 # --- 2. R Packages
-# --- 2.1. Tidy environment-related
-library(tidyverse)
-library(tidymodels)
-library(DALEX)
-library(DALEXtra)
-library(parallel)
-library(abind) 
-library(caret)
-library(xgboost)
+# --- 2.1. General use
+if(!require("devtools")){install.packages("devtools")}
 
-# --- 2.2. Data table opening and storage
-library(RSQLite)
-library(feather) 
-library(vroom)
+# --- 2.2. Tidy environment-related
+if(!require("tidyverse")){install.packages("tidyverse")}
+if(!require("tidymodels")){install.packages("tidymodels")}
+if(!require("DALEX")){install.packages("DALEX")}
+if(!require("DALEXtra")){install.packages("DALEXtra")}
+if(!require("parallel")){install.packages("parallel")}
+if(!require("caret")){install.packages("caret")}
+if(!require("xgboost")){install.packages("xgboost")}
 
-# --- 2.2. Spatial data and object
-library(raster)
-library(virtualspecies) 
-library(ncdf4)
-library(usdm)
+# --- 2.3. Data table opening and storage
+if(!require("RSQLite")){install.packages("RSQLite")}
+if(!require("feather")){install.packages("feather")}
+if(!require("vroom")){install.packages("vroom")}
 
-# --- 2.3. Data access service
-library(phyloseq)
-library(MGnifyR)
-library(robis)
-library(rgbif)
+# --- 2.4. Spatial data and object
+if(!require("raster")){install.packages("raster")}
+if(!require("virtualspecies")){install.packages("virtualspecies")}
+if(!require("ncdf4")){install.packages("ncdf4")}
+if(!require("usdm")){install.packages("usdm")}
 
-# --- 2.4. Others
-library(RColorBrewer) 
-library(fields)
-library(pastecs)
-library(ecospat)
-library(reticulate) 
-library(dendextend)
-library(mvrsquared)
-library(bestNormalize)
+# --- 2.5. Data access service
+if(!require("phyloseq")){
+  if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+  BiocManager::install("phyloseq")}
+if(!require("MGnifyR")){
+  if (!requireNamespace("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+  BiocManager::install("MGnifyR")}
+if(!require("robis")){install.packages("robis")}
+if(!require("rgbif")){install.packages("rgbif")}
+
+# --- 2.6. Others
+if(!require("RColorBrewer")){install.packages("RColorBrewer")}
+if(!require("fields")){install.packages("fields")}
+if(!require("pastecs")){install.packages("pastecs")}
+if(!require("ecospat")){install.packages("ecospat")}
+if(!require("dendextend")){install.packages("dendextend")}
+if(!require("mvrsquared")){install.packages("mvrsquared")}
+if(!require("bestNormalize")){install.packages("bestNormalize")}
 
 # --- Seed
 set.seed(123)
