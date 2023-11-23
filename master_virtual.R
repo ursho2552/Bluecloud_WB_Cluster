@@ -14,15 +14,13 @@ rm(list=ls())
 closeAllConnections()
 setwd("/net/meso/work/aschickele/Bluecloud_WB_local")
 source(file = "./code/00_config.R")
-run_name <- "VIRTUALSPECIES_continuous_5_wnoise_auto_LMslope"
+run_name <- "VIRTUALSPECIES_continuous"
 
 # --- 0. Generate the virtual species
 source(file = "./preparation/generate_virtual.R")
-VIRTUAL <- generate_virtual(ENV_VAR = c("!dist2coast_allmonths", "!bbp_443_gsm_SeaWIFS_allmonths","!chlor_a_SeaWIFS_allmonths",
-                                        "!EKE_allmonths","!Kd_490_SeaWIFS_allmonths","!MLD_SODA","!par_SeaWIFS_allmonths",
-                                        "!pco2_related_vars","!pic_SeaWIFS_allmonths","!wind_allmonths","!Zeu_lee_SeaWIFS_allmonths"),
-                            ENV_PATH = "/net/meso/work/nknecht/Masterarbeit/General_Pipeline/Data/environmental_climatologies",
-                            MONTH = 4,
+VIRTUAL <- generate_virtual(ENV_VAR = NULL,
+                            ENV_PATH = "/net/meso/work/clercc/Predictors/PIPELINE_SET/TEST_SET",
+                            MONTH = 6,
                             NOISE_SD = c(1,2,3),
                             DATA_TYPE = "continuous")
 
@@ -44,10 +42,8 @@ subfolder_list <- run_init(FOLDER_NAME = run_name,
                            FAST = FALSE,
                            LOAD_FROM = NULL,
                            DATA_TYPE = "continuous",
-                           ENV_VAR = c("!dist2coast_allmonths", "!bbp_443_gsm_SeaWIFS_allmonths","!chlor_a_SeaWIFS_allmonths",
-                                       "!EKE_allmonths","!Kd_490_SeaWIFS_allmonths","!MLD_SODA","!par_SeaWIFS_allmonths",
-                                       "!pco2_related_vars","!pic_SeaWIFS_allmonths","!wind_allmonths","!Zeu_lee_SeaWIFS_allmonths"),
-                           ENV_PATH = "/net/meso/work/nknecht/Masterarbeit/General_Pipeline/Data/environmental_climatologies",
+                           ENV_VAR = NULL,
+                           ENV_PATH = "/net/meso/work/clercc/Predictors/PIPELINE_SET/TEST_SET",
                            METHOD_PA = "density",
                            PER_RANDOM = 0.05,
                            OUTLIER = TRUE,
@@ -55,7 +51,7 @@ subfolder_list <- run_init(FOLDER_NAME = run_name,
                            ENV_COR = 0.8,
                            NFOLD = 3,
                            FOLD_METHOD = "lon",
-                           MODEL_LIST = c("GLM","GAM","RF","MLP"),
+                           MODEL_LIST = c("GLM","GAM","RF","MLP","BRT","SVM"),
                            LEVELS = 3,
                            ENSEMBLE = TRUE,
                            N_BOOTSTRAP = 10,
@@ -87,10 +83,13 @@ mcmapply(FUN = pseudo_abs,
          mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
 
 # --- 6. Outliers, Environmental predictor and MESS check 
-mcmapply(FUN = query_check,
-         FOLDER_NAME = run_name,
-         SUBFOLDER_NAME = subfolder_list,
-         mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
+subfolder_list <- mcmapply(FUN = query_check,
+                           FOLDER_NAME = run_name,
+                           SUBFOLDER_NAME = subfolder_list,
+                           mc.cores = min(length(subfolder_list), MAX_CLUSTERS)) %>% 
+  unlist() %>% 
+  na.omit(subfolder_list) %>% 
+  as.vector()
 
 # --- 7. Generate split and re sampling folds
 mcmapply(FUN = folds,

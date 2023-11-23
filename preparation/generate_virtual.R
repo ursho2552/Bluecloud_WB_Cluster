@@ -206,32 +206,51 @@ evaluate_virtual <- function(FOLDER_NAME){
   # --- 1.1. Load necessary objects
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/VIRTUAL.RData"))
-  SUBFOLDER_NAME <- CALL$SP_SELECT
   
-  # --- 1.2. Get virtual projections
+  # --- 1.2. Update SUBFOLDER_NAME
+  # Only those that contains a MODEL.RData; i.e. in case of discard due to env.
+  subdir <- list.dirs(paste0(project_wd, "/output/", FOLDER_NAME), full.names = FALSE)
+  subdir_with_model <- character(0)
+  for(s in subdir){
+    if("MODEL.RData" %in% list.files(paste0(project_wd, "/output/", FOLDER_NAME, "/", s), full.names = FALSE)){
+      subdir_with_model <- c(subdir_with_model, s)
+    }
+  }
+  SUBFOLDER_NAME <- subdir_with_model
+  
+  # --- 1.3. Get virtual projections
   message("--- VIRTUAL : Get virtual projections")
   virtual_proj <- lapply(1:length(VIRTUAL$distribution), function(x){
     out <- VIRTUAL$distribution[[x]]$suitab.raster %>% raster()
     return(out)
   }) %>% stack()
   
-  # --- 1.3. Get parameter grid
+  # --- 1.4. Get parameter grid
   message("--- VIRTUAL : Get parameter grid")
-  tmp <- VIRTUAL$sample_parameters %>% 
-    mutate(SUBFOLDER_NAME = paste(SP, N, BIAS, NOISE_SD))
+  if(CALL$DATA_TYPE == "binary"){
+    tmp <- VIRTUAL$sample_parameters %>% 
+      mutate(SUBFOLDER_NAME = paste(SP, N, BIAS))
+  } else {
+    tmp <- VIRTUAL$sample_parameters %>% 
+      mutate(SUBFOLDER_NAME = paste(SP, N, BIAS, NOISE_SD))
+  }
+  
+  tmp <- dplyr::inner_join(tmp, data.frame(SUBFOLDER_NAME = SUBFOLDER_NAME)) # Update with SUBFOLDER_NAME
   virtual_grid <- merge(CALL$MODEL_LIST, tmp)
   colnames(virtual_grid)[1] <- "algorithm"
   
   # --- 1.4. Extract estimated projections
+  # Security in case no model object was produced (e.g. discarded due to env.)
   message("--- VIRTUAL : extract estimated projections")
   estimated_proj <- mclapply(SUBFOLDER_NAME, function(x){
-    load(paste0(project_wd, "/output/", FOLDER_NAME,"/", x, "/MODEL.RData"))
-    
-    tmp <- lapply(CALL$MODEL_LIST, function(z){
-      out <- MODEL[[z]][["proj"]][["y_hat"]][,,VIRTUAL$par$MONTH] %>%  # take June again
-        apply(1, mean)
-    })
-    tmp <- do.call(rbind, tmp)
+      load(paste0(project_wd, "/output/", FOLDER_NAME,"/", x, "/MODEL.RData"))
+      
+      tmp <- lapply(CALL$MODEL_LIST, function(z){
+        out <- MODEL[[z]][["proj"]][["y_hat"]][,,VIRTUAL$par$MONTH] %>%  # take June again
+          apply(1, mean)
+      })
+      tmp <- do.call(rbind, tmp)
+      
     return(tmp)
   }, mc.cores = 20) %>% 
     abind(along = 3) %>% 
@@ -347,8 +366,8 @@ evaluate_virtual <- function(FOLDER_NAME){
     EST <- estimated_proj[, ID$algorithm, ID$SUBFOLDER_NAME]
     PREVALENCE <- VIRTUAL$distribution[[ID$SP]]$PA.conversion["species.prevalence"] %>% 
       as.numeric() %>% round(2) %>% .[]*100
-    # COL <- pal[PREVALENCE]
-    COL <- pal[ID$NOISE_SD]
+    COL <- pal[PREVALENCE]
+    # COL <- pal[ID$NOISE_SD]
     
     if(ID$IN_ENSEMBLE == "Y"){
       taylor.diagram(ref = REF, model = EST, normalize = TRUE, col = COL, add = TRUE)
@@ -389,8 +408,8 @@ evaluate_virtual <- function(FOLDER_NAME){
     ID <- metric_comparison[i,]
     PREVALENCE <- VIRTUAL$distribution[[ID$SP]]$PA.conversion["species.prevalence"] %>% 
       as.numeric() %>% round(2) %>% .[]*100
-    # COL <- pal[PREVALENCE]
-    COL <- pal[ID$NOISE_SD]
+    COL <- pal[PREVALENCE]
+    # COL <- pal[ID$NOISE_SD]
     
     if(ID$IN_ENSEMBLE == "Y"){
       points(x = ID$TRUE_FIT, y = ID$EST_FIT, bg = COL, pch = 21)
