@@ -268,8 +268,8 @@ query_check <- function(FOLDER_NAME = NULL,
   # --- 6.2. Stop logs
   log_sink(FILE = sinkfile, START = FALSE)
   # --- 6.3. Pretty return
-  # Updates the list of species to model depending on the PRE_VIP (> 0.3) to avoid non meaningful feature ensembles
-  if(QUERY$eval$PRE_VIP >= 0.3){
+  # Updates the list of species to model depending on the PRE_VIP (> 0.25) to avoid non meaningful feature ensembles
+  if(QUERY$eval$PRE_VIP >= 0.25 | CALL$FAST == FALSE){
     return(SUBFOLDER_NAME)
   } else {
     message("The selected features do not present significant trends to the observations; please work on the predictors and data. \n

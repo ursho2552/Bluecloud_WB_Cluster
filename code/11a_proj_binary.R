@@ -125,6 +125,14 @@ proj_binary <- function(QUERY,
       message(paste("--- EVAL : discarded", i, "due to NSD =", MODEL[[i]][["eval"]][["NSD"]], "> 0.5 \n"))
     }
     
+    # --- 7.3. Discard if the PRE_VIP QC in the query is too low
+    # In case of FAST = TRUE; the species was kept until here but we do not want
+    # to compute an ensemble for it.
+    if(QUERY$eval$PRE_VIP < 0.25){
+      MODEL$MODEL_LIST <- MODEL$MODEL_LIST[MODEL$MODEL_LIST != i]
+      message(paste("--- EVAL : discarded", i, "due to PRE_VIP =", QUERY$eval$PRE_VIP, "< 0.25 \n"))
+    }
+    
   } # for i model loop
   
   # --- 8. Build the ensemble NSD if there is an ensemble

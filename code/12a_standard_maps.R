@@ -43,21 +43,21 @@ standard_maps <- function(FOLDER_NAME = NULL,
   
   # --- 2. Plot the quality checks
   # --- 2.1. Compute the recommendation table
-  rec <- qc_recommandations(MODEL = MODEL, DATA_TYPE = CALL$DATA_TYPE)
-  traffic_col <- rep(rec$COL, each = 3)
-  traffic_val <- rec[,1:3] %>% as.matrix() %>% t() %>% c()
+  rec <- qc_recommandations(QUERY = QUERY, MODEL = MODEL, DATA_TYPE = CALL$DATA_TYPE)
+  traffic_col <- rep(rec$COL, each = 4)
+  traffic_val <- rec[,1:4] %>% as.matrix() %>% t() %>% c()
   traffic_col[which(traffic_val == 0)] <- "white"
   # --- 2.2. Plot the traffic lights and recommendations
   plot.new()
   if(CALL$DATA_TYPE != "proportions"){mtext(paste("QUALITY CHECK \n", QUERY$annotations$scientificname, "\n ID:", QUERY$annotations$worms_id))}
   if(CALL$DATA_TYPE == "proportions"){mtext(paste("QUALITY CHECK \n", QUERY$annotations$scientificname[loop_over], "\n ID:", QUERY$annotations$worms_id[loop_over]))}
-  par(mar = c(1,5,7,1), xpd = NA)
-  plot(x = rep(1:3, nrow(rec)), y = rep(nrow(rec):1, each = 3), axes = FALSE, cex = 3,
-       xlim = c(0,4), ylim = c(0,nrow(rec)+1), ylab = "", xlab = "",
+  par(mar = c(1,3,7,1), xpd = NA)
+  plot(x = rep(1:4, nrow(rec)), y = rep(nrow(rec):1, each = 4), axes = FALSE, cex = 3,
+       xlim = c(0,5), ylim = c(0,nrow(rec)+1), ylab = "", xlab = "",
        pch = 21, col = "black", bg = traffic_col)
-  axis(side = 3, at = 1:3, labels = c("Perdictive \n performance","Cumulative \n var. imp.","Projection \n uncertainty"), tick = FALSE, line = NA, cex.axis = 1, las = 2)
-  axis(side = 2, at = nrow(rec):1, labels = rownames(rec), tick = FALSE, line = NA, las = 2, cex.axis = 1)
-  axis(side = 4, at = nrow(rec):1, labels = rec$Recommandation, tick = FALSE, line = NA, las = 2, cex.axis = 1)
+  axis(side = 3, at = 1:4, labels = c("A priori \n var. imp.","Perdictive \n performance","Cumulative \n var. imp.","Projection \n uncertainty"), tick = FALSE, line = NA, cex.axis = 1, las = 2)
+  axis(side = 2, at = nrow(rec):1, labels = rownames(rec), tick = FALSE, line = NA, las = 2, cex.axis = 0.7)
+  axis(side = 4, at = nrow(rec):1, labels = rec$Recommandation, tick = FALSE, line = NA, las = 2, cex.axis = 0.7)
   abline(h = 0) # PDF wide separator
   plot.new()
   par(mar = c(2,2,4,1))
@@ -203,18 +203,18 @@ standard_maps <- function(FOLDER_NAME = NULL,
   if(CALL$ENSEMBLE == TRUE & (length(MODEL$MODEL_LIST) > 1)){
     # --- 5.1. Compute the recommendation table
     rec <- qc_recommandations(MODEL = MODEL, DATA_TYPE = CALL$DATA_TYPE, ENSEMBLE = TRUE)
-    traffic_col <- rep(rec$COL, each = 3)
-    traffic_val <- rec[,1:3] %>% as.matrix() %>% t() %>% c()
+    traffic_col <- rep(rec$COL, each = 4)
+    traffic_val <- rec[,1:4] %>% as.matrix() %>% t() %>% c()
     traffic_col[which(traffic_val == 0)] <- "white"
     # --- 2.2. Plot the traffic lights and recommendations
     plot.new()
-    par(mar = c(1,5,7,1), xpd = NA)
-    plot(x = rep(1:3, nrow(rec)), y = rep(nrow(rec):1, each = 3), axes = FALSE, cex = 3,
-         xlim = c(0,4), ylim = c(0,nrow(rec)+1), ylab = "", xlab = "",
+    par(mar = c(1,3,7,1), xpd = NA)
+    plot(x = rep(1:4, nrow(rec)), y = rep(nrow(rec):1, each = 4), axes = FALSE, cex = 3,
+         xlim = c(0,5), ylim = c(0,nrow(rec)+1), ylab = "", xlab = "",
          pch = 21, col = "black", bg = traffic_col)
-    axis(side = 3, at = 1:3, labels = c("Perdictive \n performance","Cumulative \n var. imp.","Projection \n uncertainty"), tick = FALSE, line = NA, cex.axis = 1, las = 2)
-    axis(side = 2, at = nrow(rec):1, labels = rownames(rec), tick = FALSE, line = NA, las = 2, cex.axis = 1)
-    axis(side = 4, at = nrow(rec):1, labels = rec$Recommandation, tick = FALSE, line = NA, las = 2, cex.axis = 1)
+    axis(side = 3, at = 1:4, labels = c("A priori \n var. imp.","Perdictive \n performance","Cumulative \n var. imp.","Projection \n uncertainty"), tick = FALSE, line = NA, cex.axis = 1, las = 2)
+    axis(side = 2, at = nrow(rec):1, labels = rownames(rec), tick = FALSE, line = NA, las = 2, cex.axis = 0.7)
+    axis(side = 4, at = nrow(rec):1, labels = rec$Recommandation, tick = FALSE, line = NA, las = 2, cex.axis = 0.7)
     plot.new()
     par(mar = c(4,2.5,3,1))
   } # End ensemble QC
