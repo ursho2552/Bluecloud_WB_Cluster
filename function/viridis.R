@@ -14,3 +14,17 @@ inferno_pal <- function(n){
   
   return(pal)
 } # END FUNCTION
+
+parula_pal <- function(n){
+  tmp <- c("#000000", "#005DAB", "#0083C7", "#00A8DE", "#05C8D6", "#5CE6BF", "#B6FF9E", "#FDE724", "#FFB400")
+  pal <- colorRampPalette(tmp)(n)
+  
+  return(pal)
+} # END FUNCTION
+
+italy_pal <- function(n){
+  tmp <- c("#FF0000", "#FF7F7F", "#FFD4D4", "#FFFFFF", "#D4FFD4", "#7FFF7F", "#00FF00")
+  pal <- colorRampPalette(tmp)(n)
+  
+  return(pal)
+} # END FUNCTION

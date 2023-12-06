@@ -212,9 +212,11 @@ query_check <- function(FOLDER_NAME = NULL,
     plot_data <- lapply(1:ncol(QUERY$X), function(i){
       
       x0 <- as.numeric(QUERY$X[,i]) %>% unlist()
-      q <- quantile(x0, probs = seq(0, 1, length.out = 51)) %>% unique()
-      q_id <- cut(x0, q, include.lowest = TRUE, labels = FALSE)
-      x <- q[q_id]
+      q <- quantile(x0, probs = seq(0, 1, length.out = 25)) %>% unique()
+      if(length(q) > 1){
+        q_id <- cut(x0, q, include.lowest = TRUE, labels = FALSE)
+        x <- q[q_id]
+      } else {x <- x0} # Security in case there is not enough values (e.g. sea ice at 0 always)
       
       df <- data.frame(x = x, y = QUERY$Y$measurementvalue) %>%
         dplyr::group_by(x) %>%
@@ -261,6 +263,12 @@ query_check <- function(FOLDER_NAME = NULL,
     dev.off()
     QUERY[["eval"]][["PRE_VIP"]] <- PRE_VIP
   } # end if !proportions
+  
+  # --- 5.5. Fill QC for proportion data
+  # We just fill it up with 9999 to avoid non-existing element
+  if(CALL$DATA_TYPE == "proportions"){
+    QUERY[["eval"]][["PRE_VIP"]] <- 9999
+  }
   
   # --- 6. Wrap up and save
   # --- 6.1. Save file(s)

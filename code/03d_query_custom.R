@@ -23,9 +23,10 @@ query_custom <- function(FOLDER_NAME = NULL,
   if(CALL$DATA_TYPE == "binary"){
     Y <- CALL$LIST_BIO %>% 
       dplyr::filter(worms_id == QUERY$SUBFOLDER_INFO$SP_SELECT) %>% 
-      dplyr::select(measurementvalue) %>% 
-      apply(2, function(x)(x/x)) %>% 
-      data.frame()
+      dplyr::select(measurementvalue)
+    if(is.numeric(Y$measurementvalue)){
+      Y$measurementvalue <- Y$measurementvalue/Y$measurementvalue
+    }
   }
   
   # --- 2.2. For abundance data

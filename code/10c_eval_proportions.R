@@ -14,6 +14,7 @@ eval_proportions <- function(CALL,
   
   # --- 1. Model performance assessment
   # --- 1.1. Source the MBTR functions
+  library(reticulate)
   source_python(paste0(project_wd,"/function/mbtr_function.py"))
   
   # --- 1.2. Load final model data and object
@@ -82,9 +83,9 @@ eval_proportions <- function(CALL,
     # --- 3.1. Based on model performance
     # Fixed at 0.1 for R2
     # /!\ /!\ /!\ /!\ treshold at 0.1 to be able to prototype something. TO CHANGE LATER OBVIOUSLY /!\ /!\ /!\ /!\
-    if(MODEL[[i]][["eval"]][["R2"]] < 0.1 | is.na(MODEL[[i]][["eval"]][["R2"]])){
+    if(MODEL[[i]][["eval"]][["R2"]] < 0.25 | is.na(MODEL[[i]][["eval"]][["R2"]])){
       MODEL$MODEL_LIST <- MODEL$MODEL_LIST[MODEL$MODEL_LIST != i]
-      message(paste("--- EVAL : discarded", i, "due to R2 =", MODEL[[i]][["eval"]][["R2"]], "< 0.1 \n"))
+      message(paste("--- EVAL : discarded", i, "due to R2 =", MODEL[[i]][["eval"]][["R2"]], "< 0.25 \n"))
     }
     
     # --- 3.2. Based on cumulative variable importance
@@ -102,12 +103,12 @@ eval_proportions <- function(CALL,
     } else {pal <- "#B64A60"}
     
     # Simple barplot of the MBTR vip if the model passed QC
-    par(mar = c(6,2,3,20))
-    barplot(var_imp, rep(1,length(var_imp)), axes = FALSE, horizontal = TRUE,
+    par(mar = c(20,20,3,2))
+    barplot(var_imp, rep(1,length(var_imp)), axes = FALSE, horiz = TRUE, cex.names = 0.5,
             main = "PREDICTOR IMPORTANCE ( MBTR )",
             sub = paste("Predictive performance (R2) =", round(MODEL[["MBTR"]]$eval$R2, 2), "; Cumulated var. importance (%; top 3) =", round(MODEL[["MBTR"]]$eval$CUM_VIP, 0)), 
             col = pal, ylab = "", xlab = "Variable importance (%)", las = 2)
-    axis(side = 4, at = seq(0, 100, 10), labels = seq(0, 100, 10), las = 2)
+    axis(side = 1, at = seq(0, 100, 10), labels = seq(0, 100, 10), las = 2)
     abline(v = seq(0, 100, 10), lty = "dotted")
     box()
     box("figure", col = "black", lwd = 1)

@@ -15,6 +15,7 @@ model_proportions <- function(CALL,
   MODEL <- CALL$HP
   
   # --- 1.2. Source the MBTR functions
+  library(reticulate)
   source_python(paste0(project_wd,"/function/mbtr_function.py"))
   
   # --- 1.3. Create a clean cache folder in data
@@ -31,7 +32,9 @@ model_proportions <- function(CALL,
   # --- 2.2. Initialize the hyperparameter fit function
   # i.e. to use mcmapply across hyperparameters for faster computing
   mbtr_hp_fit <- function(hp, path){
+    source_python(paste0(project_wd,"/function/mbtr_function.py"))
     m <- mbtr_fit(path,
+                  hp_id = as.character(hp),
                   loss_type='mse',
                   n_boosts = as.integer(1000),
                   min_leaf= MODEL$MBTR$model_grid$MEAN_LEAF[hp],
@@ -45,8 +48,15 @@ model_proportions <- function(CALL,
   
   # --- 2.3. Do the resample fit
   for(cv in 1:CALL$NFOLD){
+    # --- 2.3.1. Load .py functions & instance
+    # NOTE: I know this is ugly but reticulate loses the connection at every parallel
+    # worker AND every for loop turn... therefore it is re-sourced many times in
+    # the script
     
-    # --- 2.3.1. Prepare the inputs
+    library(reticulate)
+    source_python(paste0(project_wd,"/function/mbtr_function.py"))
+    
+    # --- 2.3.2. Prepare the inputs
     message(paste0(Sys.time(), "--- MBTR: writing data to cache for cv = ", cv))
     X_tr <- QUERY$FOLDS$resample_folds[[cv]]$analysis %>%
       dplyr::select(QUERY$SUBFOLDER_INFO$ENV_VAR)
@@ -64,11 +74,12 @@ model_proportions <- function(CALL,
       dplyr::select(as.character(CALL$SP_SELECT))
     write_feather(Y_val, paste0(project_wd, "/data/MBTR_cache/", cv, "_Y_val.feather"))
     
-    # --- 2.3.2. Fitting hyperparameters
+    # --- 2.3.3. Fitting hyperparameters
     message(paste0(Sys.time(), "--- MBTR: fit hyperparameters for cv = ", cv))
-    loss[[cv]] <- mapply(FUN = mbtr_hp_fit,
-                         path = paste0(project_wd, "/data/MBTR_cache/",cv,"_"),
-                         hp = hp)
+    loss[[cv]] <- mcmapply(FUN = mbtr_hp_fit,
+                           path = paste0(project_wd, "/data/MBTR_cache/",cv,"_"),
+                           hp = hp,
+                           mc.cores = 20)
     message("Algorithm fitting - DONE")
   } # cv loop
   
@@ -79,7 +90,7 @@ model_proportions <- function(CALL,
     min_loss[[i]] <- lapply(loss, function(x)(x = x[[i]][1:max_boost])) %>% as.data.frame() %>% apply(1, mean) %>% min()
     nboost[[i]] <- which(lapply(loss, function(x)(x = x[[i]][1:max_boost])) %>% as.data.frame() %>% apply(1, mean) == min_loss[[i]])
   }
-  best_hp <- which(unlist(min_loss) == min(unlist(min_loss)))
+  best_hp <- which(unlist(min_loss) == min(unlist(min_loss)))[1] # Takes the first in case there is two equal
   nboost <- nboost[[best_hp]]
   
   # --- 2.5. Retrieve the corresponding RMSE as well
@@ -105,7 +116,17 @@ model_proportions <- function(CALL,
   write_feather(Y_val, paste0(project_wd, "/data/MBTR_cache/0_Y_val.feather"))
   
   # --- 3.2. Fit the final model
+  # --- 3.2.1. Load .py functions & instance
+  # NOTE: I know this is ugly but reticulate loses the connection at every parallel
+  # worker AND every for loop turn... therefore it is re-sourced many times in
+  # the script
+  
+  library(reticulate)
+  source_python(paste0(project_wd,"/function/mbtr_function.py"))
+  
+  # --- 3.2.2. Compute the fit
   final_fit <- mbtr_fit(path = paste0(project_wd, "/data/MBTR_cache/0_"),
+                        hp_id = "0",
                         loss_type='mse',
                         n_boosts = as.integer(100),
                         min_leaf= MODEL$MBTR$model_grid$MEAN_LEAF[best_hp],

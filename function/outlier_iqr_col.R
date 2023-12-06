@@ -9,7 +9,8 @@ outlier_iqr_col <- function(y,n) {
   y[y == 0] <- NA
   
   # --- 2. Calculate score
-  score <- apply(y, 2, function(x)(y = (x-mean(x, na.rm = TRUE))/sd(x, na.rm = TRUE)))
+  score <- apply(y, 2, function(x)(y = (x-mean(x, na.rm = TRUE))/sd(x, na.rm = TRUE))) %>% 
+    apply(1, function(x)(x = mean(x, na.rm = TRUE))) %>% as.data.frame()
   
   # --- 3. Identify row numbers over the threshold
   outliers <- apply(score, 2, function(x)(x = which(x > n))) %>% 

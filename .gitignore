@@ -3,6 +3,8 @@
 .RData
 .Ruserdata
 job.R
+master_virtual_proportions.R
+master_virtual.R
 *.csv
 *.txt
 *.feather
@@ -20,3 +22,4 @@ data/*
 prototype/*
 output/*
 !output/.gitkeep
+

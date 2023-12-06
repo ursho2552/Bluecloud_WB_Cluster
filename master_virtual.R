@@ -14,7 +14,7 @@ rm(list=ls())
 closeAllConnections()
 setwd("/net/meso/work/aschickele/Bluecloud_WB_local")
 source(file = "./code/00_config.R")
-run_name <- "VIRTUALSPECIES_continuous"
+run_name <- "VIRTUALSPECIES_proportions"
 
 # --- 0. Generate the virtual species
 source(file = "./preparation/generate_virtual.R")
@@ -22,7 +22,7 @@ VIRTUAL <- generate_virtual(ENV_VAR = NULL,
                             ENV_PATH = "/net/meso/work/clercc/Predictors/PIPELINE_SET/TEST_SET",
                             MONTH = 6,
                             NOISE_SD = c(1,2,3),
-                            DATA_TYPE = "continuous")
+                            DATA_TYPE = "proportions")
 
 # --- 1. List the available species
 # Within the user defined selection criteria
@@ -130,10 +130,6 @@ mcmapply(FUN = standard_maps,
 user_synthesis(FOLDER_NAME = run_name)
 
 # --- 0. Evaluate virtual species
-subfolder_list <- subfolder_list %>% 
-  .[grep("Error", ., invert = TRUE)] %>% # to exclude any API error or else
-  as.vector()
-
 evaluate_virtual(FOLDER_NAME = run_name)
 
 save(VIRTUAL, file = paste0(project_wd, "/output/", run_name,"/VIRTUAL.RData"))

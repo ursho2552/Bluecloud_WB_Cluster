@@ -1,4 +1,4 @@
-def mbtr_fit(path, loss_type: str='mse', n_boosts: int=1000, n_q: int=10, learning_rate: float=0.1, 
+def mbtr_fit(path, hp_id, loss_type: str='mse', n_boosts: int=1000, n_q: int=10, learning_rate: float=0.1, 
 early_stopping_rounds: int= 3,
 min_leaf: int=20, lambda_weights: float=0.0001, lambda_leaves: float=0.0001):
 
@@ -49,7 +49,7 @@ min_leaf: int=20, lambda_weights: float=0.0001, lambda_leaves: float=0.0001):
           early_stopping_rounds=early_stopping_rounds).fit(X_tr, Y_tr, X_val, Y_val, do_plot=False)
           
   # Save model        
-  with open(path+'m', 'wb') as f:
+  with open(path+hp_id+'_m', 'wb') as f:
     pickle.dump(m, f, pickle.HIGHEST_PROTOCOL)
           
   return m

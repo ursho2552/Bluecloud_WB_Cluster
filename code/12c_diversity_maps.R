@@ -69,8 +69,9 @@ diversity_maps <- function(FOLDER_NAME = NULL,
   
   # --- 2.2. For proportions
   if(CALL$DATA_TYPE == "proportions"){
-    load(paste0(project_wd, "/output/", FOLDER_NAME,"/", s, "/MODEL.RData"))
-    s_ens <- MODEL$MBTR$proj$y_hat %>% aperm(c(1,3,2,4))
+    load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/MODEL.RData"))
+    all_ens <- MODEL$MBTR$proj$y_hat %>% aperm(c(1,3,2,4))
+    all_ens[all_ens < 0] <- 0 # security to remove any negative value
   } # if proportions
   
   # --- 2.3. Return if not enough ensembles
@@ -139,6 +140,9 @@ diversity_maps <- function(FOLDER_NAME = NULL,
   
   # --- 6.3. Final adjustments
   mess_all[mess_all > 100] <- 100
+  
+  # --- 6.4. Intermediate save
+  save(div_all, file = paste0(project_wd, "/output/", FOLDER_NAME,"/DIVERSITY.RData"))
   
   # --- 7. Diversity plots
   # --- 7.1. Initialize pdf and plot

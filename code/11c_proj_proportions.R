@@ -22,6 +22,7 @@ proj_proportions <- function(QUERY,
   }
   
   # --- 1.3. Source the MBTR functions
+  library(reticulate)
   source_python(paste0(project_wd,"/function/mbtr_function.py"))
   
   # --- 2. Define bootstraps
@@ -52,24 +53,34 @@ proj_proportions <- function(QUERY,
   } # for b
   
   # --- 3.2. Fit model
-  # --- 3.2.1. Computing the model objects
+  # --- 3.2.1. Load .py functions & instance
+  # NOTE: I know this is ugly but reticulate loses the connection at every parallel
+  # worker AND every for loop turn... therefore it is re-sourced many times in
+  # the script
+  
+  library(reticulate)
+  source_python(paste0(project_wd,"/function/mbtr_function.py"))
+  
+  # --- 3.2.2. Computing the model objects
   message(paste0(Sys.time(), "--- MBTR: re-fit model for bootstrap"))
-  boot_fit <- mapply(FUN = mbtr_fit,
-                     path = paste0(project_wd, "/data/MBTR_cache/",1:CALL$N_BOOTSTRAP,"_"),
-                     loss_type='mse',
-                     n_boosts = as.integer(1000),
-                     min_leaf= MODEL$MBTR$final_wf$MEAN_LEAF,
-                     learning_rate=MODEL$MBTR$final_wf$LEARNING_RATE,
-                     lambda_weights=MODEL$MBTR$final_wf$LEARNING_RATE/100,
-                     lambda_leaves=0,
-                     n_q= as.integer(MODEL$MBTR$final_wf$N_Q),
-                     early_stopping_rounds = 10,
-                     SIMPLIFY = FALSE,
-                     USE.NAMES = FALSE)
-
-  # --- 3.2.2. Reload them in R because of "previous session invalidity"
+  boot_fit <- mcmapply(FUN = mbtr_fit,
+                       path = paste0(project_wd, "/data/MBTR_cache/",1:CALL$N_BOOTSTRAP,"_"),
+                       hp_id = "0",
+                       loss_type='mse',
+                       n_boosts = as.integer(1000),
+                       min_leaf= MODEL$MBTR$final_wf$MEAN_LEAF,
+                       learning_rate=MODEL$MBTR$final_wf$LEARNING_RATE,
+                       lambda_weights=MODEL$MBTR$final_wf$LEARNING_RATE/100,
+                       lambda_leaves=0,
+                       n_q= as.integer(MODEL$MBTR$final_wf$N_Q),
+                       early_stopping_rounds = 10,
+                       SIMPLIFY = FALSE,
+                       USE.NAMES = FALSE,
+                       mc.cores = 20)
+  
+  # --- 3.2.3. Reload them in R because of "previous session invalidity"
   for(b in 1:CALL$N_BOOTSTRAP){
-    boot_fit[[b]] <- py_load_object(paste0(project_wd, "/data/MBTR_cache/",b,"_m"), pickle = "pickle")[[1]]
+    boot_fit[[b]] <- py_load_object(paste0(project_wd, "/data/MBTR_cache/",b,"_0_m"), pickle = "pickle")[[1]]
   }
   message("Bootstrap fitting - DONE")
   
@@ -85,10 +96,16 @@ proj_proportions <- function(QUERY,
       dplyr::select(-c(x, y))
     
     # --- 4.2. Computing one prediction per bootstrap
+    library(reticulate)
     source_python(paste0(project_wd,"/function/mbtr_function.py")) # needed for some reason...
+    
     boot_proj <- mclapply(boot_fit,
-                          function(a_boot) mbtr_predict(model = a_boot, X_pred = features, n_boosts = as.integer(MODEL$MBTR$final_wf$NBOOST)),
-                          mc.cores = CALL$N_BOOTSTRAP) %>% 
+                          function(a_boot){
+                            library(reticulate)
+                            source_python(paste0(project_wd,"/function/mbtr_function.py"))
+                            out <- mbtr_predict(model = a_boot, X_pred = features, n_boosts = as.integer(MODEL$MBTR$final_wf$NBOOST))
+                            return(out)},
+                          mc.cores = 20) %>% 
       abind(along = 3)
     
     # --- 4.3. Assign the desired values to the non-NA cells in the list

@@ -155,10 +155,10 @@ query_env <- function(FOLDER_NAME = NULL,
   log_sink(FILE = sinkfile, START = FALSE)
   
   # --- 8.4. Update list of SUBFOLDER_NAME
-  if(nrow(Y) >= CALL$SAMPLE_SELECT$MIN_SAMPLE & nrow(Y)/ncol(Y) > 5){
+  if(nrow(Y) >= CALL$SAMPLE_SELECT$MIN_SAMPLE & nrow(Y)/ncol(Y) > 1){
     return(SUBFOLDER_NAME)
   } else {
-    message("The sample does not match the minimum sample size - or has a row/col ratio under 5:1 (for proportions data) \n
+    message("The sample does not match the minimum sample size - or has a row/col ratio under 1:1 (for proportions data) \n
             Please work on the data to increase the sample size")
     return(NA)
   }

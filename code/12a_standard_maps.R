@@ -50,7 +50,7 @@ standard_maps <- function(FOLDER_NAME = NULL,
   # --- 2.2. Plot the traffic lights and recommendations
   plot.new()
   if(CALL$DATA_TYPE != "proportions"){mtext(paste("QUALITY CHECK \n", QUERY$annotations$scientificname, "\n ID:", QUERY$annotations$worms_id))}
-  if(CALL$DATA_TYPE == "proportions"){mtext(paste("QUALITY CHECK \n", QUERY$annotations$scientificname[loop_over], "\n ID:", QUERY$annotations$worms_id[loop_over]))}
+  if(CALL$DATA_TYPE == "proportions"){mtext("QUALITY CHECK \n for proportions")}
   par(mar = c(1,3,7,1), xpd = NA)
   plot(x = rep(1:4, nrow(rec)), y = rep(nrow(rec):1, each = 4), axes = FALSE, cex = 3,
        xlim = c(0,5), ylim = c(0,nrow(rec)+1), ylab = "", xlab = "",
@@ -85,6 +85,7 @@ standard_maps <- function(FOLDER_NAME = NULL,
   # This is only informative and the raster will be rescaled by the maximum
   axis(side = 1, at = seq(0, 1, length.out = 5), labels = round(seq(0, 1 * plot_scale, length.out = 5), 2))
   text(x = 0.5, y = 0.3, "Habitat Suitability Index", adj = 0.5)
+  
   # --- 3.2. Observation vs 75% quartile
   plot.new()
   points(x = 0.1, y = 0.4, pch = 22, col = "black", bg = "gray80", cex = 5)
@@ -139,11 +140,12 @@ standard_maps <- function(FOLDER_NAME = NULL,
       if(CALL$DATA_TYPE == "proportions"){
         # Proportions
         tmp <- which(QUERY$annotations$worms_id == colnames(QUERY$Y)[i])
-        plot(r_m, col = hsi_pal[max(1, floor(r_m@data@min*100)):min(100, ceiling(r_m@data@max*100))], 
+        plot(r_m, col = hsi_pal, 
              legend=FALSE, cex.main = 1,
              main = paste("Projection for", QUERY$annotations$scientificname[tmp], "\n Month:", paste(m, collapse = ",")))
-        mtext(text = paste("Predictive performance (", names(MODEL[["MBTR"]][["eval"]])[1], ") =", MODEL[["MBTR"]][["eval"]][[1]]),
-              side = 1, line = 2, cex = 0.7)
+        mtext(text = paste("Predictive performance (", names(MODEL[["MBTR"]][["eval"]])[1], ") =", MODEL[["MBTR"]][["eval"]][[1]],
+                           "\n Colorbar scale:", format(round(max(getValues(r_m), na.rm = TRUE), 5), scientific = TRUE)),
+              side = 1, line = 3, cex = 0.6)
       } else {
         # Abundance or habitat suitability values
         plot(r_m, col = hsi_pal[max(1, floor(r_m@data@min*100)):min(100, ceiling(r_m@data@max*100))], 
@@ -172,7 +174,7 @@ standard_maps <- function(FOLDER_NAME = NULL,
                col = col_numeric("inferno", domain = range(QUERY$Y$measurementvalue, na.rm = TRUE), alpha = 0.2)(QUERY$Y$measurementvalue), pch = 20)
       } else if(CALL$DATA_TYPE == "proportions") {
         points(tmp$decimallongitude, tmp$decimallatitude,
-               col = col_numeric("inferno", domain = range(QUERY$Y, na.rm = TRUE), alpha = 0.2)(QUERY$Y[,i]), pch = 20)
+               col = col_numeric("inferno", domain = range(QUERY$Y[,i], na.rm = TRUE), alpha = 0.2)(QUERY$Y[,i]), pch = 20)
       } else {
         points(tmp$decimallongitude, tmp$decimallatitude,
                col = "black", pch = 20)
@@ -202,7 +204,7 @@ standard_maps <- function(FOLDER_NAME = NULL,
   # --- 5. Build ensemble quality checks
   if(CALL$ENSEMBLE == TRUE & (length(MODEL$MODEL_LIST) > 1)){
     # --- 5.1. Compute the recommendation table
-    rec <- qc_recommandations(MODEL = MODEL, DATA_TYPE = CALL$DATA_TYPE, ENSEMBLE = TRUE)
+    rec <- qc_recommandations(QUERY = QUERY, MODEL = MODEL, DATA_TYPE = CALL$DATA_TYPE, ENSEMBLE = TRUE)
     traffic_col <- rep(rec$COL, each = 4)
     traffic_val <- rec[,1:4] %>% as.matrix() %>% t() %>% c()
     traffic_col[which(traffic_val == 0)] <- "white"

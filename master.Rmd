@@ -2,15 +2,21 @@
 title: "master"
 output: html_document
 date: "2023-11-03"
+author: "alexandre_schickele"
+email: "alexandre.schickele@usys.ethz.ch"
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Bluecloud 2026 - Ecosystem Workbench
+\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>. When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document.
+## Technical documentation : Bluecloud 2026 - Ecosystem Workbench
+
+\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_
+
+### Introduction
 
 This document serves as a comprehensive guide to the marine plankton species distribution model pipeline developed for Workbench 3 of the Bluecloud2026 project. The pipeline is designed to predict the distribution and diversity of marine plankton species, essential for understanding ecosystem dynamics. This document will guide you through each critical step of the pipeline.
 
@@ -23,7 +29,7 @@ rm(list=ls())
 closeAllConnections()
 setwd("/net/meso/work/aschickele/Bluecloud_WB_local")
 source(file = "./code/00_config.R")
-run_name <- "BLUECLOUD_GA_LIVE"
+run_name <- "test"
 ```
 
 ### 1. List the available species
@@ -126,7 +132,7 @@ subfolder_list <- run_init(FOLDER_NAME = run_name,
                            ENV_COR = 0.8,
                            NFOLD = 3,
                            FOLD_METHOD = "lon",
-                           MODEL_LIST = c("GLM","GAM","RF","MLP"),
+                           MODEL_LIST = c("GLM","GAM","RF","MLP","BRT","SVM"),
                            LEVELS = 3,
                            TARGET_TRANSFORMATION = "/net/meso/work/aschickele/Bluecloud_WB_local/function/target_transformation_yj_auto.R",
                            ENSEMBLE = TRUE,
@@ -183,17 +189,20 @@ In step 6, we rigorously check the biological and environmental dataset quality:
 
 -   We identify and handle biological outliers in the data to avoid introducing bias in the model training and extrapolated maps.
 
--   We assess the quality and relevance of environmental predictor variables used in modeling by discarding correlated environmental predictors and discarding predictors that do not explain a significant portion of the observed data. This step is crucial for a parsimonious modelling design.
+-   We assess the quality and relevance of environmental predictor variables used in modeling by discarding correlated environmental predictors and discarding predictors that do not explain a significant portion of the observed data. This step is crucial for a parsimonious modelling design. The function updates `subfolder_list` with the species passing the quality check on the selected predictors.
 
 -   We perform a Multivariate Environmental Similarity Surface (MESS) analysis to identify the geographical areas outside the range of environmental values in which the model has been trained (i.e., environmental extrapolation).
 
 Several .`PDF` files are provided in this steps, including a dendrogram of environmental predictor correlation, an a priori predictor importance and ranking of the predictors, as well as the corresponding loss after which, adding a predictor would not significantly increase the model performance.
 
 ```{r}
-mcmapply(FUN = query_check,
-         FOLDER_NAME = run_name,
-         SUBFOLDER_NAME = subfolder_list,
-         mc.cores = min(length(subfolder_list), MAX_CLUSTERS))
+subfolder_list <- mcmapply(FUN = query_check,
+                           FOLDER_NAME = run_name,
+                           SUBFOLDER_NAME = subfolder_list,
+                           mc.cores = min(length(subfolder_list), MAX_CLUSTERS)) %>% 
+  unlist() %>% 
+  na.omit(subfolder_list) %>% 
+  as.vector()
 ```
 
 ### 7. Generate training, test and evaluation splits

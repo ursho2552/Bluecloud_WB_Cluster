@@ -22,6 +22,7 @@ pdp <- function(FOLDER_NAME = NULL,
   }
   
   # --- 1.3. Source the MBTR functions
+  library(reticulate)
   source_python(paste0(project_wd,"/function/mbtr_function.py"))
   
   # --- 1.4. Multivariate PDP function - for proportions
@@ -33,6 +34,10 @@ pdp <- function(FOLDER_NAME = NULL,
     #' @param nboosts number of boosting rounds for the validated model to predict
     #' @return A data.frame with the values of `pred_var` and the predicted value of all response variables
     # define the grid of pred.var values at which to compute the pdp
+    
+    library(reticulate)
+    source_python(paste0(project_wd,"/function/mbtr_function.py"))
+    
     x <- dplyr::select(train, all_of(pred_var))
     grid <- seq(min(x, na.rm=T), max(x, na.rm=T), length.out=grid_resolution)
     
@@ -101,10 +106,14 @@ pdp <- function(FOLDER_NAME = NULL,
     # --- 3. Fit the bootstrap
     if(CALL$DATA_TYPE == "proportions"){
       # --- 3.1. Fit MBTR on bootstrap - for proportions only
-      # --- 3.1.1. Compute the fit
+      # --- 3.1.1. Source the MBTR functions
+      library(reticulate)
+      source_python(paste0(project_wd,"/function/mbtr_function.py"))
+      # --- 3.1.2. Compute the fit
       message(paste0(Sys.time(), "--- MBTR: re-fit model for bootstrap"))
       boot_fit <- mcmapply(FUN = mbtr_fit,
                            path = paste0(project_wd, "/data/MBTR_cache/",1:CALL$N_BOOTSTRAP,"_"),
+                           hp_id = "0",
                            loss_type='mse',
                            n_boosts = as.integer(1000),
                            min_leaf= MODEL$MBTR$final_wf$MEAN_LEAF,
@@ -117,9 +126,9 @@ pdp <- function(FOLDER_NAME = NULL,
                            USE.NAMES = FALSE,
                            mc.cores = CALL$N_BOOTSTRAP)
       
-      # --- 3.1.2. Reload them in R because of "previous session invalidity"
+      # --- 3.1.3. Reload them in R because of "previous session invalidity"
       for(b in 1:CALL$N_BOOTSTRAP){
-        boot_fit[[b]] <- py_load_object(paste0(project_wd, "/data/MBTR_cache/",b,"_m"), pickle = "pickle")[[1]]
+        boot_fit[[b]] <- py_load_object(paste0(project_wd, "/data/MBTR_cache/",b,"_0_m"), pickle = "pickle")[[1]]
       } # boot_fit reload
       
     } else {
@@ -148,7 +157,7 @@ pdp <- function(FOLDER_NAME = NULL,
                           grid_resolution = 20,
                           train = QUERY$X[QUERY$SUBFOLDER_INFO$ENV_VAR],
                           nboosts = as.integer(MODEL$MBTR$final_wf$NBOOST),
-                          cores = 1)
+                          cores = 20)
           colnames(tmp) <- c(j, CALL$SP_SELECT)
           pdp_b <- abind(pdp_b, tmp, along = 3)
         } # j env variable
