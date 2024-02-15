@@ -63,7 +63,7 @@ standard_maps <- function(FOLDER_NAME = NULL,
   par(mar = c(2,2,4,1))
 
   # --- 3. Plot the legends
-  # --- 3.1. Abundance or habitat suitability legend
+  # --- 3.1. biomass or habitat suitability legend
   hsi_pal <- inferno_pal(100)
   plot.new()
   # --- 3.1.1. Extract the plot true scale (average max across bootstrap)
@@ -147,7 +147,7 @@ standard_maps <- function(FOLDER_NAME = NULL,
                            "\n Colorbar scale:", format(round(max(getValues(r_m), na.rm = TRUE), 5), scientific = TRUE)),
               side = 1, line = 3, cex = 0.6)
       } else {
-        # Abundance or habitat suitability values
+        # biomass or habitat suitability values
         plot(r_m, col = hsi_pal[max(1, floor(r_m@data@min*100)):min(100, ceiling(r_m@data@max*100))], 
              legend=FALSE, cex.main = 1,
              main = paste("Projection (", i, ") \n Month:", paste(m, collapse = ",")))
@@ -160,7 +160,7 @@ standard_maps <- function(FOLDER_NAME = NULL,
       box("figure", col="black", lwd = 1)
       
       # --- 4.3.2. Plot the observations
-      # --- 4.3.2.1. Top abundance quartile as contour
+      # --- 4.3.2.1. Top biomass quartile as contour
       plot(r_m > quantile(r_m, 0.75), col = c("white","gray80"), legend=FALSE, main = "Observations")
       # --- 4.3.2.2. Land mask
       plot(land, col = "antiquewhite4", legend=FALSE, add = TRUE)
@@ -171,13 +171,13 @@ standard_maps <- function(FOLDER_NAME = NULL,
       # --- 4.3.2.4. Observation colors
       if(CALL$DATA_TYPE == "continuous"){
         points(tmp$decimallongitude, tmp$decimallatitude,
-               col = col_numeric("inferno", domain = range(QUERY$Y$measurementvalue, na.rm = TRUE), alpha = 0.2)(QUERY$Y$measurementvalue), pch = 20)
+               col = col_numeric("inferno", domain = range(QUERY$Y$measurementvalue, na.rm = TRUE), alpha = 0.2)(QUERY$Y$measurementvalue), pch = 20, cex = 0.6)
       } else if(CALL$DATA_TYPE == "proportions") {
         points(tmp$decimallongitude, tmp$decimallatitude,
-               col = col_numeric("inferno", domain = range(QUERY$Y[,i], na.rm = TRUE), alpha = 0.2)(QUERY$Y[,i]), pch = 20)
+               col = col_numeric("inferno", domain = range(QUERY$Y[,i], na.rm = TRUE), alpha = 0.2)(QUERY$Y[,i]), pch = 20, cex = 0.6)
       } else {
         points(tmp$decimallongitude, tmp$decimallatitude,
-               col = "black", pch = 20)
+               col = "black", pch = 20, cex = 0.6)
       }
       
       # --- 4.3.3. Plot the uncertainties
@@ -243,8 +243,8 @@ standard_maps <- function(FOLDER_NAME = NULL,
     r_sd[r_sd <= 0] <- 1e-10 # temporary fix : modify bivarmap so that 0 is included
 
     # --- 6.3. Plot the corresponding maps
-    # --- 6.3.1. Plot the abundance
-    # Abundance or habitat suitability values
+    # --- 6.3.1. Plot the biomass
+    # biomass or habitat suitability values
     plot(r_m, col = hsi_pal[max(1, floor(r_m@data@min*100)):min(100, ceiling(r_m@data@max*100))], legend=FALSE,
          main = "Projection ( Ensemble )")
     mtext(text = paste("Predictive performance (", names(MODEL[["ENSEMBLE"]][["eval"]])[1], ") =", round(MODEL[["ENSEMBLE"]][["eval"]][[1]],2)),
@@ -254,7 +254,7 @@ standard_maps <- function(FOLDER_NAME = NULL,
     box("figure", col="black", lwd = 1)
 
     # --- 6.3.2. Plot the observations
-    # --- 6.3.2.1. Top abundance quartile as contour
+    # --- 6.3.2.1. Top biomass quartile as contour
     plot(r_m > quantile(r_m, 0.75), col = c("white","gray80"), legend=FALSE, main = "Observations")
     # --- 6.3.2.2. Land mask
     plot(land, col = "antiquewhite4", legend=FALSE, add = TRUE)

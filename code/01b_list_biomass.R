@@ -1,5 +1,5 @@
 #' =============================================================================
-#' @name list_abundance
+#' @name list_biomass
 #' @description extracts available Aphia_ID corresponding to user defined criteria
 #' among the available data within the Atlanteco database, build locally.
 #' @param DATA_SOURCE parameter passed from the wrapper function
@@ -7,7 +7,7 @@
 #' @return a list of available Worms ID or Aphia ID and number of occurrences
 #' within the data type and sample criteria
 
-list_abundance <- function(DATA_SOURCE,
+list_biomass <- function(DATA_SOURCE,
                            SAMPLE_SELECT){
   
   # --- 1. Connect to database

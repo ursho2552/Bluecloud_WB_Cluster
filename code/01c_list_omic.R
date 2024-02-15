@@ -1,8 +1,8 @@
 #' =============================================================================
 #' @name list_omic
-#' @description extracts available metadata, taxonomy and read counts per OTU
+#' @description extracts available metadata, taxonomy and read counts per MAG
 #' corresponding to user defined criteria, among the available data within the 
-#' MGnify data access service
+#' MATOU data access service - on Bluecloud Plankton Genomics VLAB.
 #' @param SAMPLE_SELECT parameter passed from the wrapper function
 #' @return a complete list of metadata, samples, taxonomic
 #' annotations available.
@@ -10,85 +10,74 @@
 list_omic <- function(SAMPLE_SELECT){
   
   # --- 1. Initialize
-  # Create MGnify cache
-  mg <- mgnify_client(usecache = T, cache_dir = paste0(project_wd, "/data/.mgnify_cache"))
+  # --- 1.1. Database connection
+  # Connect to the public PostgreSQL database
+  db <- dbConnect(
+    drv=PostgreSQL(),
+    host="postgresql-srv.d4science.org",
+    dbname="bluecloud_demo2",
+    user="bluecloud_demo2_u",
+    password="6a26c54a05ec5dede958a370ca744a",
+    port=5432
+  )
   
-  # --- 2. List the available studies
-  message("--- LIST BIO : retrieving studies available in MGnify")
-  study_list <- mgnify_query(client = mg,
-                             qtype = "studies",
-                             biome_name = "Marine") %>% 
-    mutate(`samples-count` = as.numeric(`samples-count`)) %>% 
-    dplyr::filter(`samples-count` >= SAMPLE_SELECT$MIN_SAMPLE) %>% # Studies with less than the minimum sample per OTU are out
-    dplyr::filter(grepl("Tara", `study-name`)) # Only taking Tara samples for now (OTU extraction is veeery long)
+  # --- 2. Raw query
+  # --- 2.1. Extract the MAG data
+  message(paste(Sys.time(), "LIST_OMICS: Start the raw query"))
+  data_w_taxo <- tbl(db, "data") %>% 
+    mutate(MAG = str_sub(Genes, 1, 22)) %>% 
+    dplyr::filter(readCount > 0) %>% 
+    dplyr::select("Station","Phylum","Class","Order","Family","Genus","MAG") %>% 
+    distinct() %>% 
+    collect()
+  message(paste(Sys.time(), "DONE"))
   
-  # --- 3. Download the raw data
-  # --- 3.1. Analysis accession ID
-  # Analysis identifier used to retrieve metadata and phyloseq object later
-  message("--- LIST BIO : retrieving accession ID from MGnify")
-  analysis_accession_ID <- mgnify_analyses_from_studies(mg, study_list$accession) # SUBSET FOR EXAMPLE
+  # Name repair on the MAGs (to remove the last "_" eventually)
+  # Due to a shift in the character number, because of 2 or 3 digit station where the MAG was referenced first
+  tmp <- paste0(data_w_taxo$MAG, "tmp")
+  data_w_taxo$MAG <- str_replace(tmp, "_tmp|tmp", "")
   
-  # --- 3.1.2. Retrieve metadata for each accession ID
-  # We only keep the metagenomic data and latest pipeline version
-  message("--- LIST BIO : retrieving studies metadata from MGnify")
-  sample_metadata <- mgnify_get_analyses_metadata(mg, analysis_accession_ID) %>% 
-    data.frame() %>% 
-    # dplyr::filter(`analysis_experiment.type` == "metagenomic" |
-    #                 `analysis_experiment.type` == "assembly" &
-    #                 `analysis_pipeline.version` == "5.0")
-    dplyr::filter(`analysis_experiment.type` == "metagenomic" |
-                  `analysis_experiment.type` == "assembly")
+  # --- 2.2. Filter samples according to user input
+  # Opening sample information and filter stations accordingly
+  message(paste(Sys.time(), "LIST_OMICS: Filter stations according to defined criteria"))
   
-  # --- 3.1.3. Retrieve the corresponding phyloseq objects
-  message("--- LIST BIO : retrieving studies phyloseq from MGnify")
-  sample_ps <- mgnify_get_analyses_phyloseq(mg, sample_metadata$analysis_accession)
+  locs_w_time <- tbl(db, "locs_w_time") %>% collect() %>% 
+    mutate(depth = 1) %>% # MATOU data are retrieved from Tara Ocean Surface samples
+    dplyr::filter(year >= SAMPLE_SELECT$START_YEAR & year <= SAMPLE_SELECT$STOP_YEAR) %>% 
+    dplyr::filter(depth >= SAMPLE_SELECT$TARGET_MIN_DEPTH & depth <= SAMPLE_SELECT$TARGET_MAX_DEPTH) %>% 
+    dplyr::select(Station)
   
-  # --- 4. Extract read, sample and annotation tables
-  # --- 4.1. Sample location description (S)
-  # Directly filter by the user selected time, depth criteria
-  S <- sample_ps@sam_data %>% 
-    data.frame() %>% 
-    rownames_to_column(var = "sample") %>% 
-    mutate(source_tbl = analysis_accession,
-           decimallatitude = sample_latitude,
-           decimallongitude = sample_longitude,
-           depth = sample_depth,
-           year = format(as.Date(`sample_collection.date`, format = "%Y-%m-%d"), "%Y"),
-           month = format(as.Date(`sample_collection.date`, format = "%Y-%m-%d"), "%m"),
-           measurementtype = rep("proportions", n()),
-           measurementunit = rep("OTU reads", n()),
-           lower_size = `sample_size.fraction.lower.threshold`,
-           upper_size = `sample_size.fraction.upper.threshold`,
-           ID = row_number()) %>% 
-    dplyr::select(source_tbl, decimallatitude, decimallongitude, depth, year, month, measurementtype, measurementunit, lower_size, upper_size, ID) %>% 
-    dplyr::filter(depth >= !!SAMPLE_SELECT$TARGET_MIN_DEPTH & 
-                    depth <= !!SAMPLE_SELECT$TARGET_MAX_DEPTH & 
-                    year >= !!SAMPLE_SELECT$START_YEAR & 
-                    year <= !!SAMPLE_SELECT$STOP_YEAR)
+  data_w_taxo <- data_w_taxo %>% 
+    inner_join(locs_w_time)
   
-  # --- 4.2. Raw reads per sample x target table (Y)
-  # Not yet processed as proportions. It will be done at the query stage.
-  Y <- sample_ps@otu_table %>% 
-    t() %>% data.frame() %>% 
-    slice(S$ID)
-  names(Y) <- sub("^X","", names(Y))
+  # --- 3. Extract the taxonomic information and observations available
+  # --- 3.1. Extract and format the different taxonomic ranks
+  message(paste(Sys.time(), "LIST_OMICS: Formatting the output and taxonomy"))
   
-  # --- 4.3. Taxonomic and functional annotations of targets
-  # Basic taxonomic annotations at the OTU level
-  annotations <- sample_ps@tax_table %>% 
-    data.frame() %>% 
-    rownames_to_column(var = "OTU") %>% 
-    mutate(nb_occ = apply(Y, 2, sum),
-           nb_station = apply(Y, 2, function(x)(x = length(which(x > 0)))))
+  list_raw <- lapply(c("Phylum","Class","Order","Family","Genus","MAG"), function(x){
+    id <- which(colnames(data_w_taxo) == x)
+    df <- data_w_taxo %>% 
+      dplyr::select(all_of(1:id)) %>% 
+      mutate(taxonrank = x,
+             scientificname = data_w_taxo[[x]])
+  }) %>% bind_rows() %>% 
+    distinct() 
   
-  # --- 4.4. Concatenate in a data list
-  data_list <- list(analysis_accession_ID = analysis_accession_ID,
-                    sample_metadata = sample_metadata,
-                    sample_ps = sample_ps,
-                    Y = Y,
-                    S = S,
-                    annotations = annotations)
-  return(data_list)
+  # --- 3.2. Count the number of observations for each combination of taxonomic rank and scientific name
+  # Filter by number of observations and organize the data into a tidy format.
+  message(paste(Sys.time(), "LIST_OMICS: Filter samples by nb. obs."))
+  
+  list_bio <- list_raw %>% 
+    group_by(taxonrank, scientificname) %>% 
+    mutate(nb_occ = n()) %>% 
+    ungroup() %>% 
+    dplyr::select(scientificname, taxonrank, nb_occ, Phylum, Class, Order, Family, Genus, MAG) %>% 
+    dplyr::filter(!is.na(scientificname)) %>% 
+    dplyr::filter(nb_occ >= SAMPLE_SELECT$MIN_SAMPLE) %>% 
+    distinct()
+  
+  # --- 4. Wrap up and save
+  return(list_bio)
   
 } # END FUNCTION
 

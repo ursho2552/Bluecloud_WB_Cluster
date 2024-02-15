@@ -77,6 +77,9 @@ eval_proportions <- function(CALL,
   # --- 2.4. Compute the cumulative variable importance
   MODEL[["MBTR"]][["eval"]][["CUM_VIP"]] <- sum(var_imp[1:3])
   
+  # --- 2.5. Save raw vip
+  MODEL[["MBTR"]][["vip"]] <- var_imp
+  
   # --- 3. Removing low quality algorithm
   # In this case the only algorithm available...
   for(i in MODEL$MODEL_LIST){
@@ -103,11 +106,11 @@ eval_proportions <- function(CALL,
     } else {pal <- "#B64A60"}
     
     # Simple barplot of the MBTR vip if the model passed QC
-    par(mar = c(20,20,3,2))
+    par(mar = c(20,15,3,7))
     barplot(var_imp, rep(1,length(var_imp)), axes = FALSE, horiz = TRUE, cex.names = 0.5,
             main = "PREDICTOR IMPORTANCE ( MBTR )",
             sub = paste("Predictive performance (R2) =", round(MODEL[["MBTR"]]$eval$R2, 2), "; Cumulated var. importance (%; top 3) =", round(MODEL[["MBTR"]]$eval$CUM_VIP, 0)), 
-            col = pal, ylab = "", xlab = "Variable importance (%)", las = 2)
+            col = pal, ylab = "", xlab = "Variable importance (%)", las = 2, cex.axis = 0.7)
     axis(side = 1, at = seq(0, 100, 10), labels = seq(0, 100, 10), las = 2)
     abline(v = seq(0, 100, 10), lty = "dotted")
     box()

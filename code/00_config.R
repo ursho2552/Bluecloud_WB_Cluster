@@ -17,7 +17,8 @@ if(!require("caret")){install.packages("caret")}
 if(!require("xgboost")){install.packages("xgboost")}
 
 # --- 2.3. Data table opening and storage
-if(!require("RSQLite")){install.packages("RSQLite")}
+if(!require("RSQLite")){install.packages("RSQLite")} # AtlantECO at ETH
+if(!require("RPostgreSQL")){install.packages("RPostgreSQL")} # MATOU
 if(!require("feather")){install.packages("feather")}
 if(!require("vroom")){install.packages("vroom")}
 
@@ -25,7 +26,6 @@ if(!require("vroom")){install.packages("vroom")}
 if(!require("raster")){install.packages("raster")}
 if(!require("virtualspecies")){install.packages("virtualspecies")}
 if(!require("ncdf4")){install.packages("ncdf4")}
-if(!require("usdm")){install.packages("usdm")}
 
 # --- 2.5. Data access service
 if(!require("phyloseq")){
@@ -38,15 +38,18 @@ if(!require("MGnifyR")){
   BiocManager::install("MGnifyR")}
 if(!require("robis")){install.packages("robis")}
 if(!require("rgbif")){install.packages("rgbif")}
+if(!require("worrms")){install.packages("worrms")}
 
 # --- 2.6. Others
 if(!require("RColorBrewer")){install.packages("RColorBrewer")}
+if(!require("scales")){install.packages("scales")}
 if(!require("fields")){install.packages("fields")}
 if(!require("pastecs")){install.packages("pastecs")}
 if(!require("ecospat")){install.packages("ecospat")}
 if(!require("dendextend")){install.packages("dendextend")}
 if(!require("mvrsquared")){install.packages("mvrsquared")}
 if(!require("bestNormalize")){install.packages("bestNormalize")}
+if(!require("infotheo")){install.packages("infotheo")}
 
 # --- Seed
 set.seed(123)
@@ -72,6 +75,8 @@ source(file = "./code/12c_diversity_maps.R")
 source(file = "./code/12d_user_synthesis.R")
 
 # --- Custom functions
+source("./function/worms_check.R")
+source("./function/feature_selection.R")
 source("./function/nc_to_raster.R")
 source("./function/sample_raster_NA.R")
 source("./function/outlier_iqr_col.R")

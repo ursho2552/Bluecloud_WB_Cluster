@@ -91,6 +91,9 @@ eval_binary <- function(CALL,
       dplyr::select(average) %>% 
       sum()
     
+    # --- 2.4.4. Save raw vip
+    MODEL[[i]][["vip"]] <- var_imp[[i]][["Percent"]]
+    
   } # for each model loop
   
   # --- 3. Removing low quality algorithms
@@ -146,6 +149,9 @@ eval_binary <- function(CALL,
       dplyr::slice(1:3) %>% 
       dplyr::select(average) %>% 
       sum()
+    
+    # --- 5.3. Ensemble raw VIP
+    MODEL[["ENSEMBLE"]][["vip"]] <- var_imp[["ENSEMBLE"]][["Percent"]]
   } # End ENSEMBLE QC
   
   # --- 6. Variable importance - Plot

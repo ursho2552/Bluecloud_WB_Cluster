@@ -17,28 +17,35 @@ query_custom <- function(FOLDER_NAME = NULL,
   
   # --- 1. Parameter loading
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
+  # --- 1.1. Single query if no WORMS_CHECK
+  SP_SELECT <- QUERY$SUBFOLDER_INFO$SP_SELECT
+  # --- 1.2. Multiple query if WORMS_CHECK = TRUE; i.e., also requesting children and synonyms
+  if(CALL$WORMS_CHECK == TRUE){
+    SP_SELECT <- CALL$SP_SELECT_INFO[[SP_SELECT]] %>% unlist() %>% as.numeric() %>% .[!is.na(.)] # take the vector of species to do a common query across all children and synonyms
+  }
   
   # --- 2. Create Y target table
   # --- 2.1. For presence data
   if(CALL$DATA_TYPE == "binary"){
     Y <- CALL$LIST_BIO %>% 
-      dplyr::filter(worms_id == QUERY$SUBFOLDER_INFO$SP_SELECT) %>% 
+      dplyr::filter(worms_id %in% !!SP_SELECT) %>% 
       dplyr::select(measurementvalue)
     if(is.numeric(Y$measurementvalue)){
       Y$measurementvalue <- Y$measurementvalue/Y$measurementvalue
     }
   }
   
-  # --- 2.2. For abundance data
+  # --- 2.2. For biomass data
   if(CALL$DATA_TYPE == "continuous"){
     Y <- CALL$LIST_BIO %>% 
-      dplyr::filter(worms_id == QUERY$SUBFOLDER_INFO$SP_SELECT) %>% 
+      dplyr::filter(worms_id %in% !!SP_SELECT) %>% 
       dplyr::select(measurementvalue) 
   }
   
   # --- 2.3. For proportion data
   if(CALL$DATA_TYPE == "proportions"){
     target_proportions <- CALL$LIST_BIO %>% 
+      dplyr::filter(worms_id %in% !!SP_SELECT) %>% 
       dplyr::select("decimallatitude","decimallongitude", "depth","year","month","measurementvalue","worms_id") %>% 
       pivot_wider(names_from = "worms_id", values_from = "measurementvalue", values_fn = mean)
     
@@ -52,7 +59,7 @@ query_custom <- function(FOLDER_NAME = NULL,
   # --- 3.1. For binary or continuous data
   if(CALL$DATA_TYPE == "binary" | CALL$DATA_TYPE == "continuous"){
     S <- CALL$LIST_BIO %>% 
-      dplyr::filter(worms_id == QUERY$SUBFOLDER_INFO$SP_SELECT) %>% 
+      dplyr::filter(worms_id %in% !!SP_SELECT) %>%
       dplyr::select(-any_of(c("measurementvalue", "worms_id", "taxonrank", "scientificname", "nb_occ"))) %>% 
       mutate(decimallatitude = as.numeric(decimallatitude),
              decimallongitude = as.numeric(decimallongitude),
@@ -72,7 +79,7 @@ query_custom <- function(FOLDER_NAME = NULL,
 
   # --- 4. Create annotation table
   annotations <- CALL$LIST_BIO %>% 
-    dplyr::filter(worms_id == QUERY$SUBFOLDER_INFO$SP_SELECT) %>% 
+    dplyr::filter(worms_id %in% !!SP_SELECT) %>% 
     dplyr::select(any_of(c("worms_id", "taxonrank", "scientificname", "nb_occ"))) %>% 
     distinct()
   

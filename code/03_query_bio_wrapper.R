@@ -38,12 +38,12 @@ query_bio_wrapper <- function(FOLDER_NAME = NULL,
   
   # --- 3. Redirection to the ATLANTECO query
   # For continuous  source data
-  if(CALL$DATA_SOURCE == "abundance"){
+  if(CALL$DATA_SOURCE == "biomass"){
     # --- 3.1. Load function
-    source(file = paste0(project_wd, "/code/03b_query_abundance.R"))
+    source(file = paste0(project_wd, "/code/03b_query_biomass.R"))
     
     # --- 3.2. Run function
-    QUERY <- query_abundance(FOLDER_NAME = FOLDER_NAME,
+    QUERY <- query_biomass(FOLDER_NAME = FOLDER_NAME,
                              QUERY = QUERY)
   } # End ATLANTECO redirection
   
@@ -58,7 +58,7 @@ query_bio_wrapper <- function(FOLDER_NAME = NULL,
   } # End MGNIFY redirection
   
   # --- 5. Redirection to the CUSTOM query
-  if(CALL$DATA_SOURCE != "omic" & CALL$DATA_SOURCE != "abundance" & CALL$DATA_SOURCE != "occurrence"){
+  if(CALL$DATA_SOURCE != "omic" & CALL$DATA_SOURCE != "biomass" & CALL$DATA_SOURCE != "occurrence"){
     # --- 5.1. Load function
     source(file = paste0(project_wd, "/code/03d_query_custom.R"))
     

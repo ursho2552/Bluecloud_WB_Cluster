@@ -51,7 +51,7 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
       tmp[tmp>plot_scale] <- plot_scale
       points(QUERY$S$decimallongitude, QUERY$S$decimallatitude, 
              col = col_numeric("inferno", domain = c(0, plot_scale))(tmp),
-             pch = 20)
+             pch = 20, cex = 0.6)
       box("figure", col="black", lwd = 1)
     }
 
@@ -60,21 +60,21 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
       plot(land, col = "antiquewhite4", legend=FALSE, main = paste("OBSERVATIONS \n samples for ID:", SUBFOLDER_NAME), 
            sub = paste("Nb. of observations after binning:",  nrow(QUERY$S)))
       points(QUERY$S$decimallongitude, QUERY$S$decimallatitude, 
-             col = "black", pch = 20)
+             col = "black", pch = 20, cex = 0.6)
       box("figure", col="black", lwd = 1)
     }
     
     # --- 2.2. Histogram of values
-    hist(unlist(QUERY$Y), breaks = 25, col = alpha("black", 0.5), main = "OBSERVATIONS \n Histogram of raw values", 
+    hist(unlist(QUERY$Y), breaks = 25, col = scales::alpha("black", 0.5), main = "OBSERVATIONS \n Histogram of raw values", 
          xlab = paste(CALL$DATA_TYPE, "observed values"))
     box("figure", col="black", lwd = 1)
     
     # --- 2.3. Longitude and latitude profile
-    hist(QUERY$S$decimallongitude, breaks = seq(-180,180, 10), col = alpha("black", 0.5), 
+    hist(QUERY$S$decimallongitude, breaks = seq(-180,180, 10), col = scales::alpha("black", 0.5), 
          main = "OBSERVATIONS \n Longitudinal spectrum", xlab = "Longitude")
     box("figure", col="black", lwd = 1)
     
-    hist(QUERY$S$decimallatitude, breaks = seq(-90,90, 10), col = alpha("black", 0.5), 
+    hist(QUERY$S$decimallatitude, breaks = seq(-90,90, 10), col = scales::alpha("black", 0.5), 
          main = "OBSERVATIONS \n Latitudinal spectrum", xlab = "Latitude")
     box("figure", col="black", lwd = 1)
     
@@ -200,23 +200,23 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
   # --- 5.1. Geographical distribution
   plot(land, col = "antiquewhite4", legend=FALSE, main = paste("OBSERVATIONS \n presence samples for ID:", SUBFOLDER_NAME), 
        sub = paste("Nb. of observations after binning:",  nrow(QUERY$S)))
-  points(QUERY$S$decimallongitude, QUERY$S$decimallatitude, col = alpha("black", 0.2), pch = 20)
+  points(QUERY$S$decimallongitude, QUERY$S$decimallatitude, col = scales::alpha("black", 0.2), pch = 20)
   box("figure", col="black", lwd = 1)
   
   plot(land, col = "antiquewhite4", legend=FALSE, main = paste("PSEUDO_ABSENCES \n location for ID:", SUBFOLDER_NAME), 
        sub = paste("NB_PA :", CALL$NB_PA, "// METHOD_PA :", CALL$METHOD_PA))
-  points(xym[,1:2], col = alpha("red", 0.2), pch = 20)
+  points(xym[,1:2], col = scales::alpha("red", 0.2), pch = 20)
   box("figure", col="black", lwd = 1)
   
   # --- 5.2. Longitude and latitude profile
-  hist(QUERY$S$decimallongitude, breaks = seq(-180,180, 10), col = alpha("black", 0.5), 
+  hist(QUERY$S$decimallongitude, breaks = seq(-180,180, 10), col = scales::alpha("black", 0.5), 
        main = "TARGET \n Longitudinal spectrum", xlab = "Longitude")
-  hist(xym$x, breaks = seq(-180,180, 10), col = alpha("red", 0.5), add = TRUE)
+  hist(xym$x, breaks = seq(-180,180, 10), col = scales::alpha("red", 0.5), add = TRUE)
   box("figure", col="black", lwd = 1)
   
-  hist(QUERY$S$decimallatitude, breaks = seq(-180,180, 10), col = alpha("black", 0.5), 
+  hist(QUERY$S$decimallatitude, breaks = seq(-180,180, 10), col = scales::alpha("black", 0.5), 
        main = "TARGET \n Latitudinal spectrum", xlab = "Latitude")
-  hist(xym$y, breaks = seq(-180,180, 10), col = alpha("red", 0.5), add = TRUE)
+  hist(xym$y, breaks = seq(-180,180, 10), col = scales::alpha("red", 0.5), add = TRUE)
   box("figure", col="black", lwd = 1)
   dev.off()
   

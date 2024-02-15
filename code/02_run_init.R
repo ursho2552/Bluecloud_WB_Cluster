@@ -14,7 +14,8 @@
 #' that can be long for omics data
 
 #' @param SP_SELECT species to run the analysis for, in form of Aphia ID for traditional data
-#' and OTU ID for omics
+#' and OTU ID for omics - updated if WORMS_CHECK = TRUE
+#' @param WORMS_CHECK check for the WoRMS taxonomic backbone and updates SP_SELECT accordingly
 #' @param DATA_TYPE the output type of the data, which can influence the sub-folder
 #' architecture. See details.
 #' 
@@ -33,7 +34,7 @@
 #' non NA cells, weighted by the cell values.
 
 #' @param OUTLIER if TRUE, remove outliers
-#' @param UNIVARIATE if true, performs a univariate predictor pre-selection
+#' @param RFE if true, performs a recursive feature exclusion predictor pre-selection
 #' @param ENV_COR numeric, removes the correlated environmental values from the
 #' query objects and CALL according to the defined threshold. Else NULL.
 
@@ -57,8 +58,8 @@
 
 #' @details Different data transformation between DATA_SOURCE and DATA_TYPE are implemented, including:
 #' - "occurrence" to "binary" (default)
-#' - "abundance" to "continuous" (default, not recommended for more than 50 targets)
-#' - "abundance" to "proportions" (not recommended if the sampling stations are not the same)
+#' - "biomass" to "continuous" (default, not recommended for more than 50 targets)
+#' - "biomass" to "proportions" (not recommended if the sampling stations are not the same)
 #' - "omic" to "proportions" (default, not recommended for more than 50 targets)
 #' - "omic" to "continuous" in form of richness
 #' - "omic" to "binary" in form of presence-only
@@ -68,6 +69,7 @@
 
 run_init <- function(FOLDER_NAME = "test_run",
                      SP_SELECT = NULL,
+                     WORMS_CHECK = TRUE,
                      FAST = FALSE,
                      LOAD_FROM = NULL,
                      DATA_TYPE = NULL,
@@ -79,7 +81,7 @@ run_init <- function(FOLDER_NAME = "test_run",
                      DIST_PA = NULL,
                      BACKGROUND_FILTER = NULL,
                      OUTLIER = TRUE,
-                     UNIVARIATE = TRUE,
+                     RFE = TRUE,
                      ENV_COR = 0.8,
                      NFOLD = 3,
                      FOLD_METHOD = "lon",
@@ -125,7 +127,38 @@ run_init <- function(FOLDER_NAME = "test_run",
     } # if exists
   } # if LOAD_FROM
   
-  # --- 3. Create species sub-directories
+  # --- 3. Check the taxonomic assignation
+  # Only if TRUE and data_source != proportions // you may want to turn it off if the data are not adapted (e.g., functional, omics)
+  # --- 3.1. Initialize object
+  SP_SELECT_INFO <- NULL # if FALSE stays like this
+  
+  if(WORMS_CHECK == TRUE & CALL$DATA_SOURCE != "omic"){
+    message("WORMS_CHECK: TRUE - checking for taxonomic unnaccepted names and synonyms against the WoRMS taxonomic backbone \n")
+    # --- 3.2. Extract worms information from the SP_SELECT
+    SP_SELECT_INFO <- lapply(SP_SELECT, function(x){
+      out = worms_check(ID = x, MARINE_ONLY = TRUE)
+    })
+    
+    # --- 3.3. Identify duplicates
+    duplicates <- duplicated(sapply(SP_SELECT_INFO, "[[", "VALID"))
+    
+    # --- 3.4. Merge the duplicates
+    for (i in which(duplicates)) {
+      # --- 3.4.1. Find indices of duplicated VALID vector
+      indices <- which(sapply(SP_SELECT_INFO, function(x) all(x$VALID == SP_SELECT_INFO[[i]]$VALID)))
+      message(paste("WORMS: subfolder", paste(SP_SELECT[indices], collapse = " & "), "are a dupplicates - merging it"))
+      
+      # --- 3.4.2. Merge SYNONYM into the first element of indices
+      SP_SELECT_INFO[[indices[1]]]$SYNONYM <- unique(unlist(sapply(indices, function(idx) SP_SELECT_INFO[[idx]]$SYNONYM)))
+      SP_SELECT_INFO <- SP_SELECT_INFO[-indices[-1]]
+    } # end for i
+    
+    # --- 3.4. Add nice names and update SP_SELECT
+    names(SP_SELECT_INFO) <- lapply(SP_SELECT_INFO, function(x)(x = x[["VALID"]]))
+    SP_SELECT <- names(SP_SELECT_INFO)
+  } # end if
+  
+  # --- 4. Create species sub-directories
   # Named by their Worms ID, OTU ID, or named proportion or richness depending on
   # the data source and type. Contains a QUERY object with the corresponding
   # species selection to consider in each sub folder.
@@ -134,9 +167,9 @@ run_init <- function(FOLDER_NAME = "test_run",
     QUERY <- list(SUBFOLDER_INFO = list(SP_SELECT = SP_SELECT))
     save(QUERY, file = paste0(out_path, "/proportions/QUERY.RData"))
   } else if(DATA_TYPE == "continuous" & CALL$DATA_SOURCE == "omic"){
-    dir.create(paste0(out_path, "/richness"))
+    dir.create(paste0(out_path, "/shannon"))
     QUERY <- list(SUBFOLDER_INFO = list(SP_SELECT = SP_SELECT))
-    save(QUERY, file = paste0(out_path, "/richness/QUERY.RData"))
+    save(QUERY, file = paste0(out_path, "/shannon/QUERY.RData"))
   } else {
     for(i in SP_SELECT){
       dir.create(paste0(out_path, "/", i))
@@ -145,12 +178,12 @@ run_init <- function(FOLDER_NAME = "test_run",
     }
   } # if DATA_TYPE and SOURCE
   
-  # --- 4. Extract environmental raster from NCDF
-  # --- 4.1. Get the list of files
+  # --- 5. Extract environmental raster from NCDF
+  # --- 5.1. Get the list of files
   list_nc <- list.files(ENV_PATH) %>% 
     .[grep(pattern = ".nc", x = .)]
   
-  # --- 4.2. Get the list of variables
+  # --- 5.2. Get the list of variables
   var_out <- ENV_VAR %>% .[grep("!", . , invert = FALSE)] %>% gsub("!", "", .)
   var_in <- ENV_VAR %>% .[grep("!", . , invert = TRUE)]
   
@@ -159,13 +192,13 @@ run_init <- function(FOLDER_NAME = "test_run",
   if(length(var_out) != 0){var_all <- var_all[!c(var_all %in% var_out)]}
   ENV_VAR <- var_all
   
-  # --- 4.3. Provide a list per month, containing raster stack of all variables
+  # --- 5.3. Provide a list per month, containing raster stack of all variables
   # Add plot of the native predictor distribution
   ENV_DATA <- list()
   pdf(paste0(project_wd,"/output/",FOLDER_NAME,"/Available_predictors.pdf"))
   
   for(m in 1:12){
-    # --- 4.3.1. Extract the data from the .nc files
+    # --- 5.3.1. Extract the data from the .nc files
     stack_month <- lapply(paste0(ENV_PATH, "/", ENV_VAR, ".nc"), 
                           FUN = function(x){x = nc_to_raster(MONTH = m,
                                                              NC = x,
@@ -177,35 +210,32 @@ run_init <- function(FOLDER_NAME = "test_run",
     stack_month <- lapply(stack_month, FUN = function(x)(x = x[[1]])) %>% 
       raster::stack()
     
-    # --- 4.3.2. Pretty names
+    # --- 5.3.2. Pretty names
     names(stack_month) <- ENV_VAR
     
-    # --- 4.3.3. Plot native range in a PDF
+    # --- 5.3.3. Plot native range in a PDF
     # Enables user to see if one variables has a very different range than others
     raster::plot(stack_month, main = paste(names(stack_month), "\n month n°:", m, "-", unlist(dim_info)), 
          cex.main = 0.8, col = viridis_pal(100), nr = 4, nc = 2)
     
-    # --- 4.3.4. SynchroniseNA across predictors - and assign to list
+    # --- 5.3.4. SynchroniseNA across predictors - and assign to list
     ENV_DATA[[m]] <- synchroniseNA(stack_month)
     message(paste(Sys.time(), "--- ENV. STACK : month", m, "done \t"))
   } # end month loop
   dev.off()
   
-  # --- 4.4. SynchroniseNA across month
-  # --- 4.4.1. Extract the base layer of each month
+  # --- 5.4. SynchroniseNA across month
+  # --- 5.4.1. Extract the base layer of each month
   base_r <- lapply(ENV_DATA, FUN = function(x)(x = x[[1]])) %>% 
     raster::stack() %>% 
     synchroniseNA() %>% 
     .[[1]]
   base_r <- base_r/base_r
   
-  # --- 4.4.2. Multiply each month stack by the base
+  # --- 5.4.2. Multiply each month stack by the base
   ENV_DATA <- lapply(ENV_DATA, FUN = function(x){x = x*base_r
                                                  names(x) = ENV_VAR
                                                  return(x)})
-  
-  # --- 5. Check for biological data homogeneity ?
-  # To be implemented ?
   
   # --- 6. Update CALL object
   # --- 6.1. Append CALL with ENV_DATA
@@ -218,6 +248,8 @@ run_init <- function(FOLDER_NAME = "test_run",
   
   # --- 6.3. Append CALL with all other objects
   CALL[["SP_SELECT"]] <- SP_SELECT
+  CALL[["WORMS_CHECK"]] <- WORMS_CHECK
+  CALL[["SP_SELECT_INFO"]] <- SP_SELECT_INFO
   CALL[["FAST"]] <- FAST
   CALL[["ENV_VAR"]] <- ENV_VAR
   CALL[["ENV_PATH"]] <- ENV_PATH
@@ -227,7 +259,7 @@ run_init <- function(FOLDER_NAME = "test_run",
   CALL[["DIST_PA"]] <- DIST_PA
   CALL[["BACKGROUND_FILTER"]] <- BACKGROUND_FILTER
   CALL[["OUTLIER"]] <- OUTLIER
-  CALL[["UNIVARIATE"]] <- UNIVARIATE
+  CALL[["RFE"]] <- RFE
   CALL[["ENV_COR"]] <- ENV_COR
   CALL[["NFOLD"]] <- NFOLD
   CALL[["FOLD_METHOD"]] <- FOLD_METHOD
@@ -251,7 +283,7 @@ run_init <- function(FOLDER_NAME = "test_run",
   if(DATA_TYPE == "proportions"){
     parallel <- "proportions"
   } else if(DATA_TYPE == "continuous" & CALL$DATA_SOURCE == "omic"){
-    parallel <- "richness"
+    parallel <- "shannon"
   } else {
     parallel <- CALL$SP_SELECT
   }

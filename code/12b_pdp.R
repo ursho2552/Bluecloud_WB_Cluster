@@ -221,10 +221,17 @@ pdp <- function(FOLDER_NAME = NULL,
       pdp_m <- cbind(pdp_m[,c(1,2)], tmp_m, tmp_cv)
       colnames(pdp_m) <- c("var","x","y_hat_m","y_hat_cv")
       
-      # --- 5.2.2. Aggregate in an all_pdp object
+      # --- 5.2.2. Write in model object
+      MODEL[[i]][["pdp"]] <- pdp_m
+      
+      # --- 5.2.3. Aggregate in an all_pdp object
       pdp_all[[i]] <- pdp_m
     } # if proportions or not
   } # End model loop
+  
+  # --- 5.3. Save model object
+  save(MODEL, file = paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/MODEL.RData"),
+       compress = "gzip", compression_level = 6)
   
   # ----------------------------------------------------------------------------
   

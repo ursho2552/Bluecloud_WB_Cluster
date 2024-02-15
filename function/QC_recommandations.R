@@ -65,7 +65,7 @@ qc_recommandations <- function(QUERY, MODEL,
   qc_matrix_01 <- qc_matrix
   for(m in m_names){
     # --- 2.3.1. A priori predictor importance
-    if(qc_matrix[m,1] >= 0.25 & !is.na(qc_matrix[m,1])){qc_matrix_01[m,1] <- 1} else {qc_matrix_01[m,1] <- 0}
+    if(qc_matrix[m,1] >= 0.05 & !is.na(qc_matrix[m,1])){qc_matrix_01[m,1] <- 1} else {qc_matrix_01[m,1] <- 0}
     # --- 2.3.2. Perdictive performance
     if(DATA_TYPE == "binary"){
       if(qc_matrix[m,2] >= 0.5 & !is.na(qc_matrix[m,2])){qc_matrix_01[m,2] <- 1} else {qc_matrix_01[m,2] <- 0}

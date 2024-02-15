@@ -17,7 +17,12 @@ query_abundance <- function(FOLDER_NAME = NULL,
   
   # --- 1. Parameter loading
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
+  # --- 1.1. Single query if no WORMS_CHECK
   SP_SELECT <- QUERY$SUBFOLDER_INFO$SP_SELECT
+  # --- 1.2. Multiple query if WORMS_CHECK = TRUE; i.e., also requesting children and synonyms
+  if(CALL$WORMS_CHECK == TRUE){
+    SP_SELECT <- CALL$SP_SELECT_INFO[[SP_SELECT]] %>% unlist() %>% as.numeric() %>% .[!is.na(.)] # take the vector of species to do a common query across all children and synonyms
+  }
   
   # --- 2. Connect to database
   # For now only the occurrence and abundance data from AtlantECO are available
@@ -39,9 +44,9 @@ query_abundance <- function(FOLDER_NAME = NULL,
                     year <= !!CALL$SAMPLE_SELECT$STOP_YEAR &
                     measurementvalue != "Absence") %>% 
     group_by(worms_id) %>% 
-    mutate(nb_occ = n()) %>% 
     ungroup() %>% 
-    distinct()
+    distinct() %>% 
+    mutate(nb_occ = n())
   
   # --- 4.2. Expand by target if DATA_TYPE = "proportions"
   target_proportions <- target %>% 

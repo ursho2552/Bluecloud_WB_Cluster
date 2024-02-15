@@ -87,39 +87,41 @@ diversity_maps <- function(FOLDER_NAME = NULL,
   a_invsimpson <- apply(all_ens, c(1,3,4), function(x)(x = vegan::diversity(x, "invsimpson")))
   
   # --- 4. Compute beta diversity indices
-  b_div <- a_shannon # to have the layout
-  for(m in 1:dim(all_ens)[[4]]){
-    message(paste(Sys.time(), "--- DIVERSITY : computing month:", m))
-    for(b in 1:dim(all_ens)[[3]]){
-      
-      # --- 4.1. Bray curtis
-      if(CALL$DATA_TYPE != "proportions"){
-        tmp <- mclapply(1:dim(all_ens)[[1]], function(x){
-          x <- beta_div(ID = x, NX = 360, NY = 180, VALUE = all_ens[,,b,m], BUFFER = 1, BETA = "bray")
-        }, mc.cores = 20) %>% 
-          unlist()
-        b_div[,b,m] <- tmp
-        b_name <- "b_bray"
-      } # if bray
-      
-      # --- 4.2. Hellinger
-      if(CALL$DATA_TYPE == "proportions"){
-        tmp <- mclapply(1:dim(all_ens)[[1]], function(x){
-          x <- beta_div(ID = x, NX = 360, NY = 180, VALUE = all_ens[,,b,m], BUFFER = 1, BETA = "hellinger")
-        }, mc.cores = 20) %>% 
-          unlist()
-        b_div[,b,m] <- tmp
-        b_name <- "b_hellinger"
-      } # if hellinger
-      
-    } # b bootstrap
-  } # m month
+  # b_div <- a_shannon # to have the layout
+  # for(m in 1:dim(all_ens)[[4]]){
+  #   message(paste(Sys.time(), "--- DIVERSITY : computing month:", m))
+  #   for(b in 1:dim(all_ens)[[3]]){
+  #     
+  #     # --- 4.1. Bray curtis
+  #     if(CALL$DATA_TYPE != "proportions"){
+  #       tmp <- mclapply(1:dim(all_ens)[[1]], function(x){
+  #         x <- beta_div(ID = x, NX = 360, NY = 180, VALUE = all_ens[,,b,m], BUFFER = 1, BETA = "bray")
+  #       }, mc.cores = 20) %>% 
+  #         unlist()
+  #       b_div[,b,m] <- tmp
+  #       b_name <- "b_bray"
+  #     } # if bray
+  #     
+  #     # --- 4.2. Hellinger
+  #     if(CALL$DATA_TYPE == "proportions"){
+  #       tmp <- mclapply(1:dim(all_ens)[[1]], function(x){
+  #         x <- beta_div(ID = x, NX = 360, NY = 180, VALUE = all_ens[,,b,m], BUFFER = 1, BETA = "hellinger")
+  #       }, mc.cores = 20) %>% 
+  #         unlist()
+  #       b_div[,b,m] <- tmp
+  #       b_name <- "b_hellinger"
+  #     } # if hellinger
+  #     
+  #   } # b bootstrap
+  # } # m month
   
   # --- 5. Stack diversities
-  div_all <- abind(a_shannon, a_richness, a_evenness, a_invsimpson, b_div, along = 4)
+  # div_all <- abind(a_shannon, a_richness, a_evenness, a_invsimpson, b_div, along = 4)
+  div_all <- abind(a_shannon, a_richness, a_evenness, a_invsimpson, along = 4)
   div_m <- apply(div_all, c(1,3,4), function(x)(x = mean(x, na.rm = T)))
   div_sd <- apply(div_all, c(1,3,4), function(x)(x = sd(x, na.rm = T)))
-  div_names <- c("a_shannon", "a_richness", "a_evenness", "a_invsimpson", b_name)
+  # div_names <- c("a_shannon", "a_richness", "a_evenness", "a_invsimpson", b_name)
+  div_names <- c("a_shannon", "a_richness", "a_evenness", "a_invsimpson")
   
   # --- 6. Extract MESS analysis
   message(paste(Sys.time(), "--- Extract MESS"))

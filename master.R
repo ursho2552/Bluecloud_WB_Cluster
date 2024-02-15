@@ -14,35 +14,43 @@ rm(list=ls())
 closeAllConnections()
 setwd("/net/meso/work/aschickele/Bluecloud_WB_local")
 source(file = "./code/00_config.R")
-run_name <- "COCCO_DIV_bin_phytobase"
+run_name <- "new_query_MATOU5"
 
 # --- 1. List the available species
 # Within the user defined selection criteria
 list_bio <- list_bio_wrapper(FOLDER_NAME = run_name,
-                             DATA_SOURCE = "/net/kryo/work/public/ftp/AtlantECO/BASE/AtlantECO-BASE-v1_microbiome_traditional_phytoplankton_species_occurrences_PhytoBasev2_20220905.csv",
+                             DATA_SOURCE = "omic",
                              SAMPLE_SELECT = list(MIN_SAMPLE = 50, TARGET_MIN_DEPTH = 0, TARGET_MAX_DEPTH = 100, START_YEAR = 1950, STOP_YEAR = 2020))
 
-# Define the list of species to consider
-sp_list <- list_bio$worms_id %>% unique() %>% .[!grepl("No match", .)]
-# sp_list <- list_bio %>%
-#   dplyr::filter(grepl("Thalassiosira ", scientificname)) %>%
-#   dplyr::select(worms_id) %>%
-#   unique() %>% pull()
+# ------------------------------------------------------------------------------
+# --- USER INPUT: Define the list of species to consider
+# sp_list <- list_bio$worms_id %>% unique() %>% .[!grepl("No match", .)]
+sp_list <- list_bio %>%
+  dplyr::filter(grepl("Tripos ", scientificname)) %>%
+  dplyr::select(worms_id) %>%
+  unique() %>% pull()
+
+# List for MATOU - omics (Alternative example)
+sp_list <- list_bio %>% 
+  dplyr::filter(taxonrank == "Class") %>% 
+  dplyr::select(scientificname) %>% unique() %>% pull()
+# ------------------------------------------------------------------------------
 
 # --- 2. Create the output folder, initialize parallelisation and parameters
 # (1) Create an output folder containing all species-level runs, (2) Stores the 
 # global parameters in an object, (3) Builds a local list of monthly raster
 subfolder_list <- run_init(FOLDER_NAME = run_name,
                            SP_SELECT = sp_list,
-                           FAST = FALSE,
+                           WORMS_CHECK = TRUE,
+                           FAST = TRUE,
                            LOAD_FROM = NULL,
                            DATA_TYPE = "continuous",
-                           ENV_VAR = NULL,
-                           ENV_PATH = "/net/meso/work/clercc/Predictors/PIPELINE_SET/TEST_SET",
+                           ENV_VAR = c("!climatology_s_0_50","!climatology_s_200_300"),
+                           ENV_PATH = "/net/meso/work/clercc/Predictors/PIPELINE_SET/VIRTUAL_SPECIES",
                            METHOD_PA = "density",
                            PER_RANDOM = 0.05,
                            OUTLIER = TRUE,
-                           UNIVARIATE = TRUE,
+                           RFE = TRUE,
                            ENV_COR = 0.8,
                            NFOLD = 3,
                            FOLD_METHOD = "lon",

@@ -17,11 +17,17 @@ query_occurrence <- function(FOLDER_NAME = NULL,
   
   # --- 1. Parameter loading
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
+  # --- 1.1. Single query if no WORMS_CHECK
+  SP_SELECT <- QUERY$SUBFOLDER_INFO$SP_SELECT
+  # --- 1.2. Multiple query if WORMS_CHECK = TRUE; i.e., also requesting children and synonyms
+  if(CALL$WORMS_CHECK == TRUE){
+    SP_SELECT <- CALL$SP_SELECT_INFO[[SP_SELECT]] %>% unlist() %>% as.numeric() %>% .[!is.na(.)] # take the vector of species to do a common query across all children and synonyms
+  }
   
   # --- 2. Query OBIS occurrences
   # --- 2.1. Default univariate target
-  target <- occurrence(taxonid = QUERY$SUBFOLDER_INFO$SP_SELECT) %>% 
-    dplyr::filter(aphiaID == QUERY$SUBFOLDER_INFO$SP_SELECT) %>% # triple check !
+  target <- occurrence(taxonid = SP_SELECT) %>% 
+    dplyr::filter(aphiaID %in% !!SP_SELECT) %>% # triple check !
     dplyr::filter(basisOfRecord == "Occurrence" | basisOfRecord == "HumanObservation" | basisOfRecord == "LivingSpecimen" | basisOfRecord == "MachineObservation") %>% 
     dplyr::filter(decimalLatitude != 0 | decimalLatitude < -90 | decimalLatitude > 90) %>% 
     dplyr::filter(decimalLongitude != 0 | decimalLongitude < -180 | decimalLongitude > 180) %>% 
@@ -41,32 +47,35 @@ query_occurrence <- function(FOLDER_NAME = NULL,
   colnames(target) <- c("scientificname","worms_id","decimallatitude","decimallongitude","depth","year", "month","measurementvalue","measurementunit", "taxonrank")
   
   # --- 3. Query GBIF occurrences
-  # --- 3.1. Prepare the scientific name - Aphia ID does not work for GBIF
-  SNAME <- target$scientificname[1] %>% as.character()
+  # --- 3.1. Default target
+  # Have to query by scientificname as there is no WoRMS backbone to GBIF
+  YEAR_0 = CALL$SAMPLE_SELECT$START_YEAR:CALL$SAMPLE_SELECT$STOP_YEAR %>% as.numeric()
+  SNAME_0 = target$scientificname %>% unique() %>% as.character()
+  target_gbif <- mapply(FUN = function(YEAR, SNAME){
+                          occ_data(scientificName = SNAME,
+                                   year = YEAR,
+                                   depth = paste0(CALL$SAMPLE_SELECT$TARGET_MIN_DEPTH, ",", CALL$SAMPLE_SELECT$TARGET_MAX_DEPTH),
+                                   occurrenceStatus = 'PRESENT',
+                                   isInCluster = FALSE,
+                                   limit = 99000)$data
+                        },
+                        YEAR = rep(YEAR_0, length(SNAME_0)),
+                        SNAME = rep(SNAME_0, length(YEAR_0))) %>% 
+    bind_rows() %>% distinct()
   
-  # --- 3.2. Default univariate target
-  target_gbif <- lapply(CALL$SAMPLE_SELECT$START_YEAR:CALL$SAMPLE_SELECT$STOP_YEAR,
-                 FUN = function(YEAR){
-                   occ_data(scientificName = SNAME,
-                            year = as.numeric(YEAR),
-                            depth = paste0(CALL$SAMPLE_SELECT$TARGET_MIN_DEPTH, ",", CALL$SAMPLE_SELECT$TARGET_MAX_DEPTH),
-                            occurrenceStatus = 'PRESENT',
-                            limit = 99000)$data
-                 }) %>% 
-    bind_rows() 
-  
-  # --- 3.3. Re-format data frame
+  # --- 3.2. Re-format data frame
   # Security if there is not GBIF data available for the species
   if(nrow(target_gbif) != 0){
-    # --- 3.3.1. Select columns
-    # And re-select the scientificname as a double check
+    # --- 3.2.1. Select columns
     target_gbif <- target_gbif %>% 
-      dplyr::filter(grepl(SNAME, scientificName)) %>% 
       dplyr::select(any_of(c("decimalLatitude","decimalLongitude","depth","year","month"))) %>% 
-      dplyr::filter(!is.na(decimalLatitude) & !is.na(decimalLongitude))
+      dplyr::filter(!is.na(decimalLatitude) & !is.na(decimalLongitude)) %>% 
+      distinct()
     colnames(target_gbif) <- c("decimallatitude","decimallongitude","depth","year","month")
     
-    # --- 3.3.2. Add missing columns
+    # --- 3.2.2. Add missing columns
+    # Add the columns corresponding to the "VALID" WoRMS backbone (id, sname & taxonrank)
+    # It is always the first one in the "target" object as it is the one requested first
     target_gbif <- target_gbif %>% 
       mutate(scientificname = target$scientificname[1],
              worms_id = QUERY$SUBFOLDER_INFO$SP_SELECT,
@@ -74,13 +83,13 @@ query_occurrence <- function(FOLDER_NAME = NULL,
              measurementunit = "Occurrence",
              taxonrank = target$taxonrank[1]) %>% 
       dplyr::select(any_of(c("scientificname","worms_id","decimallatitude","decimallongitude","depth","year","month","measurementvalue","measurementunit", "taxonrank")))
-    
-  }
+  } # end if
   
   # --- 4. Bind both datasets and add nb_occ
   # Again, security if there is not GBIF data available for the species
   if(nrow(target_gbif) != 0){
      target <- rbind(target, target_gbif) %>% 
+       distinct() %>% 
        mutate(nb_occ = n())
   } else {
     target <- target %>% 

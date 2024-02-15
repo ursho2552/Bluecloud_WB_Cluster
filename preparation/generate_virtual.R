@@ -402,16 +402,16 @@ evaluate_virtual <- function(FOLDER_NAME){
   
   # --- 4.3. Virtual species example
   plot(virtual_proj[[3]], col = inferno_pal(100), legend = FALSE)
-  plot(land, add = TRUE, legend = FALSE, col = "antiquewhite4")
+  plot(land, add = TRUE, legend = FALSE, col = "black")
   plot(raster::rasterToContour(virtual_proj[[3]], nlevels = 4), add = TRUE)
   
   # --- 4.4. Sample bias
-  plot(VIRTUAL$bias$coast, col = viridis_pal(100), legend = FALSE)
-  plot(land, add = TRUE, legend = FALSE, col = "antiquewhite4")
+  plot(VIRTUAL$bias$coast, col = parula_pal(100), legend = FALSE)
+  plot(land, add = TRUE, legend = FALSE, col = "black")
   plot(raster::rasterToContour(VIRTUAL$bias$coast, nlevels = 4), add = TRUE)
   
-  plot(VIRTUAL$bias$natl, col = viridis_pal(100), legend = FALSE)
-  plot(land, add = TRUE, legend = FALSE, col = "antiquewhite4")
+  plot(VIRTUAL$bias$natl, col = parula_pal(100), legend = FALSE)
+  plot(land, add = TRUE, legend = FALSE, col = "black")
   plot(raster::rasterToContour(VIRTUAL$bias$natl, nlevels = 4), add = TRUE)
   
   # --- 4.5. Taylor diagram
@@ -419,34 +419,38 @@ evaluate_virtual <- function(FOLDER_NAME){
   library(plotrix)
   pal <- alpha(viridis_pal(101), 0.5)
   taylor.diagram(ref = getValues(virtual_proj[[1]]), model = getValues(virtual_proj[[1]])*1.34,
-                 normalize = TRUE, col = "black", pcex = 0.01, ref.sd = TRUE)
+                 normalize = TRUE, col = "black", pcex = 0.01, cex.axis = 1.5, ref.sd = TRUE)
+  sd_track <- NULL # tracker for the standard deviation values
   # --- 4.5.2. Add all other points
   for(i in 1:nrow(metric_comparison)){
     ID <- metric_comparison[i,]
     REF <- virtual_proj[[ID$SP]] %>% getValues()
     EST <- estimated_proj[, ID$algorithm, ID$SUBFOLDER_NAME]
+    
     PREVALENCE <- VIRTUAL$distribution[[ID$SP]]$PA.conversion["species.prevalence"] %>% 
       as.numeric() %>% round(2) %>% .[]*100
     COL <- pal[PREVALENCE]
     # COL <- pal[ID$NOISE_SD]
     
     if(ID$IN_ENSEMBLE == "Y"){
-      taylor.diagram(ref = REF, model = EST, normalize = TRUE, col = COL, add = TRUE)
-      taylor.diagram(ref = REF, model = EST, normalize = TRUE, pch = 1, col = alpha("black", 0.5), add = TRUE)
+      taylor.diagram(ref = REF, model = EST, normalize = TRUE, col = COL, pcex = 2, add = TRUE)
+      taylor.diagram(ref = REF, model = EST, normalize = TRUE, pch = 1, col = alpha("black", 0.5), pcex = 2, add = TRUE)
+      sd_track <- c(sd_track, (sd(EST, na.rm = TRUE)/sd(REF, na.rm = TRUE))) # saved here if needed
     } else {
-      taylor.diagram(ref = REF, model = EST, normalize = TRUE, pch = 1, col = COL, add = TRUE)
+      taylor.diagram(ref = REF, model = EST, normalize = TRUE, col = COL, pcex = 2, add = TRUE)
+      taylor.diagram(ref = REF, model = EST, normalize = TRUE, col = "white", add = TRUE)
     }
   } # end i loop
   
   # --- 4.5.3. Add richness metrics
-  for(i in 1:ncol(estimated_shannon)){
-    taylor.diagram(ref = virtual_shannon, model = estimated_shannon[,i], normalize = TRUE, col = alpha("orange", 0.5), pch = 18, pcex = 2, add = TRUE)
-    taylor.diagram(ref = virtual_shannon, model = estimated_shannon[,i], normalize = TRUE, col = alpha("black", 0.5), pch = 5, pcex = 2, add = TRUE)
-  }
-  for(i in 1:ncol(estimated_richness)){
-    taylor.diagram(ref = virtual_richness, model = estimated_richness[,i], normalize = TRUE, col = alpha("red", 0.5), pch = 18, pcex = 2, add = TRUE)
-    taylor.diagram(ref = virtual_richness, model = estimated_richness[,i], normalize = TRUE, col = alpha("black", 0.5), pch = 5, pcex = 2, add = TRUE)
-  }
+  # for(i in 1:ncol(estimated_shannon)){
+  #   taylor.diagram(ref = virtual_shannon, model = estimated_shannon[,i], normalize = TRUE, col = alpha("orange", 0.5), pch = 18, pcex = 2, add = TRUE)
+  #   taylor.diagram(ref = virtual_shannon, model = estimated_shannon[,i], normalize = TRUE, col = alpha("black", 0.5), pch = 5, pcex = 2, add = TRUE)
+  # }
+  # for(i in 1:ncol(estimated_richness)){
+  #   taylor.diagram(ref = virtual_richness, model = estimated_richness[,i], normalize = TRUE, col = alpha("red", 0.5), pch = 18, pcex = 2, add = TRUE)
+  #   taylor.diagram(ref = virtual_richness, model = estimated_richness[,i], normalize = TRUE, col = alpha("black", 0.5), pch = 5, pcex = 2, add = TRUE)
+  # }
   
   # --- 4.6. Estimated QC vs True QC
   # --- 4.6.1. Extract corresponding metric - for future decision making
@@ -455,14 +459,16 @@ evaluate_virtual <- function(FOLDER_NAME){
     dplyr::select(EST_FIT, TRUE_FIT)
   
   # --- 4.6.1. Initialize - to calibrate Y and X axis with fake distribution
-  par(xpd = FALSE)
+  par(xpd = FALSE, mar = c(2,2,2,2))
   plot(x = 1, y = 1, type = 'n', xlim = c(0, 1), ylim = c(0,1), xlab = "Pearson R", ylab = "Fit estimate",
        main = paste("R = ", round(cor(decision$EST_FIT, decision$TRUE_FIT),2), "-",
-                    "RMSE =", round(cor(decision$EST_FIT, decision$TRUE_FIT),2), "-",
+                    "RMSE =", round(yardstick::rmse_vec(truth = decision$TRUE_FIT, estimate = decision$EST_FIT),2), "-",
                     "Median =", round(median(decision$EST_FIT), 2)
        ))
-  abline(coef = c(0,1))
-  abline(h = 0.5, v = 0.5, col = "darkred")
+  abline(coef = c(0,1), lty = "dashed", col = "black", lwd = 2)
+  if(CALL$DATA_TYPE == "binary"){
+    abline(h = 0.5, col = "black", lwd = 2)
+  } else {abline(h = 0.25, col = "black", lwd = 2)}
   grid(col = "gray50")
   # --- 4.6.2. Add all other points
   for(i in 1:nrow(metric_comparison)){
@@ -473,9 +479,9 @@ evaluate_virtual <- function(FOLDER_NAME){
     # COL <- pal[ID$NOISE_SD]
     
     if(ID$IN_ENSEMBLE == "Y"){
-      points(x = ID$TRUE_FIT, y = ID$EST_FIT, bg = COL, pch = 21)
+      points(x = ID$TRUE_FIT, y = ID$EST_FIT, bg = COL, pch = 21, cex = 2)
     } else {
-      points(x = ID$TRUE_FIT, y = ID$EST_FIT, col = COL, pch = 1)
+      points(x = ID$TRUE_FIT, y = ID$EST_FIT, col = COL, pch = 1, cex = 2, lwd = 3)
     }
   } # end i loop
   
@@ -647,7 +653,8 @@ evaluate_virtual <- function(FOLDER_NAME){
   library(plotrix)
   pal <- alpha(viridis_pal(101), 0.5)
   taylor.diagram(ref = getValues(virtual_proj[[1]]), model = getValues(virtual_proj[[1]])*1.34,
-                 normalize = TRUE, col = "black", pcex = 0.01, ref.sd = TRUE)
+                 normalize = TRUE, col = "black", pcex = 0.01, cex.axis = 1.5, ref.sd = TRUE)
+  sd_track <- NULL # tracker for the standard deviation values
   # --- 4.5.2. Add all other points
   for(i in 1:nrow(metric_comparison)){
     for(j in 1:ncol(virtual_proj_prop)){
@@ -660,19 +667,21 @@ evaluate_virtual <- function(FOLDER_NAME){
       # COL <- pal[ID$NOISE_SD]
       
       if(ID$IN_ENSEMBLE == "Y"){
-        taylor.diagram(ref = REF, model = EST, normalize = TRUE, col = COL, add = TRUE)
-        taylor.diagram(ref = REF, model = EST, normalize = TRUE, pch = 1, col = alpha("black", 0.5), add = TRUE)
+        taylor.diagram(ref = REF, model = EST, normalize = TRUE, col = COL, pcex = 2, add = TRUE)
+        taylor.diagram(ref = REF, model = EST, normalize = TRUE, pch = 1, col = alpha("black", 0.3), pcex = 2, add = TRUE)
+        sd_track <- c(sd_track, (sd(EST, na.rm = TRUE)/sd(REF, na.rm = TRUE))) # saved here if needed
       } else {
-        taylor.diagram(ref = REF, model = EST, normalize = TRUE, pch = 1, col = COL, add = TRUE)
+        taylor.diagram(ref = REF, model = EST, normalize = TRUE, col = COL, pcex = 2, add = TRUE)
+        taylor.diagram(ref = REF, model = EST, normalize = TRUE, col = "white", pcex = 1, add = TRUE)
       } # end j species loop
     }
   } # end i loop
   
   # --- 4.5.3. Add richness metrics
-  for(i in 1:ncol(estimated_shannon)){
-    taylor.diagram(ref = virtual_shannon, model = estimated_shannon[,i], normalize = TRUE, col = alpha("orange", 0.5), pch = 18, pcex = 2, add = TRUE)
-    taylor.diagram(ref = virtual_shannon, model = estimated_shannon[,i], normalize = TRUE, col = alpha("black", 0.5), pch = 5, pcex = 2, add = TRUE)
-  }
+  # for(i in 1:ncol(estimated_shannon)){
+  #   taylor.diagram(ref = virtual_shannon, model = estimated_shannon[,i], normalize = TRUE, col = alpha("orange", 0.5), pch = 18, pcex = 2, add = TRUE)
+  #   taylor.diagram(ref = virtual_shannon, model = estimated_shannon[,i], normalize = TRUE, col = alpha("black", 0.5), pch = 5, pcex = 2, add = TRUE)
+  # }
   
   # --- 4.6. Estimated QC vs True QC
   pal <- brewer.pal(3, "Set2")
@@ -685,11 +694,11 @@ evaluate_virtual <- function(FOLDER_NAME){
   par(xpd = FALSE)
   plot(x = 1, y = 1, type = 'n', xlim = c(0, 1), ylim = c(0,1), xlab = "Pearson R", ylab = "Fit estimate",
        main = paste("R = ", round(cor(decision$EST_FIT, decision$TRUE_FIT),2), "-",
-                    "RMSE =", round(cor(decision$EST_FIT, decision$TRUE_FIT),2), "-",
+                    "RMSE =", round(yardstick::rmse_vec(truth = decision$TRUE_FIT, estimate = decision$EST_FIT),2), "-",
                     "Median =", round(median(decision$EST_FIT), 2)
        ))
-  abline(coef = c(0,1))
-  abline(h = 0.5, v = 0.5, col = "darkred")
+  abline(coef = c(0,1), lty = "dashed", col = "black", lwd = 2)
+  abline(h = 0.25, col = "black", lwd = 2)
   grid(col = "gray50")
   # --- 4.6.2. Add all other points
   for(i in 1:nrow(metric_comparison)){

@@ -4,7 +4,7 @@
 #' different data types and access service sources.
 #' @param FOLDER_NAME name of the folder to create, corresponding to the run
 #' @param DATA_SOURCE type of data to query from : string among "occurrence" (i.e. OBIS data), 
-#' "abundance" (i.e. Ecotaxa data) or "omic" (i.e. MGnify) data; 
+#' "biomass" (i.e. Ecotaxa data) or "omic" (i.e. MGnify) data; 
 #' this parameter can also be a string path to a custom input table (i.e. "custom")
 #' @param SAMPLE_SELECT list of sample selection criteria, including :
 #' MIN_SAMPLE : minimum number of geographical points to consider the selection (i.e. non-zero records)
@@ -21,7 +21,7 @@
 #' - measurementvalue : numeric or string (e.g. present)
 #' - measurementunit : information on the unit of the measurement 
 #' - taxonrank : taxonomic ranking corresponding to the scientific name (e.g. species, gender, order...)
-#' @return for "occurrence" and "abundance" data, returns a data frame with the number
+#' @return for "occurrence" and "biomass" data, returns a data frame with the number
 #' of occurrences per worms_ID available
 #' @return for "omic" data, returns a complete list of metadata, samples, taxonomic
 #' annotations available.
@@ -29,7 +29,7 @@
 #' @return the returned object is saved in the run file to avoid re-running the query
 
 list_bio_wrapper <- function(FOLDER_NAME = "test_run",
-                             DATA_SOURCE = "abundance",
+                             DATA_SOURCE = "biomass",
                              SAMPLE_SELECT = list(MIN_SAMPLE = 50, MIN_DEPTH = 0, MAX_DEPTH = 50, START_YEAR = 1990, STOP_YEAR = 2016)){
   
   # --- 1. Initialize
@@ -39,7 +39,7 @@ list_bio_wrapper <- function(FOLDER_NAME = "test_run",
   
   # --- 1.1. Parameter checking
   if(!is.character(DATA_SOURCE)){
-    stop("The specified data source should be 'abundance', 'occurrence', 'omic' or a path to file")
+    stop("The specified data source should be 'biomass', 'occurrence', 'omic' or a path to file (.csv, .txt, .xlsx) for custom data")
   }
   
   # --- 1.2. Folder creation
@@ -47,13 +47,13 @@ list_bio_wrapper <- function(FOLDER_NAME = "test_run",
   # previous runs, or name the directory differently
   folderpath <- paste0(project_wd,"/output/",FOLDER_NAME)
   if(file.exists(folderpath)==TRUE){
-    stop("--- This foldername is already used")
+    stop("--- OVERWRITE ALARM: This foldername is already used. \n Please choose another FOLDER_NAME or delete the concerned folder")
   } else {
     dir.create(folderpath)
   }
   
   # --- 2. Redirection to OBIS data access
-  # For abundance and occurrence source data
+  # For occurrence source data
   if(DATA_SOURCE == "occurrence"){
     # --- 2.1. Load function
     source(file = paste0(project_wd, "/code/01a_list_occurrence.R"))
@@ -64,13 +64,13 @@ list_bio_wrapper <- function(FOLDER_NAME = "test_run",
   } # End ATLANTECO redirection
   
   # --- 3. Redirection to ATLANTECO data access
-  # For abundance and occurrence source data
-  if(DATA_SOURCE == "abundance"){
+  # For biomass source data
+  if(DATA_SOURCE == "biomass"){
     # --- 3.1. Load function
-    source(file = paste0(project_wd, "/code/01b_list_abundance.R"))
+    source(file = paste0(project_wd, "/code/01b_list_biomass.R"))
     
     # --- 3.2. Run function
-    LIST_BIO <- list_abundance(DATA_SOURCE = DATA_SOURCE,
+    LIST_BIO <- list_biomass(DATA_SOURCE = DATA_SOURCE,
                                SAMPLE_SELECT = SAMPLE_SELECT)
   } # End ATLANTECO redirection
   
@@ -86,7 +86,7 @@ list_bio_wrapper <- function(FOLDER_NAME = "test_run",
   
   # --- 5. Redirection to CUSTOM data access
   # For any type of data
-  if(DATA_SOURCE != "omic" & DATA_SOURCE != "abundance" & DATA_SOURCE != "occurrence"){
+  if(DATA_SOURCE != "omic" & DATA_SOURCE != "biomass" & DATA_SOURCE != "occurrence"){
     # --- 5.1. Load function
     source(file = paste0(project_wd, "/code/01d_list_custom.R"))
     
