@@ -4,20 +4,26 @@
 #' @return a list for each ID, containing VALID, SYNONYM and CHILDREN vectors. 
 
 worms_check <- function(ID, MARINE_ONLY = TRUE){
-  # 1. Acceptance check - early stop
+  # 1. Is numeric - early stop
+  if(is.numeric(ID) == FALSE){
+    message(paste("WORMS: Species n°", ID, "is not valid. It must be numeric type - Discarded \n"))
+    return(NULL)
+  } # security
   init_check <- wm_record(id = ID)
+  
+  # 2. Acceptance check - early stop
   if(length(init_check) == 0){
     message(paste("WORMS: Species n°", ID, "is not registered in WoRMS - please make you to give relevant WoRMS ID or turn the WORMS_CHECK to FALSE if not adapted to your data \n"))
     return(NULL)
     } # end if
   
-  # 2. Check for marine (optional)
-  if(MARINE_ONLY == TRUE & init_check$isMarine != 1){
+  # 3. Check for marine (optional)
+  if(MARINE_ONLY == TRUE & init_check$isMarine != 1 | is.na(init_check$isMarine) == TRUE){
     message(paste("WORMS: Species n°", ID, "is not Marine - Discarded \n"))
     return(NULL)
   } # end if
   
-  # 3. Get synonyms
+  # 4. Get synonyms
   synonym_check <- wm_synonyms_(id = ID)
   if(length(synonym_check) == 0){
     VALID <- ID # security

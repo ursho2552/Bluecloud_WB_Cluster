@@ -131,6 +131,7 @@ run_init <- function(FOLDER_NAME = "test_run",
   # Only if TRUE and data_source != proportions // you may want to turn it off if the data are not adapted (e.g., functional, omics)
   # --- 3.1. Initialize object
   SP_SELECT_INFO <- NULL # if FALSE stays like this
+  SP_SELECT <- SP_SELECT[!is.na(SP_SELECT)] # remove NA from the list
   
   if(WORMS_CHECK == TRUE & CALL$DATA_SOURCE != "omic"){
     message("WORMS_CHECK: TRUE - checking for taxonomic unnaccepted names and synonyms against the WoRMS taxonomic backbone \n")
