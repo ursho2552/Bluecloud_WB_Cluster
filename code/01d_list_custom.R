@@ -8,7 +8,8 @@
 #' within the data type and sample criteria
 
 list_custom <- function(DATA_SOURCE,
-                        SAMPLE_SELECT){
+                        SAMPLE_SELECT,
+                        FOLDER_NAME){
   
   # --- 1. Open the file
   # --- 1.1. Check extension type
@@ -50,11 +51,25 @@ list_custom <- function(DATA_SOURCE,
     return(NULL)
   }
   
-  # --- 3. List of available data
+  # --- 3. Delete metadata if too many columns
+  # Necessary for huge datasets to avoid memory issues when parallelizing later
+  # We save it outside CALL.RData for traceback, nevertheless.
+  if(ncol(df) > 25){
+    save(df, file = paste0(project_wd,"/output/", FOLDER_NAME, "/LIST_BIO_RAW.RData"))
+    df <- df %>% 
+      dplyr::select(any_of(names_qc))
+    message("LIST_CUSTOM: reduced the nb. of metadata to the scrict minimum due to memory issues. 
+            Please be more parsimonious with the metadata before running the pipeline (< 25 columns). 
+            The full list_bio has been saved outside CALL.RData for traceback \n")
+  } # end if
+  
+  # --- 4. List of available data
+  # Filter out eventual absences because the pipeline works as presence only.
   data_list <- df %>% 
     dplyr::filter(depth >= SAMPLE_SELECT$TARGET_MIN_DEPTH & depth <= SAMPLE_SELECT$TARGET_MAX_DEPTH) %>% 
     dplyr::filter(year >= SAMPLE_SELECT$START_YEAR & year <= SAMPLE_SELECT$STOP_YEAR) %>% 
     dplyr::filter(!is.na(measurementvalue)) %>% 
+    dplyr::filter(!grepl("abs|Abs", measurementvalue)) %>% 
     distinct() %>% 
     group_by(scientificname) %>% 
     mutate(nb_occ = n()) %>% 

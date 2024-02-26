@@ -70,11 +70,11 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
     box("figure", col="black", lwd = 1)
     
     # --- 2.3. Longitude and latitude profile
-    hist(QUERY$S$decimallongitude, breaks = seq(-180,180, 10), col = scales::alpha("black", 0.5), 
+    hist(QUERY$S$decimallongitude, breaks = seq(-200,200, 20), col = scales::alpha("black", 0.5), 
          main = "OBSERVATIONS \n Longitudinal spectrum", xlab = "Longitude")
     box("figure", col="black", lwd = 1)
     
-    hist(QUERY$S$decimallatitude, breaks = seq(-90,90, 10), col = scales::alpha("black", 0.5), 
+    hist(QUERY$S$decimallatitude, breaks = seq(-100,100, 10), col = scales::alpha("black", 0.5), 
          main = "OBSERVATIONS \n Latitudinal spectrum", xlab = "Latitude")
     box("figure", col="black", lwd = 1)
     
@@ -148,7 +148,7 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
       
       # Compute density
       focal_w <- focalWeight(r, 20, type = "Gauss")
-      dens <- focal(presence, focal_w, fun = function(x){sum(x, na.rm = TRUE)}, pad = TRUE)
+      dens <- raster::focal(presence, focal_w, fun = function(x){sum(x, na.rm = TRUE)}, pad = TRUE)
       dens <- (dens/max(getValues(dens), na.rm = TRUE)*(1-CALL$PER_RANDOM))+CALL$PER_RANDOM # try to get a fix random PA generation
       dens[!is.na(presence)] <- NA
       
@@ -171,26 +171,29 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
     
     # --- 4.3. Sample within the background data
     # Add a resample option if there is not enough background available
-    if(ncol(background == 3)){
-      if(nrow(background) < month_freq[m]){
-        message(" PSEUDO-ABS : background too small, selection with replacement !")
-        tmp <- sample(x = 1:nrow(background), size = month_freq[m], replace = TRUE, prob = background[,3]) # sqr the distance to bias more
+    if(nrow(background) > 0){
+      if(ncol(background == 3)){
+        if(nrow(background) < month_freq[m]){
+          message(" PSEUDO-ABS : background too small, selection with replacement !")
+          tmp <- sample(x = 1:nrow(background), size = month_freq[m], replace = TRUE, prob = background[,3]) # sqr the distance to bias more
+        } else {
+          tmp <- sample(x = 1:nrow(background), size = month_freq[m], prob = background[,3]) # sqr the distance to bias more
+        } 
       } else {
-        tmp <- sample(x = 1:nrow(background), size = month_freq[m], prob = background[,3]) # sqr the distance to bias more
-      } 
-    } else {
-      if(nrow(background) < month_freq[m]){
-        message(" PSEUDO-ABS : background too small, selection with replacement !")
-        tmp <- sample(x = 1:nrow(background), size = month_freq[m], replace = TRUE)
-      } else {
-        tmp <- sample(x = 1:nrow(background), size = month_freq[m])
-      } 
-    }
-    
-    # --- 4.4. Concatenate over month
-    xym0 <- background[tmp,1:2] %>% cbind(rep(as.numeric(m), month_freq[m]))
-    xym <- rbind(xym, xym0)
-    
+        if(nrow(background) < month_freq[m]){
+          message(" PSEUDO-ABS : background too small, selection with replacement !")
+          tmp <- sample(x = 1:nrow(background), size = month_freq[m], replace = TRUE)
+        } else {
+          tmp <- sample(x = 1:nrow(background), size = month_freq[m])
+        } 
+      } # end if col background
+      
+      # --- 4.4. Concatenate over month
+      xym0 <- background[tmp,1:2] %>% cbind(rep(as.numeric(m), month_freq[m]))
+      xym <- rbind(xym, xym0)
+      
+    } # end if nrow background
+
   } # m month loop
   
   # --- 5.Fast PDF to check the absences location
@@ -209,14 +212,14 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
   box("figure", col="black", lwd = 1)
   
   # --- 5.2. Longitude and latitude profile
-  hist(QUERY$S$decimallongitude, breaks = seq(-180,180, 10), col = scales::alpha("black", 0.5), 
+  hist(QUERY$S$decimallongitude, breaks = seq(-200,200, 20), col = scales::alpha("black", 0.5), 
        main = "TARGET \n Longitudinal spectrum", xlab = "Longitude")
-  hist(xym$x, breaks = seq(-180,180, 10), col = scales::alpha("red", 0.5), add = TRUE)
+  hist(xym$x, breaks = seq(-200,200, 20), col = scales::alpha("red", 0.5), add = TRUE)
   box("figure", col="black", lwd = 1)
   
-  hist(QUERY$S$decimallatitude, breaks = seq(-180,180, 10), col = scales::alpha("black", 0.5), 
+  hist(QUERY$S$decimallatitude, breaks = seq(-100,100, 10), col = scales::alpha("black", 0.5), 
        main = "TARGET \n Latitudinal spectrum", xlab = "Latitude")
-  hist(xym$y, breaks = seq(-180,180, 10), col = scales::alpha("red", 0.5), add = TRUE)
+  hist(xym$y, breaks = seq(-100,100, 10), col = scales::alpha("red", 0.5), add = TRUE)
   box("figure", col="black", lwd = 1)
   dev.off()
   

@@ -128,9 +128,9 @@ proj_binary <- function(QUERY,
     # --- 7.3. Discard if the PRE_VIP QC in the query is too low
     # In case of FAST = TRUE; the species was kept until here but we do not want
     # to compute an ensemble for it.
-    if(QUERY$eval$PRE_VIP < 0.25){
+    if(QUERY$eval$PRE_VIP < 0.05){
       MODEL$MODEL_LIST <- MODEL$MODEL_LIST[MODEL$MODEL_LIST != i]
-      message(paste("--- EVAL : discarded", i, "due to PRE_VIP =", QUERY$eval$PRE_VIP, "< 0.25 \n"))
+      message(paste("--- EVAL : discarded", i, "due to PRE_VIP =", QUERY$eval$PRE_VIP, "< 0.05 \n"))
     }
     
   } # for i model loop

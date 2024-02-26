@@ -131,7 +131,7 @@ run_init <- function(FOLDER_NAME = "test_run",
   # Only if TRUE and data_source != proportions // you may want to turn it off if the data are not adapted (e.g., functional, omics)
   # --- 3.1. Initialize object
   SP_SELECT_INFO <- NULL # if FALSE stays like this
-  SP_SELECT <- SP_SELECT[!is.na(SP_SELECT)] # remove NA from the list
+  SP_SELECT <- SP_SELECT[!is.na(SP_SELECT)] %>% as.numeric() # remove NA from the list
   
   if(WORMS_CHECK == TRUE & CALL$DATA_SOURCE != "omic"){
     message("WORMS_CHECK: TRUE - checking for taxonomic unnaccepted names and synonyms against the WoRMS taxonomic backbone \n")
@@ -139,22 +139,35 @@ run_init <- function(FOLDER_NAME = "test_run",
     SP_SELECT_INFO <- lapply(SP_SELECT, function(x){
       out = worms_check(ID = x, MARINE_ONLY = TRUE)
     })
+    SP_SELECT_INFO <- SP_SELECT_INFO[lengths(SP_SELECT_INFO) > 0] # filter out unnaccepted names
     
     # --- 3.3. Identify duplicates
-    duplicates <- duplicated(sapply(SP_SELECT_INFO, "[[", "VALID"))
+    duplicates <- duplicated(sapply(SP_SELECT_INFO, "[[", "VALID")) %>% which(. == TRUE)
+    valid_id <- lapply(SP_SELECT_INFO, function(x){x <- x$VALID}) %>% unlist()
+    duplicates_id <- which(valid_id %in% valid_id[duplicates])
     
     # --- 3.4. Merge the duplicates
-    for (i in which(duplicates)) {
-      # --- 3.4.1. Find indices of duplicated VALID vector
-      indices <- which(sapply(SP_SELECT_INFO, function(x) all(x$VALID == SP_SELECT_INFO[[i]]$VALID)))
-      message(paste("WORMS: subfolder", paste(SP_SELECT[indices], collapse = " & "), "are a dupplicates - merging it"))
-      
-      # --- 3.4.2. Merge SYNONYM into the first element of indices
-      SP_SELECT_INFO[[indices[1]]]$SYNONYM <- unique(unlist(sapply(indices, function(idx) SP_SELECT_INFO[[idx]]$SYNONYM)))
-      SP_SELECT_INFO <- SP_SELECT_INFO[-indices[-1]]
-    } # end for i
+    if(length(duplicates_id) > 0){
+      while(length(duplicates_id) > 0) {
+        # --- 3.4.1. Find indices of duplicated VALID vector
+        # indices <- which(sapply(SP_SELECT_INFO, function(x) all(x$VALID == SP_SELECT_INFO[[i]]$VALID)) == TRUE)
+        
+        indices <- which(valid_id == valid_id[duplicates_id])
+        message(paste("WORMS: subfolder", paste(valid_id[indices], collapse = " & "), "are a dupplicates - merging it"))
+        
+        # --- 3.4.2. Merge SYNONYM into the first element of indices
+        SP_SELECT_INFO[[indices[1]]]$SYNONYM <- unlist(sapply(indices, function(idx) SP_SELECT_INFO[[idx]]$SYNONYM)) %>% as.vector() %>% unique()
+        SP_SELECT_INFO[indices[-1]] <- NA
+        
+        # --- 3.4.3. Update duplicates_id
+        duplicates_id <- duplicates_id[-indices]
+        
+      } # end while
+    } # if duplicates
     
-    # --- 3.4. Add nice names and update SP_SELECT
+    SP_SELECT_INFO <- SP_SELECT_INFO[!is.na(SP_SELECT_INFO)] # filter out old duplicates names
+    
+    # --- 3.5. Add nice names and update SP_SELECT
     names(SP_SELECT_INFO) <- lapply(SP_SELECT_INFO, function(x)(x = x[["VALID"]]))
     SP_SELECT <- names(SP_SELECT_INFO)
   } # end if

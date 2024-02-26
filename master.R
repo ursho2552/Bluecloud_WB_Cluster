@@ -14,12 +14,12 @@ rm(list=ls())
 closeAllConnections()
 setwd("/net/meso/work/aschickele/Bluecloud_WB_local")
 source(file = "./code/00_config.R")
-run_name <- "zoobase_v2"
+run_name <- "WORMS_SHIT"
 
 # --- 1. List the available species
 # Within the user defined selection criteria
 list_bio <- list_bio_wrapper(FOLDER_NAME = run_name,
-                             DATA_SOURCE = "/net/kryo/work/public/shared/AtlantECO/BASE/AtlantECO-BASE-v1_microbiome_traditional_zooplankton_species_occurrences_ZooBasev2_20220909.csv",
+                             DATA_SOURCE = "/net/kryo/work/public/shared/AtlantECO/BASE/AtlantECO-BASE-v1_microbiome_traditional_phytoplankton_species_occurrences_PhytoBasev2_20220905.csv",
                              SAMPLE_SELECT = list(MIN_SAMPLE = 50, TARGET_MIN_DEPTH = 0, TARGET_MAX_DEPTH = 200, START_YEAR = 1950, STOP_YEAR = 2020))
 
 # ------------------------------------------------------------------------------
@@ -27,7 +27,7 @@ list_bio <- list_bio_wrapper(FOLDER_NAME = run_name,
 sp_list <- list_bio %>% 
   dplyr::filter(taxonrank == "Species") %>% 
   dplyr::select(worms_id) %>% 
-  unique() %>% .[!grepl("No match", .)]
+  unique() %>% pull() %>% .[!grepl("No match", .)]
 
 # sp_list <- list_bio %>%
 #   dplyr::filter(grepl("Tripos ", scientificname)) %>%

@@ -91,8 +91,9 @@ query_check <- function(FOLDER_NAME = NULL,
   # --- 2.5. Update QUERY with feature names to keep
   # --- 2.5.1. Inform user and log file
   if(length(univ_to_keep) == 0){
-    message("FEATURE UNIVARIATE CHECK: no features explain the target distribution better than a random one. 
-            Please check the chosen feature and yoru target distribution.")
+    message(paste("FEATURE UNIVARIATE CHECK:", SUBFOLDER_NAME, "no features explain the target distribution better than a random one. 
+            Please check the chosen feature and your target distribution."))
+    return(NA) # early return if no features (avoid crash later)
   } else if (length(univ_to_remove) > 1){
     message(paste("FEATURE UNIVARIATE CHECK: discard", univ_to_remove, 
                   "- no more variance explained than a NULL \n"))
@@ -109,6 +110,10 @@ query_check <- function(FOLDER_NAME = NULL,
     if(CALL$DATA_TYPE == "binary"){
       features <- features[which(QUERY$Y$measurementvalue != 0),]
     }
+    
+    # --- 3.2. Filter out unique features
+    features_unique <- apply(features, 2, function(x)(x = length(unique(x))))
+    features <- features[, which(features_unique > 1)]
     
     # --- 3.2. Check correlation/distance between variables
     features_dist <- cor(features, method = "pearson")
@@ -204,7 +209,7 @@ query_check <- function(FOLDER_NAME = NULL,
               main = paste("ENVIRONMENTAL PREDICTORS \n A-priori importance for ID:", SUBFOLDER_NAME),
               xlab = "", ylab = "", axes = FALSE, outline = FALSE, horizontal = TRUE,
               col = c(rep("#1F867B", id), rep("gold", ncol(features)-id)), cex.main = 0.7, cex.lab = 0.7, cex.axis = 0.7)
-      axis(side = 4, at = 1:ncol(features), labels = levels(rfe_vip$var), las = 2, cex.axis = 0.7)
+      axis(side = 4, at = 1:ncol(features), labels = levels(rfe_vip$var), las = 2, cex.axis = 0.6)
       axis(side = 1, at = c(seq(0, 15, 5), seq(0, 100, 20)), labels = c(seq(0, 15, 5), seq(0, 100, 20)), cex.axis = 0.7)
       title(xlab = "Estimated importance (%)", line = 2, cex.lab = 0.7)
       abline(v = c(seq(0, 15, 5), seq(0, 100, 20)), lty = "longdash", col = "gray50")
@@ -216,7 +221,7 @@ query_check <- function(FOLDER_NAME = NULL,
            bg = c(rep("#1F867B", id), rep("gold", ncol(features)-id)), col = "black",
            main = paste("ENVIRONMENTAL PREDICTORS \n Optimal number for ID:", SUBFOLDER_NAME),
            ylab = "", xlab = "")
-      axis(side = 4, at = 1:ncol(features), labels = levels(rfe_vip$var), las = 2, cex.axis = 0.7)
+      axis(side = 4, at = 1:ncol(features), labels = levels(rfe_vip$var), las = 2, cex.axis = 0.6)
       title(xlab = "Loss metric (RMSE)", ylab = "Nb. of considered predictors", line = 2, cex.lab = 0.7)
       grid(col = "gray50")
       mtext(side = 1, line = 5, "Feature selection by recursive feature exclusion procedure (Random Forest algorithm). The upper panel presents the ranked feature 
@@ -377,8 +382,8 @@ feature set is considered as sufficient", cex = 0.5, adj = 0)
   if(QUERY$eval$PRE_VIP >= 0.05 | CALL$FAST == FALSE){
     return(SUBFOLDER_NAME)
   } else {
-    message("The selected features do not present significant trends to the observations; please work on the predictors and data. \n
-            The species is discarded from further analysis")
+    message(paste("QUERY CHECK:", SUBFOLDER_NAME, "The selected features do not present significant trends to the observations; please work on the predictors and data. \n
+            The species is discarded from further analysis"))
     return(NA)
   }
   

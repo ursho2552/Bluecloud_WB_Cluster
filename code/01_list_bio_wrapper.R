@@ -92,7 +92,8 @@ list_bio_wrapper <- function(FOLDER_NAME = "test_run",
     
     # --- 5.2. Run function
     LIST_BIO <- list_custom(DATA_SOURCE = DATA_SOURCE,
-                            SAMPLE_SELECT = SAMPLE_SELECT)
+                            SAMPLE_SELECT = SAMPLE_SELECT, 
+                            FOLDER_NAME = FOLDER_NAME)
   } # End MGNIFY redirection
   
   # --- 6. Wrap up and save
