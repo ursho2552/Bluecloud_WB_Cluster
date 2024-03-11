@@ -149,7 +149,8 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
       # Compute density
       focal_w <- focalWeight(r, 20, type = "Gauss")
       dens <- raster::focal(presence, focal_w, fun = function(x){sum(x, na.rm = TRUE)}, pad = TRUE)
-      dens <- (dens/max(getValues(dens), na.rm = TRUE)*(1-CALL$PER_RANDOM))+CALL$PER_RANDOM # try to get a fix random PA generation
+      # dens <- raster::focal(presence, focal_w, fun = function(x){mean(x, na.rm = TRUE)}, pad = TRUE)
+      dens <- (dens/max(getValues(dens), na.rm = TRUE))
       dens[!is.na(presence)] <- NA
       
       # Define the weighted background raster
@@ -158,7 +159,7 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
         as.data.frame()
     } # End if density
     
-    # --- 4.2.4. Additional background filter
+    # --- 4.2.4. Custom background filter
     if(!is.null(CALL$BACKGROUND_FILTER)){
       if(is.data.frame(CALL$BACKGROUND_FILTER)){
         background <- CALL$BACKGROUND_FILTER
@@ -169,10 +170,36 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
       }
     } # END if background_filter TRUE
     
+    # --- 4.2.5. Additional Environmental distance (MESS)
+    if(CALL$PA_ENV_STRATA == TRUE){
+      env_strata <- dismo::mess(x = CALL$ENV_DATA[[as.numeric(m)]], v = QUERY$X)
+      env_strata[env_strata > 0] <- NA
+      env_strata[env_strata == -Inf] <- min(env_strata[!is.na(env_strata) & env_strata != -Inf])
+      env_strata <- (env_strata*(-1)) %>% 
+        rasterToPoints() %>% 
+        as.data.frame()
+      
+      env_strata$mess <- env_strata$mess/max(env_strata$mess, na.rm = TRUE)
+      
+      background <- background %>% 
+        right_join(env_strata) # right join because the mess has a value on all pixels; background may have NA
+      if(ncol(background) == 4){
+        background[,3] <- apply(background[,3:4], 1, function(x)(x = mean(x, na.rm = TRUE)))
+        background <- background[,-4]
+      }
+    } # end if env strata
+    
+    # --- 4.2.6. Additional Percentage Random
+    if(!is.null(CALL$PER_RANDOM) == TRUE & ncol(background) == 3){
+      background[,3] <- background[,3]*(1-CALL$PER_RANDOM)+CALL$PER_RANDOM # try to get a fix random PA generation
+      background <- background %>% 
+        dplyr::filter(!is.na(3))
+    } # if random
+    
     # --- 4.3. Sample within the background data
     # Add a resample option if there is not enough background available
     if(nrow(background) > 0){
-      if(ncol(background == 3)){
+      if(ncol(background) == 3){
         if(nrow(background) < month_freq[m]){
           message(" PSEUDO-ABS : background too small, selection with replacement !")
           tmp <- sample(x = 1:nrow(background), size = month_freq[m], replace = TRUE, prob = background[,3]) # sqr the distance to bias more

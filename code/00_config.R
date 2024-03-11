@@ -86,8 +86,9 @@ source("./function/QC_recommandations.R")
 source("./function/bivar_raster_plot.R")
 source("./function/get_cell_neighbors.R")
 source("./function/regrid_env.R")
+source("./function/memory_cleanup.R")
 
 # --- Data specific parameters
 
 # --- Model specific parameters
-MAX_CLUSTERS <- 16
+MAX_CLUSTERS <- 30

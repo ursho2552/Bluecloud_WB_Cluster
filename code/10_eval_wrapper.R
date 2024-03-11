@@ -22,8 +22,8 @@ eval_wrapper <- function(FOLDER_NAME = NULL,
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/MODEL.RData"))
   
-  # --- 1.3. Start PDF saving - variable importance
-  pdf(paste0(project_wd,"/output/",FOLDER_NAME,"/",SUBFOLDER_NAME,"/04_variable_importance.pdf"))
+  # --- 1.3. Setting up a path for the PDF file
+  pdf_path <- paste0(project_wd,"/output/",FOLDER_NAME,"/",SUBFOLDER_NAME,"/04_variable_importance.pdf")
   
   # --- 2. Redirection to PRESENCE model evaluation
   if(CALL$DATA_TYPE == "binary"){
@@ -33,7 +33,8 @@ eval_wrapper <- function(FOLDER_NAME = NULL,
     # --- 2.2. Run function
     MODEL<- eval_binary(CALL = CALL,
                         QUERY = QUERY,
-                        MODEL = MODEL)
+                        MODEL = MODEL,
+                        PDF_PATH = pdf_path)
   } # END if binary
   
   # --- 3. Redirection to CONTINUOUS model evaluation
@@ -44,7 +45,8 @@ eval_wrapper <- function(FOLDER_NAME = NULL,
     # --- 3.2. Run function
     MODEL <- eval_continuous(CALL = CALL,
                              QUERY = QUERY,
-                             MODEL = MODEL)
+                             MODEL = MODEL,
+                             PDF_PATH = pdf_path)
   } # END if continuous
   
   # --- 4. Redirection to PROPORTIONS model evaluation
@@ -55,7 +57,8 @@ eval_wrapper <- function(FOLDER_NAME = NULL,
     # --- 3.2. Run function
     MODEL <- eval_proportions(CALL = CALL,
                               QUERY = QUERY,
-                              MODEL = MODEL)
+                              MODEL = MODEL,
+                              PDF_PATH = pdf_path)
   } # END if proportions
   
   # --- 5. Wrap up and save
@@ -63,9 +66,7 @@ eval_wrapper <- function(FOLDER_NAME = NULL,
   save(MODEL, file = paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/MODEL.RData"))
   # --- 5.2. Stop logs
   log_sink(FILE = sinkfile, START = FALSE)
-  # --- 5.3. Stop PDF
-  dev.off()
-  # --- 5.4. Pretty return
+  # --- 5.3. Pretty return
   return(SUBFOLDER_NAME)
   
 } # END FUNCTION

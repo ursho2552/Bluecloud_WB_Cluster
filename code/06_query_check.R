@@ -352,19 +352,21 @@ feature set is considered as sufficient", cex = 0.5, adj = 0)
         axis(side = 2, las = 2, cex.axis = 0.7)
         box("figure", col="black", lwd = 1)
       } else {
-        hist(QUERY$X[,x][which(Y[,y] == 1)], breaks = seq(min(QUERY$X[,x]), max(QUERY$X[,x]), length.out = 25), col = scales::alpha(pal[x], 0.3),
-             main  = paste("(", x, ")", names(QUERY$X[x])), cex.main = 0.8, axes = FALSE,
-             sub = paste("Mutual Information:", signif(univ_feature_check$mutual_information[x],2), "| Spearman cor.:", signif(univ_feature_check$spearman[x],2)), cex.sub = 0.8,
-             xlab = "Feature values", cex.lab = 0.8,
-             ylab = paste(yname, "(Frequency) \n Pseudo-abs. (gray) ; Presence (colored)"))
-        hist(QUERY$X[,x][which(Y[,y] == 0)], breaks = seq(min(QUERY$X[,x]), max(QUERY$X[,x]), length.out = 25), col = scales::alpha("black", 0.3), add = TRUE)
-
-        box()
-        axis(side = 1, las = 2, cex.axis = 0.7)
-        axis(side = 2, las = 2, cex.axis = 0.7)
-        box("figure", col="black", lwd = 1)
-        grid(col = "gray20")
-        
+        if(length(unique(QUERY$X[,x][which(Y[,y] == 1)])) > 1){
+          message("QUERY CHECK (information): features with unique values are not plotted")
+          hist(QUERY$X[,x][which(Y[,y] == 1)], breaks = seq(min(QUERY$X[,x]), max(QUERY$X[,x]), length.out = 25), col = scales::alpha(pal[x], 0.3),
+               main  = paste("(", x, ")", names(QUERY$X[x])), cex.main = 0.8, axes = FALSE,
+               sub = paste("Mutual Information:", signif(univ_feature_check$mutual_information[x],2), "| Spearman cor.:", signif(univ_feature_check$spearman[x],2)), cex.sub = 0.8,
+               xlab = "Feature values", cex.lab = 0.8,
+               ylab = paste(yname, "(Frequency) \n Pseudo-abs. (gray) ; Presence (colored)"))
+          hist(QUERY$X[,x][which(Y[,y] == 0)], breaks = seq(min(QUERY$X[,x]), max(QUERY$X[,x]), length.out = 25), col = scales::alpha("black", 0.3), add = TRUE)
+          
+          box()
+          axis(side = 1, las = 2, cex.axis = 0.7)
+          axis(side = 2, las = 2, cex.axis = 0.7)
+          box("figure", col="black", lwd = 1)
+          grid(col = "gray20")
+        } # if unique value
       } # if binary data
     } # for x features
   } # for y target

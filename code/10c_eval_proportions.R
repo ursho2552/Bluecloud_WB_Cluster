@@ -4,13 +4,15 @@
 #' @param CALL the call object from the master pipeline
 #' @param QUERY the query object from the master pipeline
 #' @param MODEL the models object from the master pipeline
+#' @param PDF_PATH preset path for the pdf save
 #' @return the MODEL object updated with evaluation metric values (model performance
 #' metric and variable importance metric)
 #' @return variable importance plots as PDF file
 
 eval_proportions <- function(CALL,
                              QUERY,
-                             MODEL){
+                             MODEL,
+                             PDF_PATH){
   
   # --- 1. Model performance assessment
   # --- 1.1. Source the MBTR functions
@@ -100,6 +102,8 @@ eval_proportions <- function(CALL,
   } # for each model loop
   
   # --- 4. Variable importance - Plot
+  pdf(PDF_PATH)
+  
   if(CALL$FAST == FALSE | (length(MODEL$MODEL_LIST) == 1)){
     # Define the color (green = QC passed; red = no)
     if(length(MODEL$MODEL_LIST) == 1){pal <- "#1F867B"
@@ -118,6 +122,7 @@ eval_proportions <- function(CALL,
   }
 
   # --- 5. Wrap up and save
+  dev.off()
   return(MODEL)
   
 } # END FUNCTION

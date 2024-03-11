@@ -4,13 +4,15 @@
 #' @param CALL the call object from the master pipeline
 #' @param QUERY the query object from the master pipeline
 #' @param MODEL the models object from the master pipeline
+#' @param PDF_PATH preset path for the pdf save
 #' @return the MODEL object updated with evaluation metric values (model performance
 #' metric and variable importance metric)
 #' @return variable importance plots as PDF file
 
 eval_continuous <- function(CALL,
                             QUERY,
-                            MODEL){
+                            MODEL,
+                            PDF_PATH){
   
   # --- 1. Model performance assessment
   for(i in MODEL$MODEL_LIST){
@@ -82,7 +84,8 @@ eval_continuous <- function(CALL,
         mutate(value = value / sum(value) * 100)  %>% 
         ungroup() %>% 
         dplyr::select(variable, value) %>% 
-        mutate(variable = fct_reorder(variable, value, .desc = TRUE, .na_rm = TRUE))
+        dplyr::filter(!is.na(value)) %>% 
+        mutate(variable = fct_reorder(variable, value, .desc = TRUE))
     } else {
       var_imp[[i]][["Percent"]] <- var_imp[[i]][["Raw"]]
     }
@@ -160,13 +163,14 @@ eval_continuous <- function(CALL,
   
   # --- 6. Variable importance - Plot
   # --- 6.1. Graphical specification
+  pdf(PDF_PATH)
   par(mfrow = c(3,1), mar = c(6,2,3,20))
   
   # --- 6.2. Define plots to display
   # All if FAST == FALSE; those that passed QC if there is more than 1
   if(CALL$FAST == FALSE){
     plot_display <- CALL$HP$MODEL_LIST
-  } else if(length(MODEL$MODEL_LIST) > 1){
+  } else if(length(MODEL$MODEL_LIST) >= 1){
     plot_display <- MODEL$MODEL_LIST
   } else {
     plot_display <- NULL
@@ -210,6 +214,7 @@ eval_continuous <- function(CALL,
   } # End if model list > 1 or FAST == FALSE
   
   # --- 7. Wrap up and save
+  dev.off()
   return(MODEL)
   
 } # END FUNCTION

@@ -80,6 +80,7 @@ run_init <- function(FOLDER_NAME = "test_run",
                      PER_RANDOM = 0.25,
                      DIST_PA = NULL,
                      BACKGROUND_FILTER = NULL,
+                     PA_ENV_STRATA = FALSE,
                      OUTLIER = TRUE,
                      RFE = TRUE,
                      ENV_COR = 0.8,
@@ -272,6 +273,7 @@ run_init <- function(FOLDER_NAME = "test_run",
   CALL[["PER_RANDOM"]] <- PER_RANDOM
   CALL[["DIST_PA"]] <- DIST_PA
   CALL[["BACKGROUND_FILTER"]] <- BACKGROUND_FILTER
+  CALL[["PA_ENV_STRATA"]] <- PA_ENV_STRATA
   CALL[["OUTLIER"]] <- OUTLIER
   CALL[["RFE"]] <- RFE
   CALL[["ENV_COR"]] <- ENV_COR
