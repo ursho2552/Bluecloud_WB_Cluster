@@ -72,9 +72,34 @@ the user, however.")
   to_remove <- file.size(paste0(output_wd, "/", all_files)) != 0
   all_files <- all_files[to_remove]
 
-    # --- 4. Combine and save
-    pdf_combine(input = paste0(output_wd, "/", all_files),
-              output = paste0(output_wd, "/USER_SUMMARY.pdf"))
+  # --- 4. Combine and save
+  batch_size <- 100
+
+  file_batches <- split(all_files, ceiling(seq_along(all_files) / batch_size))
+
+  batched_pdfs <- list()
+
+  # # Loop over the batches
+  for (i in seq_along(file_batches)) {
+  # Construct the input file paths for the current batch
+  input_files <- paste0(output_wd, "/", file_batches[[i]])
+
+  # Construct the output file path for the current batch
+  output_file <- paste0(output_wd, "/BATCH_", i, ".pdf")
+
+  # Combine the PDFs in the current batch
+  pdf_combine(input = input_files, output = output_file)
+
+  # Add the path of the batched PDF to the list
+  batched_pdfs <- c(batched_pdfs, output_file)
+  }
+
+  pdf_combine(input = batched_pdfs, output = paste0(output_wd, "/USER_SUMMARY_batches.pdf"))
+
+  # Loop over the batched_pdfs
+  for (file in batched_pdfs) {
+    # Remove the file
+    file.remove(file)
 
 } # END FUNCTION
 
