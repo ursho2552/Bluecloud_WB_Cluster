@@ -100,6 +100,7 @@ the user, however.")
   for (file in batched_pdfs) {
     # Remove the file
     file.remove(file)
+    }
 
 } # END FUNCTION
 

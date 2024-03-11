@@ -45,14 +45,15 @@ sp_list <- list_bio %>%
 # global parameters in an object, (3) Builds a local list of monthly raster
 subfolder_list <- run_init(FOLDER_NAME = run_name,
                            SP_SELECT = sp_list,
-                           WORMS_CHECK = TRUE,
+                           WORMS_CHECK = FALSE,
                            FAST = TRUE,
                            LOAD_FROM = NULL,
                            DATA_TYPE = "binary",
                            ENV_VAR = c("!climatology_s_0_50","!climatology_s_200_300"),
                            ENV_PATH = "/net/meso/work/clercc/Predictors/PIPELINE_SET/VIRTUAL_SPECIES",
                            METHOD_PA = "density",
-                           PER_RANDOM = 0.05,
+                           PER_RANDOM = 0,
+                           PA_ENV_STRATA = TRUE,
                            OUTLIER = TRUE,
                            RFE = TRUE,
                            ENV_COR = 0.8,
@@ -70,7 +71,7 @@ subfolder_list <- run_init(FOLDER_NAME = run_name,
 mcmapply(FUN = query_bio_wrapper,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
-         mc.cores = min(length(subfolder_list), MAX_CLUSTERS), USE.NAMES = FALSE)
+         mc.cores = min(length(subfolder_list), MAX_CLUSTERS), USE.NAMES = FALSE, mc.preschedule = FALSE)
 
 # --- 4. Query environmental data
 # This functions returns an updated subfolder_list object to avoid computing
@@ -78,7 +79,7 @@ mcmapply(FUN = query_bio_wrapper,
 subfolder_list <- mcmapply(FUN = query_env,
                   FOLDER_NAME = run_name,
                   SUBFOLDER_NAME = subfolder_list,
-                  mc.cores = min(length(subfolder_list), MAX_CLUSTERS)) %>% 
+                  mc.cores = min(length(subfolder_list), MAX_CLUSTERS), mc.preschedule = FALSE) %>% 
   unlist() %>% 
   na.omit(subfolder_list) %>% 
   .[grep("Error", ., invert = TRUE)] %>% # to exclude any API error or else
@@ -88,14 +89,14 @@ subfolder_list <- mcmapply(FUN = query_env,
 mcmapply(FUN = pseudo_abs,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
-         mc.cores = min(length(subfolder_list), MAX_CLUSTERS), USE.NAMES = FALSE)
+         mc.cores = min(length(subfolder_list), MAX_CLUSTERS), USE.NAMES = FALSE, mc.preschedule = FALSE)
 
 # --- 6. Outliers, Environmental predictor and MESS check 
 # This functions returns an updated subfolder_list with meaningful feature set
 subfolder_list <- mcmapply(FUN = query_check,
                            FOLDER_NAME = run_name,
                            SUBFOLDER_NAME = subfolder_list,
-                           mc.cores = min(length(subfolder_list), MAX_CLUSTERS)) %>% 
+                           mc.cores = min(length(subfolder_list), MAX_CLUSTERS), mc.preschedule = FALSE) %>% 
   unlist() %>% 
   na.omit(subfolder_list) %>% 
   as.vector()
@@ -104,7 +105,7 @@ subfolder_list <- mcmapply(FUN = query_check,
 mcmapply(FUN = folds,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
-         mc.cores = min(length(subfolder_list), MAX_CLUSTERS), USE.NAMES = FALSE)
+         mc.cores = min(length(subfolder_list), MAX_CLUSTERS), USE.NAMES = FALSE, mc.preschedule = FALSE)
 
 # --- 8. Hyper parameters to train
 hyperparameter(FOLDER_NAME = run_name)
@@ -113,33 +114,33 @@ hyperparameter(FOLDER_NAME = run_name)
 mcmapply(FUN = model_wrapper,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
-         mc.cores = min(length(subfolder_list), MAX_CLUSTERS), USE.NAMES = FALSE)
+         mc.cores = min(length(subfolder_list), MAX_CLUSTERS), USE.NAMES = FALSE, mc.preschedule = FALSE)
 
 # --- 10. Model evaluation
 # Performance metric and variable importance
 mcmapply(FUN = eval_wrapper,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
-         mc.cores = min(length(subfolder_list), MAX_CLUSTERS), USE.NAMES = FALSE)
+         mc.cores = min(length(subfolder_list), MAX_CLUSTERS), USE.NAMES = FALSE, mc.preschedule = FALSE)
 
 # ---11. Model projections
 mcmapply(FUN = proj_wrapper,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
-         mc.cores = min(length(subfolder_list), MAX_CLUSTERS), USE.NAMES = FALSE)
+         mc.cores = min(length(subfolder_list), MAX_CLUSTERS), USE.NAMES = FALSE, mc.preschedule = FALSE)
 
 # --- 12. Output plots
 # --- 12.1. Standard maps per algorithms
 mcmapply(FUN = standard_maps,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
-         mc.cores = min(length(subfolder_list), MAX_CLUSTERS), USE.NAMES = FALSE)
+         mc.cores = min(length(subfolder_list), MAX_CLUSTERS), USE.NAMES = FALSE, mc.preschedule = FALSE)
 
 # --- 12.2. Partial dependency plots
 mcmapply(FUN = pdp,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
-         mc.cores = min(length(subfolder_list), MAX_CLUSTERS), USE.NAMES = FALSE)
+         mc.cores = min(length(subfolder_list), MAX_CLUSTERS), USE.NAMES = FALSE, mc.preschedule = FALSE)
 
 # --- 12.3 Diversity
 diversity_maps(FOLDER_NAME = run_name,

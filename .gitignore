@@ -3,6 +3,9 @@
 .RData
 .Ruserdata
 job.R
+job2.R
+.bash_profile
+.run_script.sh
 master_virtual_proportions.R
 master_virtual.R
 *.csv

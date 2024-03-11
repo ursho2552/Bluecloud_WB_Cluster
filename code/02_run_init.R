@@ -23,15 +23,19 @@
 #' @param ENV_PATH string or vector of path to the root where the .nc are.
 #' @param METHOD_PA method of pseudo-absence, either "mindist" or "cumdist" or "density"
 #' @param NB_PA number of pseudo-absences to generate
-#' @param PER_RANDOM ratio of pseudo-absences that are sampled randomly in the background
 #' @param DIST_PA if METHOD_PA = "mindist", distance from presences (in meters),
 #'  from which to define the background data. Expert use only.
-#' @param BACKGROUND_FILTER additional background filter for finer tuning, such
+#' @param BACKGROUND_FILTER alternative background filter for finer tuning, such
 #' as selecting pseudo-absences within the sampled background of a given campaign
 #' or instrument deployment. Passed by the user in the form of a 2 column 
 #' data frame, x = longitude and y = latitude where the pseudo-absences
 #' can be sampled. Or a path to a raster object where pseudo-absences are sampled in
 #' non NA cells, weighted by the cell values.
+#' @param PER_RANDOM ratio of pseudo-absences that are sampled randomly in the background
+#'  - in addition to the background choice
+#' @param PA_ENV_STRATA pseudo absences are also sampled in environmentally distinct cells from 
+#' the presences using a mess analysis - in addition to the background choice
+
 
 #' @param OUTLIER if TRUE, remove outliers
 #' @param RFE if true, performs a recursive feature exclusion predictor pre-selection
