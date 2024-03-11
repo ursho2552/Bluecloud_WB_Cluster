@@ -28,14 +28,6 @@ if(!require("virtualspecies")){install.packages("virtualspecies")}
 if(!require("ncdf4")){install.packages("ncdf4")}
 
 # --- 2.5. Data access service
-if(!require("phyloseq")){
-  if (!require("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-  BiocManager::install("phyloseq")}
-if(!require("MGnifyR")){
-  if (!requireNamespace("BiocManager", quietly = TRUE))
-  install.packages("BiocManager")
-  BiocManager::install("MGnifyR")}
 if(!require("robis")){install.packages("robis")}
 if(!require("rgbif")){install.packages("rgbif")}
 if(!require("worrms")){install.packages("worrms")}
@@ -50,6 +42,9 @@ if(!require("dendextend")){install.packages("dendextend")}
 if(!require("mvrsquared")){install.packages("mvrsquared")}
 if(!require("bestNormalize")){install.packages("bestNormalize")}
 if(!require("infotheo")){install.packages("infotheo")}
+if(!require("pdftools")){install.packages("pdftools")}
+if(!require("hillR")){install.packages("hillR")}
+
 
 # --- Seed
 set.seed(123)
@@ -74,6 +69,29 @@ source(file = "./code/12b_pdp.R")
 source(file = "./code/12c_diversity_maps.R")
 source(file = "./code/12d_user_synthesis.R")
 
+# --- Wrapped functions
+source(file = "./code/01a_list_occurrence.R")
+source(file = "./code/01b_list_biomass.R")
+source(file = "./code/01c_list_omic.R")
+source(file = "./code/01d_list_custom.R")
+
+source(file = "./code/03a_query_occurrence.R")
+source(file = "./code/03b_query_biomass.R")
+source(file = "./code/03c_query_omic.R")
+source(file = "./code/03d_query_custom.R")
+
+source(file = "./code/10a_eval_binary.R")
+source(file = "./code/10b_eval_continuous.R")
+source(file = "./code/10c_eval_proportions.R")
+
+source(file = "./code/09a_model_binary.R")
+source(file = "./code/09b_model_continuous.R")
+source(file = "./code/09c_model_proportions.R")
+
+source(file = "./code/11a_proj_binary.R")
+source(file = "./code/11b_proj_continuous.R")
+source(file = "./code/11c_proj_proportions.R")
+
 # --- Custom functions
 source("./function/worms_check.R")
 source("./function/feature_selection.R")
@@ -91,4 +109,4 @@ source("./function/memory_cleanup.R")
 # --- Data specific parameters
 
 # --- Model specific parameters
-MAX_CLUSTERS <- 30
+MAX_CLUSTERS <- 20
