@@ -37,8 +37,7 @@ proj_binary <- function(QUERY,
     # fit_resamples() does not save models by default. Thus the control_resamples()
     boot_fit <- MODEL[[i]][["final_wf"]] %>%
       fit_resamples(resamples = boot_split,
-                    control = control_resamples(extract = function (x) extract_fit_parsnip(x),
-                    verbose = FALSE)) %>%
+                    control = control_resamples(extract = function (x) extract_fit_parsnip(x),verbose = FALSE)) %>%
       unnest(.extracts)
 
     # --- 4. Loop over month for predictions
@@ -110,10 +109,15 @@ proj_binary <- function(QUERY,
     } # if CUT
 
     # --- 6. Compute the average CV across bootstrap runs as a QC
+
+    # if(dim(y_hat)[[2]] == CALL$N_BOOTSTRAP) {
     NSD <- apply(y_hat, c(1,3), function(x)(x = sd(x, na.rm = TRUE))) %>%
       mean(na.rm = TRUE)
     NSD <- NSD/mean(y_hat, na.rm = TRUE)
-
+    # }else{
+    #   NSD <- NA
+    #   message(paste("--- PROJ: Model", i, " discarded, bootstrap did not complete"))
+    # }
     # --- 7. Append the MODEL object
     # --- 7.1. Save the evaluation metric and projections
     MODEL[[i]][["proj"]][["y_hat"]] <- y_hat
@@ -134,6 +138,7 @@ proj_binary <- function(QUERY,
       message(paste("--- EVAL : discarded", i, "due to PRE_VIP =", QUERY$eval$PRE_VIP, "< 0.05 \n"))
     }
 
+  message(dim(y_hat))
   } # for i model loop
 
   # --- 8. Build the ensemble NSD if there is an ensemble

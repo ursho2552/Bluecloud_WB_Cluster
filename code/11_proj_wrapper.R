@@ -15,8 +15,8 @@ proj_wrapper <- function(FOLDER_NAME = NULL,
 
   # --- 1. Initialize function
   # --- 1.1. Start logs - append file
-  sinkfile <- log_sink(FILE = file(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/log.txt"), open = "a"),
-                       START = TRUE)
+  # sinkfile <- log_sink(FILE = file(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/log.txt"), open = "a"),
+                      #  START = TRUE)
   message(paste(Sys.time(), "******************** START : proj_wrapper ********************"))
 
   # --- 1.2. Parameter loading
@@ -56,7 +56,7 @@ proj_wrapper <- function(FOLDER_NAME = NULL,
   save(MODEL, file = paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/MODEL.RData"),
        compress = "gzip", compression_level = 6)
   # --- 5.2. Stop logs
-  log_sink(FILE = sinkfile, START = FALSE)
+  # log_sink(FILE = sinkfile, START = FALSE)
   # --- 5.3. Pretty return
   return(SUBFOLDER_NAME)
 
