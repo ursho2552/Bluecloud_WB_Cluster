@@ -3,17 +3,12 @@
 #' @description Function extracting all projections by species and bootstrap.
 #' Then computes a set of diversity metrics and plots
 #' @param FOLDER_NAME name of the corresponding folder
-#' @param SUBFOLDER_NAME list of sub_folders to parallelize on.
 #' @param N_BOOTSTRAP the number of bootstrap in the projection step
-#' @param BETA the list of beta diversity dissimilarity index. Among those
-#' available in vegan::vegdist()
-#' @param BUFFER the radius of neighboring cells to consider for beta diversity
 #' @return plots mean and uncertainty maps per diversity metric
 #' @return a diversity and mess object per projection, species and bootstrap.
 #' Saved in FOLDERNAME.
 
 diversity_maps <- function(FOLDER_NAME = NULL,
-                           SUBFOLDER_NAME = NULL,
                            MONTH = list(c(10,11,12,1,2,3),
                                         4:9)){
   
@@ -29,55 +24,46 @@ diversity_maps <- function(FOLDER_NAME = NULL,
   land[is.na(land)] <- 9999
   land[land != 9999] <- NA
   
-  # --- 1.4. Beta diversity function
-  beta_div <- function(ID, NX, NY, VALUE, BUFFER, BETA){
-    # --- Get cell identifiers
-    cells <- get_cell_neighbors(NX = NX,
-                                NY = NY, 
-                                ID = ID,
-                                BUFFER = BUFFER)
-    # --- Compute average pairwise dissimilarity
-    diss <- vegan::vegdist(VALUE[c(cells$center_id, cells$neighbors_id),], method = BETA, na.rm = TRUE) %>% 
-      as.matrix() %>% 
-      .[2:nrow(.), 1] %>% 
-      mean(na.rm = TRUE)
-  }
-  
+
+  # --- 1.4 Get all species with MODEL.RData  
+  model_files <- list.files(paste0(project_wd, "/output/", FOLDER_NAME), recursive = TRUE) %>%
+    .[grepl("MODEL.RData", .)] %>%
+    dirname() %>%
+    unique()
+
+  # --- 1.5 ensure there are MODEL.RData files
+  if (length(model_files) == 0){
+    message("DIVERSITY: No MODEL.RData files")
+    return(NA)
+  }# early return if empty
+
   # --- 2. Extract ensembles by species
   # --- 2.1. For binary or continuous data
   if(CALL$DATA_TYPE != "proportions"){
-    all_ens <- mclapply(SUBFOLDER_NAME, FUN = function(s){
+    all_ens <- mclapply(model_files, FUN = function(s){
       # --- 2.1.1. Load subfolder information
-      # We have a file exist security here in case the diversity is run later
-      f <- paste0(project_wd, "/output/", FOLDER_NAME,"/", s, "/MODEL.RData")
-      if(file.exists(f)){load(f)} else {MODEL$MODEL_LIST <- NULL}
-      
-      # --- 2.1.2. Early return if there is not enough algorithms passing QC
-      if(length(MODEL$MODEL_LIST) == 0){
-        s_ens <- NULL
-      } # if early return
-      
-      # --- 2.1.3. Compute ensemble across algorithms
-      if(length(MODEL$MODEL_LIST) != 0){
-        s_ens <- lapply(MODEL$MODEL_LIST, FUN = function(m){
-          MODEL[[m]]$proj$y_hat
-        }) %>% abind(along = 4) %>% apply(c(1,2,3), mean)
-      } # compute ensemble
+      load(paste0(project_wd, "/output/", FOLDER_NAME,"/", s, "/MODEL.RData"))
+
+      # --- 2.1.2. Compute ensemble across algorithms
+      s_ens <- lapply(MODEL$MODEL_LIST, FUN = function(m){
+        MODEL[[m]]$proj$y_hat
+      }) %>% abind(along = 4) %>% apply(c(1,2,3), mean)
     },
-    mc.cores = MAX_CLUSTERS) %>% abind(along = 4) %>% aperm(c(1,4,2,3))
+    mc.cores = min(length(model_files), MAX_CLUSTERS)) %>% abind(along = 4) %>% aperm(c(1,4,2,3))
   } # if binary or continuous
-  
+
   # --- 2.2. For proportions
+  # should work with model_files as well. Above it would find the folder "."
   if(CALL$DATA_TYPE == "proportions"){
-    load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/MODEL.RData"))
+    load(paste0(project_wd, "/output/", FOLDER_NAME,"/", model_files, "/MODEL.RData"))
     all_ens <- MODEL$MBTR$proj$y_hat %>% aperm(c(1,3,2,4))
     all_ens[all_ens < 0] <- 0 # security to remove any negative value
   } # if proportions
   
   # --- 2.3. Return if not enough ensembles
   if(dim(all_ens)[[2]] < 5){
-    return(NA)
     message("--- DIVERSITY : not enough ensembles to compute diversity from")
+    return(NA)
   }
   
   # --- 3. Compute alpha diversity indices
@@ -86,73 +72,40 @@ diversity_maps <- function(FOLDER_NAME = NULL,
   a_evenness <- a_shannon/(a_richness)
   a_invsimpson <- apply(all_ens, c(1,3,4), function(x)(x = vegan::diversity(x, "invsimpson")))
   
-  # --- 4. Compute beta diversity indices
-  # b_div <- a_shannon # to have the layout
-  # for(m in 1:dim(all_ens)[[4]]){
-  #   message(paste(Sys.time(), "--- DIVERSITY : computing month:", m))
-  #   for(b in 1:dim(all_ens)[[3]]){
-  #     
-  #     # --- 4.1. Bray curtis
-  #     if(CALL$DATA_TYPE != "proportions"){
-  #       tmp <- mclapply(1:dim(all_ens)[[1]], function(x){
-  #         x <- beta_div(ID = x, NX = 360, NY = 180, VALUE = all_ens[,,b,m], BUFFER = 1, BETA = "bray")
-  #       }, mc.cores = 20) %>% 
-  #         unlist()
-  #       b_div[,b,m] <- tmp
-  #       b_name <- "b_bray"
-  #     } # if bray
-  #     
-  #     # --- 4.2. Hellinger
-  #     if(CALL$DATA_TYPE == "proportions"){
-  #       tmp <- mclapply(1:dim(all_ens)[[1]], function(x){
-  #         x <- beta_div(ID = x, NX = 360, NY = 180, VALUE = all_ens[,,b,m], BUFFER = 1, BETA = "hellinger")
-  #       }, mc.cores = 20) %>% 
-  #         unlist()
-  #       b_div[,b,m] <- tmp
-  #       b_name <- "b_hellinger"
-  #     } # if hellinger
-  #     
-  #   } # b bootstrap
-  # } # m month
-  
-  # --- 5. Stack diversities
-  # div_all <- abind(a_shannon, a_richness, a_evenness, a_invsimpson, b_div, along = 4)
+  # --- 4. Stack diversities
   div_all <- abind(a_shannon, a_richness, a_evenness, a_invsimpson, along = 4)
   div_m <- apply(div_all, c(1,3,4), function(x)(x = mean(x, na.rm = T)))
   div_sd <- apply(div_all, c(1,3,4), function(x)(x = sd(x, na.rm = T)))
-  # div_names <- c("a_shannon", "a_richness", "a_evenness", "a_invsimpson", b_name)
   div_names <- c("a_shannon", "a_richness", "a_evenness", "a_invsimpson")
   
-  # --- 6. Extract MESS analysis
+  # --- 5. Extract MESS analysis
   message(paste(Sys.time(), "--- Extract MESS"))
-  mess_all <- lapply(SUBFOLDER_NAME, FUN = function(s){
-    # --- 6.1. Load corresponding objects
+  mess_all <- lapply(model_files, FUN = function(s){
+    # --- 5.1. Load corresponding objects
     # We have a file exist security here in case the diversity is run later
-    f <- paste0(project_wd, "/output/", FOLDER_NAME,"/", s, "/MODEL.RData")
-    if(file.exists(f)){
-      load(paste0(project_wd, "/output/", FOLDER_NAME,"/", s, "/QUERY.RData"))
-      load(paste0(project_wd, "/output/", FOLDER_NAME,"/", s, "/MODEL.RData"))
-      
-      # --- 6.2. Extract mess
+    model_file <- f <- paste0(project_wd, "/output/", FOLDER_NAME,"/", s, "/MODEL.RData")
+    query_file <- gsub('MODEL.RData', 'QUERY.RData', model_file)
+    load(model_file)
+    load(query_file) 
+      # --- 5.2. Extract mess
       if(length(MODEL$MODEL_LIST) != 0){
         mess_s <- getValues(QUERY$MESS*-1)
       } # if ensemble
-    } # if exist
   }) %>% abind(along = 3) %>% apply(c(1,2), mean)
   
-  # --- 6.3. Final adjustments
+  # --- 5.3. Final adjustments
   mess_all[mess_all > 100] <- 100
   
-  # --- 6.4. Intermediate save
+  # --- 5.4. Intermediate save
   save(div_all, file = paste0(project_wd, "/output/", FOLDER_NAME,"/DIVERSITY.RData"))
   
-  # --- 7. Diversity plots
-  # --- 7.1. Initialize pdf and plot
+  # --- 6. Diversity plots
+  # --- 6.1. Initialize pdf and plot
   pdf(paste0(project_wd,"/output/",FOLDER_NAME,"/diversity_maps.pdf"))
   par(mfrow = c(3,2), mar = c(2,3,3,3))
   
-  # --- 7.2. Plot the legends
-  # --- 7.2.1. Diversity legend
+  # --- 6.2. Plot the legends
+  # --- 6.2.1. Diversity legend
   plot.new()
   colorbar.plot(x = 0.5, y = 0, strip = seq(0,1,length.out = 100),
                 strip.width = 0.3, strip.length = 2.1,
@@ -160,7 +113,7 @@ diversity_maps <- function(FOLDER_NAME = NULL,
   axis(side = 1)
   text(x = 0.5, y = 0.3, "Diversity value [0 - 1]", adj = 0.5)
   
-  # --- 7.2.2. MESS x CV 2D color scale
+  # --- 6.2.2. MESS x CV 2D color scale
   par(mar = c(5,5,1,2))
   bivar_pal <- colmat(nbreaks = 100)
   colmat_plot(bivar_pal, xlab = "Standard deviation", ylab = "MESS value")
@@ -168,17 +121,17 @@ diversity_maps <- function(FOLDER_NAME = NULL,
   axis(side = 2, at = c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = c(0, -20, -40, -60, -80, -100), las = 2)
   par(mar = c(5,3,3,1))
   
-  # --- 7.3. Plot diversity maps
+  # --- 6.3. Plot diversity maps
   # Loop over diversity maps and projections
   for(i in 1:dim(div_m)[[3]]){
     for(m in MONTH){
       
-      # --- 7.3.1. Prepare the data
+      # --- 6.3.1. Prepare the data
       tmp_m <- div_m[,m,] %>% apply(c(1,3), mean) %>% .[,i]
       tmp_sd <- div_sd[,m,] %>% apply(c(1,3), mean) %>% .[,i]
       plot_scale <- quantile(tmp_m, 0.95, na.rm = TRUE)
       
-      # --- 7.3.2. Assign to raster
+      # --- 6.3.2. Assign to raster
       # Average raster is cut at plot scale (Q95)
       r_m <- r0 %>% setValues(tmp_m)
       r_m[r_m > plot_scale] <- plot_scale
@@ -189,7 +142,7 @@ diversity_maps <- function(FOLDER_NAME = NULL,
       r_mess[r_mess<0] <- 1e-10 # temporary fix : modify bivarmap so that 0 is included
       r_mess[r_mess>100] <- 100
       
-      # --- 7.3.3. Average projection
+      # --- 6.3.3. Average projection
       plot(r_m, col = inferno_pal(100), legend=FALSE,
            main = paste("DIVERSITY (",div_names[i], ") \n Month:", paste(m, collapse = ",")), cex.main = 1)
       mtext(text = paste("Projection rescaling factor: ", round(plot_scale,2), 
@@ -199,7 +152,7 @@ diversity_maps <- function(FOLDER_NAME = NULL,
       plot(raster::rasterToContour(r_m, nlevels = 4), add = TRUE)
       box("figure", col="black", lwd = 1)
       
-      # --- 7.3.4. Uncertainties projection
+      # --- 6.3.4. Uncertainties projection
       # First we draw a land mask
       plot(land, col = "antiquewhite4", legend=FALSE, main = "Uncertainties", cex.main = 1)
       # Then compute and plot the 2-dimensional color scale for SD x MESS
@@ -212,10 +165,10 @@ diversity_maps <- function(FOLDER_NAME = NULL,
     } # m month
   } # i diversity
   
-  # --- 8. Stop PDF
+  # --- 7. Stop PDF
   dev.off()
   
-  # --- 9. Save diversity maps
+  # --- 8. Save diversity maps
   save(div_all, file = paste0(project_wd, "/output/", FOLDER_NAME,"/DIVERSITY.RData"))
   
 } # END FUNCTION
