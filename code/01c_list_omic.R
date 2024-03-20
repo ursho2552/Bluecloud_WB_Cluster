@@ -76,7 +76,10 @@ list_omic <- function(SAMPLE_SELECT){
     dplyr::filter(nb_occ >= SAMPLE_SELECT$MIN_SAMPLE) %>% 
     distinct()
   
-  # --- 4. Wrap up and save
+  # --- 4. Disconnect from database
+  dbDisconnect(db)
+  
+  # --- 5. Wrap up and save
   return(list_bio)
   
 } # END FUNCTION

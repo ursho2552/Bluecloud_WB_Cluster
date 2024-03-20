@@ -150,6 +150,9 @@ query_omic <- function(FOLDER_NAME = NULL,
   QUERY[["S"]] <- S
   QUERY[["annotations"]] <- annotations
   
+  # --- 7. Disconnect from database
+  dbDisconnect(db)
+  
   return(QUERY)
   
 } # END FUNCTION

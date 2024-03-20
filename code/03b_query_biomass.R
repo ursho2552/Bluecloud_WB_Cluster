@@ -12,7 +12,7 @@
 #' for each target species.
 #' @return the output in a QUERY object
 
-query_abundance <- function(FOLDER_NAME = NULL,
+query_biomass <- function(FOLDER_NAME = NULL,
                             QUERY = NULL){
   
   # --- 1. Parameter loading
