@@ -53,7 +53,7 @@ diversity_maps <- function(FOLDER_NAME = NULL,
     },
     mc.cores = min(length(model_files), MAX_CLUSTERS), mc.preschedule = PRESCHEDULE) %>%
     abind(along = 4) %>%
-    perm(c(1,4,2,3))
+    aperm(c(1,4,2,3))
   } # if binary or continuous
 
   # --- 2.2. For proportions
@@ -99,8 +99,8 @@ diversity_maps <- function(FOLDER_NAME = NULL,
       }
   },
   mc.cores = min(length(model_files), MAX_CLUSTERS), mc.preschedule = PRESCHEDULE) %>%
-   abind(along = 3) %>%
-   apply(c(1,2), mean)
+  abind(along = 3) %>%
+  apply(c(1,2), mean)
 
   # --- 6.3. Final adjustments
   mess_all[mess_all > 100] <- 100
