@@ -131,9 +131,14 @@ proj_continuous <- function(QUERY,
     } # if CUT
 
     # --- 6. Compute the average CV across bootstrap runs as a QC
-    NSD <- apply(y_hat, c(1,3), function(x)(x = sd(x, na.rm = TRUE))) %>%
-      mean(na.rm = TRUE)
-    NSD <- NSD/mean(y_hat, na.rm = TRUE)
+    if(dim(y_hat)[[2]] == CALL$N_BOOTSTRAP) {
+      NSD <- apply(y_hat, c(1,3), function(x)(x = sd(x, na.rm = TRUE))) %>%
+        mean(na.rm = TRUE)
+      NSD <- NSD/mean(y_hat, na.rm = TRUE)
+    } else {
+      NSD <- NA
+      message(paste("--- PROJ: Model", i, " discarded, bootstrap did not complete"))
+    }
 
     # --- 7. Append the MODEL object
     # --- 7.1. Save the evaluation metric and projections
