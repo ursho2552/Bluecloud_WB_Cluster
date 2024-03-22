@@ -38,23 +38,27 @@ diversity_maps <- function(FOLDER_NAME = NULL,
   # --- 2. Extract ensembles by species
   # --- 2.1. For binary or continuous data
   if(CALL$DATA_TYPE != "proportions"){
+
     all_ens <- mclapply(model_files, FUN = function(s){
       # --- 2.1.1. Load subfolder information
       load(paste0(project_wd, "/output/", FOLDER_NAME,"/", s, "/MODEL.RData"))
-
-      # --- 2.1.3. Compute ensemble across algorithms
-      s_ens <- lapply(MODEL$MODEL_LIST, FUN = function(m){
-        MODEL[[m]]$proj$y_hat
-      }) %>% abind(along = 4) %>% apply(c(1,2,3), mean)
+      if(length(MODEL$MODEL_LIST) > 0){
+        # --- 2.1.3. Compute ensemble across algorithms
+        s_ens <- lapply(MODEL$MODEL_LIST, FUN = function(m){
+          MODEL[[m]]$proj$y_hat
+        }) %>% abind(along = 4) %>% apply(c(1,2,3), mean)
+      } # MODEL_LIST size check
     },
-    mc.cores = min(length(model_files), MAX_CLUSTERS)) %>% abind(along = 4) %>% aperm(c(1,4,2,3))
+    mc.cores = min(length(model_files), MAX_CLUSTERS), mc.preschedule = PRESCHEDULE) %>% abind(along = 4) %>% aperm(c(1,4,2,3))
   } # if binary or continuous
 
   # --- 2.2. For proportions
   if(CALL$DATA_TYPE == "proportions"){
     load(paste0(project_wd, "/output/", FOLDER_NAME,"/", model_files, "/MODEL.RData"))
-    all_ens <- MODEL$MBTR$proj$y_hat %>% aperm(c(1,3,2,4))
-    all_ens[all_ens < 0] <- 0 # security to remove any negative value
+    if(length(MODEL$MODEL_LIST) > 0){
+      all_ens <- MODEL$MBTR$proj$y_hat %>% aperm(c(1,3,2,4))
+      all_ens[all_ens < 0] <- 0 # security to remove any negative value
+    } # MODEL_LIST size check
   } # if proportions
 
   # --- 2.3. Return if not enough ensembles
@@ -79,18 +83,19 @@ diversity_maps <- function(FOLDER_NAME = NULL,
 
   # --- 6. Extract MESS analysis
   message(paste(Sys.time(), "--- Extract MESS"))
-  mess_all <- lapply(model_files, FUN = function(s){
+  mess_all <- mclapply(model_files, FUN = function(s){
     # --- 6.1. Load corresponding objects
     # We have a file exist security here in case the diversity is run later
-    model_file <- f <- paste0(project_wd, "/output/", FOLDER_NAME,"/", s, "/MODEL.RData")
-    query_file <- gsub('MODEL.RData', 'QUERY.RData', model_file)
+    model_file <- paste0(project_wd, "/output/", FOLDER_NAME,"/", s, "/MODEL.RData")
     load(model_file)
-    load(query_file)
 
     if(length(MODEL$MODEL_LIST) != 0){
-        mess_s <- getValues(QUERY$MESS*-1)
+      query_file <- gsub('MODEL.RData', 'QUERY.RData', model_file)
+      load(query_file)
+      mess_s <- getValues(QUERY$MESS*-1)
       }
-  }) %>% abind(along = 3) %>% apply(c(1,2), mean)
+  },
+  mc.cores = min(length(model_files), MAX_CLUSTERS), mc.preschedule = PRESCHEDULE) %>% abind(along = 3) %>% apply(c(1,2), mean)
 
   # --- 6.3. Final adjustments
   mess_all[mess_all > 100] <- 100
@@ -143,12 +148,21 @@ diversity_maps <- function(FOLDER_NAME = NULL,
 
       # --- 7.3.3. Average projection
       plot(r_m, col = inferno_pal(100), legend=FALSE,
-           main = paste("DIVERSITY (",div_names[i], ") \n Month:", paste(m, collapse = ",")), cex.main = 1)
+           main = paste("DIVERSITY (",div_names[i], ") \n Month:", paste(m, collapse = ",")),
+            cex.main = 1)
       mtext(text = paste("Projection rescaling factor: ", round(plot_scale,2),
                          "\n Number of species ensembles:", dim(all_ens)[[2]]),
             side = 1, line = 3, cex = 0.7)
       plot(land, col = "antiquewhite4", legend=FALSE, add = TRUE)
-      plot(raster::rasterToContour(r_m, nlevels = 4), add = TRUE)
+
+      # try to create contours
+      contours <- tryCatch({
+        raster::rasterToContour(r_m, nlevels = 4)
+      }, error = function(e) {
+          NULL
+      }) # end tryCatch
+      if (!is.null(contours)){plot(contours, add = TRUE)}
+
       box("figure", col="black", lwd = 1)
 
       # --- 7.3.4. Uncertainties projection
@@ -158,7 +172,15 @@ diversity_maps <- function(FOLDER_NAME = NULL,
       r <- bivar_map(rasterx = r_sd, rastery = r_mess, colormatrix = bivar_pal,
                      cutx = seq(0,max(getValues(r_sd), na.rm = TRUE), length.out = 101), cuty = 0:100)
       plot(r[[1]], col = r[[2]], legend=FALSE, add = TRUE)
-      plot(raster::rasterToContour(r_sd, nlevels = 4), add = TRUE)
+
+      # try to create contours
+      contours <- tryCatch({
+        raster::rasterToContour(r_sd, nlevels = 4)
+      }, error = function(e) {
+          NULL
+      }) # end tryCatch
+      if (!is.null(contours)){plot(contours, add = TRUE)}
+
       box("figure", col="black", lwd = 1)
 
     } # m month
