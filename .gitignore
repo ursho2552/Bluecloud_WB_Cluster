@@ -6,6 +6,7 @@ job.R
 job2.R
 .bash_profile
 .run_script.sh
+./code/00_euler_config.R
 master_virtual_proportions.R
 master_virtual.R
 *.csv

@@ -24,16 +24,18 @@ diversity_maps <- function(FOLDER_NAME = NULL,
   land[is.na(land)] <- 9999
   land[land != 9999] <- NA
 
+
+  # --- 1.4 Get all species with MODEL.RData
   model_files <- list.files(paste0(project_wd, "/output/", FOLDER_NAME), recursive = TRUE) %>%
     .[grepl("MODEL.RData", .)] %>%
     dirname() %>%
     unique()
 
-  # ensure that there are MODEL.RData files
+  # --- 1.5 ensure there are MODEL.RData files
   if (length(model_files) == 0){
     message("DIVERSITY: No MODEL.RData files")
     return(NA)
-  }
+  }# early return if empty
 
   # --- 2. Extract ensembles by species
   # --- 2.1. For binary or continuous data
@@ -55,6 +57,7 @@ diversity_maps <- function(FOLDER_NAME = NULL,
   } # if binary or continuous
 
   # --- 2.2. For proportions
+  # should work with model_files as well. Above it would find the folder "."
   if(CALL$DATA_TYPE == "proportions"){
     load(paste0(project_wd, "/output/", FOLDER_NAME,"/", model_files, "/MODEL.RData"))
     if(length(MODEL$MODEL_LIST) > 0){
@@ -75,9 +78,7 @@ diversity_maps <- function(FOLDER_NAME = NULL,
   a_evenness <- a_shannon/(a_richness)
   a_invsimpson <- apply(all_ens, c(1,3,4), function(x)(x = vegan::diversity(x, "invsimpson")))
 
-
-  # --- 5. Stack diversities
-  # div_all <- abind(a_shannon, a_richness, a_evenness, a_invsimpson, b_div, along = 4)
+  # --- 4. Stack diversities
   div_all <- abind(a_shannon, a_richness, a_evenness, a_invsimpson, along = 4)
   div_m <- apply(div_all, c(1,3,4), function(x)(x = mean(x, na.rm = T)))
   div_sd <- apply(div_all, c(1,3,4), function(x)(x = sd(x, na.rm = T)))
@@ -121,7 +122,7 @@ diversity_maps <- function(FOLDER_NAME = NULL,
   axis(side = 1)
   text(x = 0.5, y = 0.3, "Diversity value [0 - 1]", adj = 0.5)
 
-  # --- 7.2.2. MESS x CV 2D color scale
+  # --- 6.2.2. MESS x CV 2D color scale
   par(mar = c(5,5,1,2))
   bivar_pal <- colmat(nbreaks = 100)
   colmat_plot(bivar_pal, xlab = "Standard deviation", ylab = "MESS value")
@@ -129,17 +130,17 @@ diversity_maps <- function(FOLDER_NAME = NULL,
   axis(side = 2, at = c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = c(0, -20, -40, -60, -80, -100), las = 2)
   par(mar = c(5,3,3,1))
 
-  # --- 7.3. Plot diversity maps
+  # --- 6.3. Plot diversity maps
   # Loop over diversity maps and projections
   for(i in 1:dim(div_m)[[3]]){
     for(m in MONTH){
 
-      # --- 7.3.1. Prepare the data
+      # --- 6.3.1. Prepare the data
       tmp_m <- div_m[,m,] %>% apply(c(1,3), mean) %>% .[,i]
       tmp_sd <- div_sd[,m,] %>% apply(c(1,3), mean) %>% .[,i]
       plot_scale <- quantile(tmp_m, 0.95, na.rm = TRUE)
 
-      # --- 7.3.2. Assign to raster
+      # --- 6.3.2. Assign to raster
       # Average raster is cut at plot scale (Q95)
       r_m <- r0 %>% setValues(tmp_m)
       r_m[r_m > plot_scale] <- plot_scale
@@ -150,7 +151,7 @@ diversity_maps <- function(FOLDER_NAME = NULL,
       r_mess[r_mess<0] <- 1e-10 # temporary fix : modify bivarmap so that 0 is included
       r_mess[r_mess>100] <- 100
 
-      # --- 7.3.3. Average projection
+      # --- 6.3.3. Average projection
       plot(r_m, col = inferno_pal(100), legend=FALSE,
            main = paste("DIVERSITY (",div_names[i], ") \n Month:", paste(m, collapse = ",")),
             cex.main = 1)
@@ -169,7 +170,7 @@ diversity_maps <- function(FOLDER_NAME = NULL,
 
       box("figure", col="black", lwd = 1)
 
-      # --- 7.3.4. Uncertainties projection
+      # --- 6.3.4. Uncertainties projection
       # First we draw a land mask
       plot(land, col = "antiquewhite4", legend=FALSE, main = "Uncertainties", cex.main = 1)
       # Then compute and plot the 2-dimensional color scale for SD x MESS
@@ -190,10 +191,10 @@ diversity_maps <- function(FOLDER_NAME = NULL,
     } # m month
   } # i diversity
 
-  # --- 8. Stop PDF
+  # --- 7. Stop PDF
   dev.off()
 
-  # --- 9. Save diversity maps
+  # --- 8. Save diversity maps
   save(div_all, file = paste0(project_wd, "/output/", FOLDER_NAME,"/DIVERSITY.RData"))
 
 } # END FUNCTION

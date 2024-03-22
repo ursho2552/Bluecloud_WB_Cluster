@@ -35,8 +35,10 @@ list_biomass <- function(DATA_SOURCE,
     dplyr::filter(nb_occ >= !!SAMPLE_SELECT$MIN_SAMPLE) %>%
     collect()
 
-  #disconnect from database
+  # --- 3. Disconnect from database
   dbDisconnect(db)
+
+  # --- 4. Wrap up and save
   return(data_list)
 
 } # END FUNCTION

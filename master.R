@@ -12,14 +12,14 @@
 # All will be called in the config file later
 rm(list=ls())
 closeAllConnections()
-setwd("/net/meso/work/aschickele/Bluecloud_WB_local")
+setwd("/nfs/meso/work/aschickele/Bluecloud_WB_local")
 source(file = "./code/00_config.R")
-run_name <- "WORMS_SHIT"
+run_name <- "test"
 
 # --- 1. List the available species
 # Within the user defined selection criteria
 list_bio <- list_bio_wrapper(FOLDER_NAME = run_name,
-                             DATA_SOURCE = "/net/kryo/work/public/shared/AtlantECO/BASE/AtlantECO-BASE-v1_microbiome_traditional_phytoplankton_species_occurrences_PhytoBasev2_20220905.csv",
+                             DATA_SOURCE = "/nfs/kryo/work/public/shared/AtlantECO/BASE/AtlantECO-BASE-v1_microbiome_traditional_phytoplankton_species_occurrences_PhytoBasev2_20220905.csv",
                              SAMPLE_SELECT = list(MIN_SAMPLE = 50, TARGET_MIN_DEPTH = 0, TARGET_MAX_DEPTH = 200, START_YEAR = 1950, STOP_YEAR = 2020))
 
 # ------------------------------------------------------------------------------
@@ -50,7 +50,7 @@ subfolder_list <- run_init(FOLDER_NAME = run_name,
                            LOAD_FROM = NULL,
                            DATA_TYPE = "binary",
                            ENV_VAR = c("!climatology_s_0_50","!climatology_s_200_300"),
-                           ENV_PATH = "/net/meso/work/clercc/Predictors/PIPELINE_SET/VIRTUAL_SPECIES",
+                           ENV_PATH = "/nfs/meso/work/clercc/Predictors/PIPELINE_SET/VIRTUAL_SPECIES",
                            METHOD_PA = "density",
                            PER_RANDOM = 0,
                            PA_ENV_STRATA = TRUE,
@@ -61,7 +61,7 @@ subfolder_list <- run_init(FOLDER_NAME = run_name,
                            FOLD_METHOD = "lon",
                            MODEL_LIST = c("GLM","MLP","BRT"), # light version
                            LEVELS = 3,
-                           TARGET_TRANSFORMATION = "/net/meso/work/aschickele/Bluecloud_WB_local/function/target_transformation_yj_auto.R",
+                           TARGET_TRANSFORMATION = "/nfs/meso/work/aschickele/Bluecloud_WB_local/function/target_transformation_yj_auto.R",
                            ENSEMBLE = TRUE,
                            N_BOOTSTRAP = 10,
                            CUT = 0)
@@ -143,8 +143,7 @@ mcmapply(FUN = pdp,
          mc.cores = min(length(subfolder_list), MAX_CLUSTERS), USE.NAMES = FALSE, mc.preschedule = FALSE)
 
 # --- 12.3 Diversity
-diversity_maps(FOLDER_NAME = run_name,
-               SUBFOLDER_NAME = subfolder_list)
+diversity_maps(FOLDER_NAME = run_name)
 
 # --- 12.4 User synthesis
 user_synthesis(FOLDER_NAME = run_name)
