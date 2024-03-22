@@ -8,18 +8,18 @@
 
 folds <- function(FOLDER_NAME = NULL,
                   SUBFOLDER_NAME = NULL){
-  
+
   # --- 1. Initialize function
   set.seed(123)
   # --- 1.1. Start logs - append file
   sinkfile <- log_sink(FILE = file(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/log.txt"), open = "a"),
                        START = TRUE)
   message(paste(Sys.time(), "******************** START : folds ********************"))
-  
+
   # --- 1.2. Parameter loading
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))
-  
+
   # --- 1.3. Target transformation
   if(CALL$DATA_TYPE == "continuous" & !is.null(CALL$TARGET_TRANSFORMATION)){
     message("--- FOLDS : Transforming the target variable according to the provided function")
@@ -31,37 +31,37 @@ folds <- function(FOLDER_NAME = NULL,
   } else {
     Y <- QUERY$Y
   }
-  
+
   # --- 2. Initial split
   # --- 2.1. Re-assemble all query tables
   tmp <- cbind(Y, QUERY$X, QUERY$S)
-  
+
   # --- 2.2. Do the initial split
-  # The initial split is done on 30% of the data, stratified, 
+  # The initial split is done on 30% of the data, stratified,
   # to have a well representative evaluation sample
   # --- 2.2.1. For univariate data - strata is possible so we do it
   if(CALL$DATA_TYPE != "proportions"){
-    init_split <- tmp %>% 
+    init_split <- tmp %>%
       initial_split(prop = 0.7,
                     strata = measurementvalue)
   }
   # --- 2.2.2. For multivariate data - strata is not possible
   if(CALL$DATA_TYPE == "proportions"){
-    init_split <- tmp %>% 
+    init_split <- tmp %>%
       initial_split(prop = 0.7)
   }
-  
+
   # --- 2.2.3. Append FOLD object
   QUERY$FOLDS$init_split <- init_split
   QUERY$FOLDS$test <- testing(init_split)
   QUERY$FOLDS$train <- training(init_split)
-  
+
   # --- 3. Train set resampling
   # --- 3.1. Parameter check
   if(CALL$FOLD_METHOD != "kfold" & CALL$FOLD_METHOD != "lon"){
     stop("FOLD_METHOD not implemented or incorrect. It should be 'kfold' or 'lon'")
   }
-  
+
   # --- 3.2. Normal k-fold re sampling
   # --- 3.2.1. For univariate data - strata is possible so we do it
   if(CALL$FOLD_METHOD == "kfold" & CALL$DATA_TYPE != "proportions"){
@@ -74,15 +74,15 @@ folds <- function(FOLDER_NAME = NULL,
     folds <- vfold_cv(data = QUERY$FOLDS$train,
                       v = CALL$NFOLD)
   }
-  
+
   # --- 3.3. Longitudinal block re sampling
   if(CALL$FOLD_METHOD == "lon"){
     folds <- group_vfold_cv(data = QUERY$FOLDS$train,
                             group = c(decimallongitude),
                             v = CALL$NFOLD)
   }
-  
-  # --- 4. Append QUERY and CALL objects 
+
+  # --- 4. Append QUERY and CALL objects
   # S$id keeps track of the initial row numbers within each split/re sample
   # --- 4.1. Append QUERY
   QUERY$FOLDS$resample_split <- folds
@@ -99,5 +99,5 @@ folds <- function(FOLDER_NAME = NULL,
   log_sink(FILE = sinkfile, START = FALSE)
   # --- 5.3. Pretty return
   return(SUBFOLDER_NAME)
-  
+
 } # END FUNCTION

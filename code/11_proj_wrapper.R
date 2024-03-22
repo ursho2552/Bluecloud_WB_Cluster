@@ -53,7 +53,7 @@ proj_wrapper <- function(FOLDER_NAME = NULL,
 
   # --- 5. Wrap up and save
   # --- 5.1. Save file(s)
-  save(MODEL, file = paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/MODEL.RData"),
+  save(MODEL, file = paste0(project_wd, "/output/", FOLDER_NAME, "/", SUBFOLDER_NAME, "/MODEL.RData"),
        compress = "gzip", compression_level = 6)
   # --- 5.2. Stop logs
   log_sink(FILE = sinkfile, START = FALSE)

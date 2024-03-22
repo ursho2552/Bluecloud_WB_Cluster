@@ -11,6 +11,7 @@ proj_binary <- function(QUERY,
                         MODEL,
                         CALL){
 
+
   # --- 1. Initialize function
   # --- 1.1. Open base raster and values
   r0 <- CALL$ENV_DATA[[1]][[1]]
@@ -26,10 +27,10 @@ proj_binary <- function(QUERY,
 
   # --- 2. Define bootstraps
   # --- 2.1. Re-assemble all query tables
-  tmp <- cbind(QUERY$Y, QUERY$X, QUERY$S)
+  tmp <- cbind(QUERY$Y, QUERY$X)#, QUERY$S)
 
   # --- 2.2. Run the bootstrap generation from tidy models
-  boot_split <- bootstraps(tmp, times = CALL$N_BOOTSTRAP)
+  boot_split <- bootstraps(tmp, times = CALL$N_BOOTSTRAP, strata = "measurementvalue")
 
   # --- 3. Start the loop over algorithms
   for(i in loop_over){
@@ -40,6 +41,7 @@ proj_binary <- function(QUERY,
                     control = control_resamples(extract = function (x) extract_fit_parsnip(x),
                     verbose = FALSE)) %>%
       unnest(.extracts)
+
 
     # --- 4. Loop over month for predictions
     y_hat <- NULL
@@ -78,7 +80,7 @@ proj_binary <- function(QUERY,
 
       # --- 4.5. Concatenate with previous month
       y_hat <- abind(y_hat, tmp, along = 3)
-      message(paste("--- PROJ : month", m, "done \t"))
+      #message(paste("--- PROJ : month", m, "done \t"))
     } # for m month
 
     # --- 5. Cut spatial discontinuities
@@ -110,10 +112,14 @@ proj_binary <- function(QUERY,
     } # if CUT
 
     # --- 6. Compute the average CV across bootstrap runs as a QC
-    NSD <- apply(y_hat, c(1,3), function(x)(x = sd(x, na.rm = TRUE))) %>%
-      mean(na.rm = TRUE)
-    NSD <- NSD/mean(y_hat, na.rm = TRUE)
-
+    if(dim(y_hat)[[2]] == CALL$N_BOOTSTRAP) {
+      NSD <- apply(y_hat, c(1,3), function(x)(x = sd(x, na.rm = TRUE))) %>%
+        mean(na.rm = TRUE)
+      NSD <- NSD/mean(y_hat, na.rm = TRUE)
+    } else {
+      NSD <- NA
+      message(paste("--- PROJ: Model", i, " discarded, bootstrap did not complete"))
+    }
     # --- 7. Append the MODEL object
     # --- 7.1. Save the evaluation metric and projections
     MODEL[[i]][["proj"]][["y_hat"]] <- y_hat
@@ -133,7 +139,6 @@ proj_binary <- function(QUERY,
       MODEL$MODEL_LIST <- MODEL$MODEL_LIST[MODEL$MODEL_LIST != i]
       message(paste("--- EVAL : discarded", i, "due to PRE_VIP =", QUERY$eval$PRE_VIP, "< 0.05 \n"))
     }
-
   } # for i model loop
 
   # --- 8. Build the ensemble NSD if there is an ensemble
