@@ -9,7 +9,6 @@ user_synthesis <- function(FOLDER_NAME){
 
 
   # --- 1. Initialize function
-  FOLDER_NAME <- run_name
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
   library(pdftools) # déjà installée comme dépendence d'un autre truc
 
