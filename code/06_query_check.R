@@ -85,7 +85,7 @@ query_check <- function(FOLDER_NAME = NULL,
   
   # --- 2.4. List features to keep
   univ_to_keep <- univ_feature_check %>% 
-    dplyr::filter(mutual_information > 0 & spearman > 0)
+    dplyr::filter(mutual_information > 0 | spearman > 0)
   univ_to_remove <- colnames(QUERY$X)[-univ_to_keep$ID] # useful for the message to user
   
   # --- 2.5. Update QUERY with feature names to keep

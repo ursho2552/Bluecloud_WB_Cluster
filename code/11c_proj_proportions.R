@@ -17,7 +17,7 @@ proj_proportions <- function(QUERY,
   r_val <- getValues(r0)
 
   # --- 1.2. Early stop function if model did not pass QC and fast = TRUE
-  if(CALL$FAST == TRUE & (length(MODEL$MODEL_LIST) != 1)){
+  if(CALL$FAST == TRUE & (length(MODEL$MODEL_LIST) == 0)){
     return(MODEL)
   }
 

@@ -103,7 +103,7 @@ standard_maps <- function(FOLDER_NAME = NULL,
   par(mar = c(5,5,3,2), xpd = FALSE)
   bivar_pal <- colmat(nbreaks = 100)
   colmat_plot(bivar_pal, xlab = "Standard deviation", ylab = "MESS value")
-  axis(side = 1, at = c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = round(seq(0, 1 * plot_scale*0.25, length.out = 6), 2))
+  axis(side = 1, at = c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = round(seq(0, 1 * plot_scale*0.5, length.out = 6), 2))
   axis(side = 2, at = c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = c(0, -20, -40, -60, -80, -100), las = 2)
   par(mar = c(4,2.5,3,1))
 
@@ -178,7 +178,7 @@ standard_maps <- function(FOLDER_NAME = NULL,
       # --- 4.3.2.4. Observation colors
       if(CALL$DATA_TYPE == "continuous"){
         points(tmp$decimallongitude, tmp$decimallatitude,
-               col = col_numeric("inferno", domain = range(QUERY$Y$measurementvalue, na.rm = TRUE), alpha = 0.2)(QUERY$Y$measurementvalue), pch = 20, cex = 0.6)
+               col = col_numeric("inferno", domain = range(0:plot_scale, na.rm = TRUE), alpha = 0.2, na.color = hsi_pal[100])(QUERY$Y$measurementvalue), pch = 20, cex = 0.6)
       } else if(CALL$DATA_TYPE == "proportions") {
         points(tmp$decimallongitude, tmp$decimallatitude,
                col = col_numeric("inferno", domain = range(QUERY$Y[,i], na.rm = TRUE), alpha = 0.2)(QUERY$Y[,i]), pch = 20, cex = 0.6)
@@ -270,7 +270,7 @@ standard_maps <- function(FOLDER_NAME = NULL,
     tmp <- QUERY$S[which(QUERY$Y$measurementvalue > 0),]
     if(CALL$DATA_TYPE == "continuous"){
       points(tmp$decimallongitude, tmp$decimallatitude,
-             col = col_numeric("inferno", domain = range(QUERY$Y$measurementvalue, na.rm = TRUE))(QUERY$Y$measurementvalue), pch = 20)
+             col = col_numeric("inferno", domain = range(0:plot_scale, na.rm = TRUE), alpha = 0.2, na.color = hsi_pal[100])(QUERY$Y$measurementvalue), pch = 20, cex = 0.6)
     } else {
       points(tmp$decimallongitude, tmp$decimallatitude,
              col = "black", pch = 20)
@@ -284,7 +284,7 @@ standard_maps <- function(FOLDER_NAME = NULL,
     r <- bivar_map(rasterx = r_sd, rastery = r_mess, colormatrix = bivar_pal,
                    cutx = seq(0,max(getValues(r_sd), na.rm = TRUE), length.out = 101), cuty = 0:100)
     plot(r[[1]], col = r[[2]], legend=FALSE, add = TRUE)
-    mtext(text = paste("Predictive performance (", names(MODEL[["ENSEMBLE"]][["eval"]])[3], ") =", round(MODEL[["ENSEMBLE"]][["eval"]][[3]],2)),
+    mtext(text = paste("Projection uncertainty (", names(MODEL[["ENSEMBLE"]][["eval"]])[3], ") =", round(MODEL[["ENSEMBLE"]][["eval"]][[3]],2)),
           side = 1, line = 2, cex = 0.7)
   } # End if ENSEMBLE = TRUE
 

@@ -86,8 +86,6 @@ eval_proportions <- function(CALL,
   # In this case the only algorithm available...
   for(i in MODEL$MODEL_LIST){
     # --- 3.1. Based on model performance
-    # Fixed at 0.1 for R2
-    # /!\ /!\ /!\ /!\ treshold at 0.1 to be able to prototype something. TO CHANGE LATER OBVIOUSLY /!\ /!\ /!\ /!\
     if(MODEL[[i]][["eval"]][["R2"]] < 0.25 | is.na(MODEL[[i]][["eval"]][["R2"]])){
       MODEL$MODEL_LIST <- MODEL$MODEL_LIST[MODEL$MODEL_LIST != i]
       message(paste("--- EVAL : discarded", i, "due to R2 =", MODEL[[i]][["eval"]][["R2"]], "< 0.25 \n"))

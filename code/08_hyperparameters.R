@@ -123,7 +123,7 @@ hyperparameter <- function(FOLDER_NAME = NULL){
   # Specific to proportions data
   HP$MBTR$model_grid <- data.frame(LEARNING_RATE = seq(5e-2, 5e-3, length.out = CALL$LEVELS),
                                    N_Q = 10,
-                                   MEAN_LEAF = seq(5, ceiling(CALL$SAMPLE_SELECT$MIN_SAMPLE*0.3), length.out = CALL$LEVELS)) %>% 
+                                   MEAN_LEAF = seq(5, 15, length.out = CALL$LEVELS)) %>% 
     expand.grid() %>% 
     unique()
   
