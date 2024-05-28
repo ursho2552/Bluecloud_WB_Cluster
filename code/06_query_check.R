@@ -129,7 +129,7 @@ query_check <- function(FOLDER_NAME = NULL,
     for(i in 1:max(features_group)){
       tmp <- univ_feature_check %>% 
         dplyr::filter(varname %in% names(which(features_group == i))) %>% 
-        mutate(var_expl = mean(c(mutual_information, spearman))) %>% 
+        mutate(var_expl = max(c(mutual_information, spearman))) %>% 
         dplyr::arrange(var_expl) %>% 
         dplyr::select(varname) %>% .[,1] %>% rev()
       message(paste("--- ENV_COR : Cluster", i, ": Keeping", tmp[1], "\n"))
@@ -271,7 +271,7 @@ displayed in yellow.", cex = 0.6, adj = 0)
   # --- 6.2. Compute the quality check
   MI_diff <- mean(post_check$mutual_information)
   S_diff <- mean(post_check$spearman)
-  PRE_VIP <- mean(c(MI_diff, S_diff))
+  PRE_VIP <- max(c(MI_diff, S_diff))
   
   # --- 6.3. Append QUERY
   QUERY[["eval"]][["PRE_VIP"]] <- PRE_VIP
