@@ -43,7 +43,9 @@ model_proportions <- function(CALL,
                   lambda_leaves=0,
                   n_q= as.integer(MODEL$MBTR$model_grid$N_Q[hp]),
                   early_stopping_rounds = 10)
-    tmp <- m[[2]] %>% unlist()
+    # tmp <- m[[2]] %>% unlist()
+    m[[2]] <- m[[2]] %>% unlist()
+    return(m)
   } # end function
   
   # --- 2.3. Do the resample fit
@@ -86,62 +88,24 @@ model_proportions <- function(CALL,
   # --- 2.4. Compute the minimum loss and corresponding nb. of boost rounds
   min_loss <- nboost <- list()
   for(i in 1:nrow(MODEL$MBTR$model_grid)){
-    max_boost <- lapply(loss, function(x)(x = length(x[[i]]))) %>% unlist() %>% min()
-    min_loss[[i]] <- lapply(loss, function(x)(x = x[[i]][1:max_boost])) %>% as.data.frame() %>% apply(1, mean) %>% min()
-    nboost[[i]] <- which(lapply(loss, function(x)(x = x[[i]][1:max_boost])) %>% as.data.frame() %>% apply(1, mean) == min_loss[[i]])
+    max_boost <- lapply(loss, function(x)(x = length(x[2,][[i]]))) %>% unlist() %>% min()
+    min_loss[[i]] <- lapply(loss, function(x)(x = x[2,][[i]][1:max_boost])) %>% as.data.frame() %>% apply(1, mean) %>% min()
+    nboost[[i]] <- which(lapply(loss, function(x)(x = x[2,][[i]][1:max_boost])) %>% as.data.frame() %>% apply(1, mean) == min_loss[[i]])
   }
   best_hp <- which(unlist(min_loss) == min(unlist(min_loss)))[1] # Takes the first in case there is two equal
   nboost <- nboost[[best_hp]]
   
   # --- 2.5. Retrieve the corresponding RMSE as well
   MODEL[["MBTR"]][["best_fit"]] <- sqrt(min_loss[[best_hp]])
-  
-  # --- 3. Final model fit
-  # --- 3.1. Extract train and validation fold from initial split
-  message(paste0(Sys.time(), "--- MBTR: fit final model"))
-  X_tr <- QUERY$FOLDS$train %>% 
-    dplyr::select(QUERY$SUBFOLDER_INFO$ENV_VAR)
-  write_feather(X_tr, paste0(project_wd, "/data/MBTR_cache/0_X_tr.feather"))
-  
-  Y_tr <- QUERY$FOLDS$train %>% 
-    dplyr::select(as.character(CALL$SP_SELECT))
-  write_feather(Y_tr, paste0(project_wd, "/data/MBTR_cache/0_Y_tr.feather"))
-  
-  X_val <- QUERY$FOLDS$test %>% 
-    dplyr::select(QUERY$SUBFOLDER_INFO$ENV_VAR)
-  write_feather(X_val, paste0(project_wd, "/data/MBTR_cache/0_X_val.feather"))
-  
-  Y_val <- QUERY$FOLDS$test %>% 
-    dplyr::select(as.character(CALL$SP_SELECT))
-  write_feather(Y_val, paste0(project_wd, "/data/MBTR_cache/0_Y_val.feather"))
-  
-  # --- 3.2. Fit the final model
-  # --- 3.2.1. Load .py functions & instance
-  # NOTE: I know this is ugly but reticulate loses the connection at every parallel
-  # worker AND every for loop turn... therefore it is re-sourced many times in
-  # the script
-  
-  library(reticulate)
-  source_python(paste0(project_wd,"/function/mbtr_function.py"))
-  
-  # --- 3.2.2. Compute the fit
-  final_fit <- mbtr_fit(path = paste0(project_wd, "/data/MBTR_cache/0_"),
-                        hp_id = "0",
-                        loss_type='mse',
-                        n_boosts = as.integer(nboost),
-                        min_leaf= MODEL$MBTR$model_grid$MEAN_LEAF[best_hp],
-                        learning_rate=MODEL$MBTR$model_grid$LEARNING_RATE[best_hp],
-                        lambda_weights=MODEL$MBTR$model_grid$LEARNING_RATE[best_hp]/100,
-                        lambda_leaves=0,
-                        n_q= as.integer(MODEL$MBTR$model_grid$N_Q[best_hp]),
-                        early_stopping_rounds = 10)
-  
-  # --- 3.3. Write model in a file
-  py_save_object(final_fit, paste0(project_wd, "/data/MBTR_cache/final_fit"), pickle = "pickle")
-  
-  # --- 3.4. Pass the file path
+
+  # --- 3. Write best model in a file
+  # --- 3.1. Best workflow
   MODEL[["MBTR"]][["final_wf"]] <- MODEL$MBTR$model_grid[best_hp,] %>% mutate(NBOOST = nboost)
-  MODEL[["MBTR"]][["final_fit"]] <- paste0(project_wd, "/data/MBTR_cache/final_fit")
+  
+  # --- 3.2. Best model
+  # It is already written by default in the training process
+  # We just write the path to the data cache corresponding to the trained models
+  MODEL[["MBTR"]][["final_fit"]] <- paste0(project_wd, "/data/MBTR_cache/",1:CALL$NFOLD, "_", best_hp)
   return(MODEL)
   
 } # END FUNCTION

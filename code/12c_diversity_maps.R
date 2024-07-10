@@ -38,7 +38,7 @@ diversity_maps <- function(FOLDER_NAME = NULL,
   }# early return if empty
 
   # --- 2. Extract ensembles by species
-  # --- 2.1. For binary or continuous data
+  # --- 2.1. For presence_only or continuous data
   if(CALL$DATA_TYPE != "proportions"){
 
     all_ens <- mclapply(model_files, FUN = function(s){
@@ -54,7 +54,7 @@ diversity_maps <- function(FOLDER_NAME = NULL,
     mc.cores = min(length(model_files), MAX_CLUSTERS), mc.preschedule = PRESCHEDULE) %>%
     abind(along = 4) %>%
     aperm(c(1,4,2,3))
-  } # if binary or continuous
+  } # if presence_only or continuous
 
   # --- 2.2. For proportions
   # should work with model_files as well. Above it would find the folder "."

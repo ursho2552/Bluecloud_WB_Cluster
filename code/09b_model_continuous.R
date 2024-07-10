@@ -48,19 +48,22 @@ model_continuous <- function(CALL,
     # --- 2.5. Select best hyper parameter set
     # Based on RMSE values per model run (rsq does not work with 0's)
     model_best <- model_res %>% 
-      select_best("rmse")
+      select_best(metric = "rmse")
     # Retrieve the corresponding RMSE as well
-    rmse_best <- model_res %>% show_best("rmse") %>% .[1,]
+    rmse_best <- model_res %>% show_best(metric = "rmse") %>% .[1,]
     MODEL[[CALL$MODEL_LIST[i]]][["best_fit"]] <- rmse_best
     
     # --- 2.6. Define final workflow
     final_wf <- model_wf %>% 
       finalize_workflow(model_best)
     
-    # --- 2.7. Run the model on the initial split
-    # Save the workflow and model object in a list to be passed to further steps
-    final_fit <- final_wf %>%
-      last_fit(QUERY$FOLDS$init_split) 
+    # --- 2.7. Run the model on same cross validation splits
+    # We have one fit per cross validation saved in a list, to be passed to further steps
+    final_fit <- lapply(1:CALL$NFOLD, function(x){
+      out <- final_wf %>%
+      last_fit(QUERY$FOLDS$resample_split$splits[[x]])
+      return(out)
+    }) # loop over the same cross validation folds
     
     MODEL[[CALL$MODEL_LIST[i]]][["final_wf"]] <- final_wf
     MODEL[[CALL$MODEL_LIST[i]]][["final_fit"]] <- final_fit

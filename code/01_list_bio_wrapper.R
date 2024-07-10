@@ -4,7 +4,7 @@
 #' different data types and access service sources.
 #' @param FOLDER_NAME name of the folder to create, corresponding to the run
 #' @param DATA_SOURCE type of data to query from : string among "occurrence" (i.e. OBIS data),
-#' "biomass" (i.e. Ecotaxa data) or "omic" (i.e. MGnify) data;
+#' "biomass" or "abundance" (i.e. AtlantECO data) or "MAG" (i.e. MATOU) data;
 #' this parameter can also be a string path to a custom input table (i.e. "custom")
 #' @param SAMPLE_SELECT list of sample selection criteria, including :
 #' MIN_SAMPLE : minimum number of geographical points to consider the selection (i.e. non-zero records)
@@ -21,9 +21,9 @@
 #' - measurementvalue : numeric or string (e.g. present)
 #' - measurementunit : information on the unit of the measurement
 #' - taxonrank : taxonomic ranking corresponding to the scientific name (e.g. species, gender, order...)
-#' @return for "occurrence" and "biomass" data, returns a data frame with the number
+#' @return for "occurrence", "abundance" and "biomass" data, returns a data frame with the number
 #' of occurrences per worms_ID available
-#' @return for "omic" data, returns a complete list of metadata, samples, taxonomic
+#' @return for "MAG" data, returns a complete list of metadata, samples, taxonomic
 #' annotations available.
 #' @return for custom data from file path, returns the formatted file in memory
 #' @return the returned object is saved in the run file to avoid re-running the query
@@ -33,13 +33,15 @@ list_bio_wrapper <- function(FOLDER_NAME = "test_run",
                              SAMPLE_SELECT = list(MIN_SAMPLE = 50, MIN_DEPTH = 0, MAX_DEPTH = 50, START_YEAR = 1990, STOP_YEAR = 2016)){
 
   # --- 1. Initialize
+  set.seed(123)
+  
   # --- 1.1. Add default predictor depth range if not specified
   if(is.null(SAMPLE_SELECT$FEATURE_MIN_DEPTH)){SAMPLE_SELECT$FEATURE_MIN_DEPTH <- SAMPLE_SELECT$TARGET_MIN_DEPTH}
   if(is.null(SAMPLE_SELECT$FEATURE_MAX_DEPTH)){SAMPLE_SELECT$FEATURE_MAX_DEPTH <- SAMPLE_SELECT$TARGET_MAX_DEPTH}
 
   # --- 1.1. Parameter checking
   if(!is.character(DATA_SOURCE)){
-    stop("The specified data source should be 'biomass', 'occurrence', 'omic' or a path to file (.csv, .txt, .xlsx) for custom data")
+    stop("The specified data source should be 'biomass', 'abundance', 'occurrence', 'MAG' or a path to file (.csv, .txt, .xlsx) for custom data")
   }
 
   # --- 1.2. Folder creation
@@ -62,25 +64,25 @@ list_bio_wrapper <- function(FOLDER_NAME = "test_run",
   } # End ATLANTECO redirection
 
   # --- 3. Redirection to ATLANTECO data access
-  # For biomass source data
-  if(DATA_SOURCE == "biomass"){
+  # For biomass or abundance source data
+  if(DATA_SOURCE == "biomass" | DATA_SOURCE == "abundance"){
 
     # --- 3.1. Run function
-    LIST_BIO <- list_biomass(DATA_SOURCE = DATA_SOURCE,
-                               SAMPLE_SELECT = SAMPLE_SELECT)
+    LIST_BIO <- list_abundance_biomass(DATA_SOURCE = DATA_SOURCE,
+                                       SAMPLE_SELECT = SAMPLE_SELECT)
   } # End ATLANTECO redirection
 
   # --- 4. Redirection to MGNIFY data access
-  # For omic source data
-  if(DATA_SOURCE == "omic"){
+  # For MAG source data
+  if(DATA_SOURCE == "MAG"){
 
     # --- 4.1. Run function
-    LIST_BIO <- list_omic(SAMPLE_SELECT = SAMPLE_SELECT)
+    LIST_BIO <- list_MAG(SAMPLE_SELECT = SAMPLE_SELECT)
   } # End MGNIFY redirection
 
   # --- 5. Redirection to CUSTOM data access
   # For any type of data
-  if(DATA_SOURCE != "omic" & DATA_SOURCE != "biomass" & DATA_SOURCE != "occurrence"){
+  if(DATA_SOURCE != "MAG" & DATA_SOURCE != "biomass" & DATA_SOURCE != "abundance" & DATA_SOURCE != "occurrence"){
 
     # --- 5.1. Run function
     LIST_BIO <- list_custom(DATA_SOURCE = DATA_SOURCE,

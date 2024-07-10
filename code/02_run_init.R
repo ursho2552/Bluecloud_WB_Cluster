@@ -11,10 +11,10 @@
 #' that did not pass the Quality Checks
 #' @param LOAD_FROM load a previous list_bio object from another folder to be
 #' duplicated in the new FOLDER_NAME. It avoids re-doing the initial list_bio step
-#' that can be long for omics data
+#' that can be long for MAGs data
 
 #' @param SP_SELECT species to run the analysis for, in form of Aphia ID for traditional data
-#' and OTU ID for omics - updated if WORMS_CHECK = TRUE
+#' and OTU ID for MAGs - updated if WORMS_CHECK = TRUE
 #' @param WORMS_CHECK check for the WoRMS taxonomic backbone and updates SP_SELECT accordingly
 #' @param DATA_TYPE the output type of the data, which can influence the sub-folder
 #' architecture. See details.
@@ -61,12 +61,12 @@
 #' To your own risk and only for expert users !
 
 #' @details Different data transformation between DATA_SOURCE and DATA_TYPE are implemented, including:
-#' - "occurrence" to "binary" (default)
-#' - "biomass" to "continuous" (default, not recommended for more than 50 targets)
-#' - "biomass" to "proportions" (not recommended if the sampling stations are not the same)
-#' - "omic" to "proportions" (default, not recommended for more than 50 targets)
-#' - "omic" to "continuous" in form of richness
-#' - "omic" to "binary" in form of presence-only
+#' - "occurrence" to "presence_only" (default)
+#' - "biomass" or "abundance" to "continuous" (default, not recommended for more than 50 targets)
+#' - "biomass" or "abundance" to "proportions" (not recommended if the sampling stations are not the same)
+#' - "MAG" to "proportions" (default, not recommended for more than 50 targets)
+#' - "MAG" to "continuous" in form of richness
+#' - "MAG" to "presence_only" in form of presence-only
 #' @return creates one subfolder per SP_SELECT and a vector of sub-directories names 
 #' used as an argument for parallel computing later
 #' @return all global parameters in a CALL.RData object
@@ -99,6 +99,8 @@ run_init <- function(FOLDER_NAME = "test_run",
                      PROJ_PATH = NULL){
   
   # --- 1. Initialize function
+  set.seed(123)
+  
   # --- 1.1. Start logs - create file
   if(is.null(LOAD_FROM)){
     sinkfile <- log_sink(FILE = file(paste0(project_wd, "/output/", FOLDER_NAME, "/log.txt"), open = "wt"),
@@ -133,12 +135,12 @@ run_init <- function(FOLDER_NAME = "test_run",
   } # if LOAD_FROM
   
   # --- 3. Check the taxonomic assignation
-  # Only if TRUE and data_source != proportions // you may want to turn it off if the data are not adapted (e.g., functional, omics)
+  # Only if TRUE and data_source != proportions // you may want to turn it off if the data are not adapted (e.g., functional, MAGs)
   # --- 3.1. Initialize object
   SP_SELECT_INFO <- NULL # if FALSE stays like this
   SP_SELECT <- SP_SELECT[!is.na(SP_SELECT)] # remove NA from the list
   
-  if(WORMS_CHECK == TRUE & CALL$DATA_SOURCE != "omic"){
+  if(WORMS_CHECK == TRUE & CALL$DATA_SOURCE != "MAG"){
     message("WORMS_CHECK: TRUE - checking for taxonomic unnaccepted names and synonyms against the WoRMS taxonomic backbone \n")
     # --- 3.2. Extract worms information from the SP_SELECT
     SP_SELECT <- as.numeric(SP_SELECT) # numeric for worms ID
@@ -186,7 +188,7 @@ run_init <- function(FOLDER_NAME = "test_run",
     dir.create(paste0(out_path, "/proportions"))
     QUERY <- list(SUBFOLDER_INFO = list(SP_SELECT = SP_SELECT))
     save(QUERY, file = paste0(out_path, "/proportions/QUERY.RData"))
-  } else if(DATA_TYPE == "continuous" & CALL$DATA_SOURCE == "omic"){
+  } else if(DATA_TYPE == "continuous" & CALL$DATA_SOURCE == "MAG"){
     dir.create(paste0(out_path, "/shannon"))
     QUERY <- list(SUBFOLDER_INFO = list(SP_SELECT = SP_SELECT))
     save(QUERY, file = paste0(out_path, "/shannon/QUERY.RData"))
@@ -303,7 +305,7 @@ run_init <- function(FOLDER_NAME = "test_run",
   # To be returned as a vector, further used to define parallel runs
   if(DATA_TYPE == "proportions"){
     parallel <- "proportions"
-  } else if(DATA_TYPE == "continuous" & CALL$DATA_SOURCE == "omic"){
+  } else if(DATA_TYPE == "continuous" & CALL$DATA_SOURCE == "MAG"){
     parallel <- "shannon"
   } else {
     parallel <- CALL$SP_SELECT

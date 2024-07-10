@@ -1,5 +1,5 @@
 #' =============================================================================
-#' @name list_omic
+#' @name list_MAG
 #' @description extracts available metadata, taxonomy and read counts per MAG
 #' corresponding to user defined criteria, among the available data within the
 #' MATOU data access service - on Bluecloud Plankton Genomics VLAB.
@@ -7,7 +7,7 @@
 #' @return a complete list of metadata, samples, taxonomic
 #' annotations available.
 
-list_omic <- function(SAMPLE_SELECT){
+list_MAG <- function(SAMPLE_SELECT){
 
   # --- 1. Initialize
   # --- 1.1. Database connection
@@ -23,7 +23,7 @@ list_omic <- function(SAMPLE_SELECT){
 
   # --- 2. Raw query
   # --- 2.1. Extract the MAG data
-  message(paste(Sys.time(), "LIST_OMICS: Start the raw query"))
+  message(paste(Sys.time(), "LIST_MAGS: Start the raw query"))
   data_w_taxo <- tbl(db, "data") %>%
     mutate(MAG = str_sub(Genes, 1, 22)) %>%
     dplyr::filter(readCount > 0) %>%
@@ -39,7 +39,7 @@ list_omic <- function(SAMPLE_SELECT){
 
   # --- 2.2. Filter samples according to user input
   # Opening sample information and filter stations accordingly
-  message(paste(Sys.time(), "LIST_OMICS: Filter stations according to defined criteria"))
+  message(paste(Sys.time(), "LIST_MAGS: Filter stations according to defined criteria"))
 
   locs_w_time <- tbl(db, "locs_w_time") %>% collect() %>%
     mutate(depth = 1) %>% # MATOU data are retrieved from Tara Ocean Surface samples
@@ -52,7 +52,7 @@ list_omic <- function(SAMPLE_SELECT){
 
   # --- 3. Extract the taxonomic information and observations available
   # --- 3.1. Extract and format the different taxonomic ranks
-  message(paste(Sys.time(), "LIST_OMICS: Formatting the output and taxonomy"))
+  message(paste(Sys.time(), "LIST_MAGS: Formatting the output and taxonomy"))
 
   list_raw <- lapply(c("Phylum","Class","Order","Family","Genus","MAG"), function(x){
     id <- which(colnames(data_w_taxo) == x)
@@ -65,7 +65,7 @@ list_omic <- function(SAMPLE_SELECT){
 
   # --- 3.2. Count the number of observations for each combination of taxonomic rank and scientific name
   # Filter by number of observations and organize the data into a tidy format.
-  message(paste(Sys.time(), "LIST_OMICS: Filter samples by nb. obs."))
+  message(paste(Sys.time(), "LIST_MAGS: Filter samples by nb. obs."))
 
   list_bio <- list_raw %>%
     group_by(taxonrank, scientificname) %>%

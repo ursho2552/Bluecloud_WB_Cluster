@@ -1,10 +1,10 @@
-## **CEPHALOPOD - Comprehensive Ensemble Pipeline for Habitat modelling Across Large-scale Ocean Plankton Observation Datasets**
+## **CEPHALOPOD - Comprehensive Ensemble Pipeline for Habitat modelling Across Large-scale Ocean Pelagic Observation Datasets**
 
 This repository contains all code and technical documentation to understand the basis of CEPHALOPOD and install it on your local machine or institution computing cluster. CEPHALOPOD is a standardized and flexible framework for marine habitat modeling across various types and sources of input data. **It is targeted at - but not limited to - plankton observation datasets.**
 
-CEPHALOPOD is also designed as the main tool for the Ecosystem Workbench of the Bluecloud2026 E.U. project. This initiative aims to enhance the accessibility, accuracy and inter-comparability of extensive plankton *in-situ* observation datasets, derived from traditional counting methods, quantitative imaging, and cutting-edge genomic techniques available from repositories such as OBIS, GBIF, AtlantECO or MATOU. It offers a sustainable working for generating ecosystem-level Essential Ocean and Biodiverisity Variables (EOVs & EBVs), adhering to rigorous QA/QC procedures and best practices in the habitat modeling field.
+CEPHALOPOD is also designed as the main tool for the Ecosystem Workbench of the Bluecloud2026 E.U. project. This initiative aims to enhance the accessibility, accuracy and inter-comparability of extensive plankton *in-situ* observation datasets, derived from traditional counting methods, quantitative imaging, and cutting-edge genomic (Metagenome Assembled Genome; MAG) techniques available from repositories such as OBIS, GBIF, AtlantECO or MATOU. It offers a sustainable working for generating ecosystem-level Essential Ocean and Biodiverisity Variables (EOVs & EBVs), adhering to rigorous QA/QC procedures and best practices in the habitat modeling field.
 
-## **How to install it ?** 
+## **How to install it ?**
 
 You can download and install CEPHALOPOD on your local machine or computing cluster by following the steps below. We recommend a minimum of 8 cores and 32 Gb of memory for a general usage across most case studies.
 
@@ -50,7 +50,7 @@ run_name <- "test"
 
 We kickstart the modeling process by identifying the species available for analysis, from a defined source. We select these species based on specific criteria, such as a minimum sample size, the depth range for sampling, and the temporal range of the data. This selection ensures that the subsequent modeling efforts focus on species that meet the desired criteria. Parameters are the following :
 
-`DATA_SOURCE`: either "occurrence", "abundance", "omics", "custom". This parameter will redirect the query to the appropriate database to source the data from. The latter corresponds to an already formatted .csv, .txt or .xlsx file.
+`DATA_SOURCE`: either "occurrence", "biomass", "abundance", "MAG", "custom". This parameter will redirect the query to the appropriate database to source the data from. The latter corresponds to an already formatted .csv, .txt or .xlsx file.
 
 `SAMPLE_SELECT`: a list containing the minimum sample size, target depth range and sample temporal range.
 
@@ -277,6 +277,4 @@ Supplementary analysis such as diversity estimates can be performed by any user 
 
 Here you will find updated informations concerning the code status from a development perspective.
 
--   In its current state, the biomass queries are specific to local data. The data will be ported to the Bluecloud infrastructure shortly.
-
--   In its current state, the list of suggested predictors is also specific to local data. However, one can link to another predictor collection in the same format (WOA grid, 1x1 degree, depth resolved optional; variable = LAYER; dimensions = lon, lat, time, depth)
+-   In its current state, the list of suggested predictors is also specific to local data. However, one can link to another predictor collection in the same format (WOA grid, 1x1 degree, depth resolved optional; variable = LAYER; dimensions = lon, lat, time, depth).

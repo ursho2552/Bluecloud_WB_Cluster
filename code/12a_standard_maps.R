@@ -13,6 +13,8 @@ standard_maps <- function(FOLDER_NAME = NULL,
                                        4:9)){
 
   # --- 1. Initialize function
+  set.seed(123)
+  
   # --- 1.1. Start logs - append file
   sinkfile <- log_sink(FILE = file(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/log.txt"), open = "a"),
                        START = TRUE)
@@ -197,10 +199,10 @@ standard_maps <- function(FOLDER_NAME = NULL,
       plot(r[[1]], col = r[[2]], legend=FALSE, add = TRUE)
       # Subtitle display of NSD
       if(CALL$DATA_TYPE == "proportions"){
-        mtext(text = paste("Projection uncertainty (", names(MODEL[["MBTR"]][["eval"]])[4], ") =", round(MODEL[["MBTR"]][["eval"]][[4]],2)),
+        mtext(text = paste("Projection uncertainty (", names(MODEL[["MBTR"]][["eval"]])[3], ") =", round(MODEL[["MBTR"]][["eval"]][[3]],2)),
               side = 1, line = 2, cex = 0.7)
       } else {
-        mtext(text = paste("Projection uncertainty (", names(MODEL[[i]][["eval"]])[4], ") =", round(MODEL[[i]][["eval"]][[4]],2)),
+        mtext(text = paste("Projection uncertainty (", names(MODEL[[i]][["eval"]])[3], ") =", round(MODEL[[i]][["eval"]][[3]],2)),
               side = 1, line = 2, cex = 0.7)
       }
 

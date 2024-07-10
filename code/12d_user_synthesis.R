@@ -10,7 +10,6 @@ user_synthesis <- function(FOLDER_NAME){
 
   # --- 1. Initialize function
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
-  library(pdftools) # déjà installée comme dépendence d'un autre truc
 
   # --- 2. General information PDF
   # --- 2.1. Title and initial description
@@ -93,7 +92,7 @@ the user, however.")
   batched_pdfs <- c(batched_pdfs, output_file)
   }
 
-  pdf_combine(input = batched_pdfs, output = paste0(output_wd, "/USER_SUMMARY_batches.pdf"))
+  pdf_combine(input = batched_pdfs, output = paste0(output_wd, "/USER_SUMMARY.pdf"))
 
   # Loop over the batched_pdfs
   for (file in batched_pdfs) {

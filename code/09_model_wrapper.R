@@ -17,6 +17,8 @@ model_wrapper <- function(FOLDER_NAME = NULL,
                           SUBFOLDER_NAME = NULL){
 
   # --- 1. Initialize function
+  set.seed(123)
+  
   # --- 1.1. Start logs - append file
   sinkfile <- log_sink(FILE = file(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/log.txt"), open = "a"),
                        START = TRUE)
@@ -26,13 +28,13 @@ model_wrapper <- function(FOLDER_NAME = NULL,
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))
 
-  # --- 2. Redirection to BINARY model
-  if(CALL$DATA_TYPE == "binary"){
+  # --- 2. Redirection to presence_only model
+  if(CALL$DATA_TYPE == "presence_only"){
 
     # --- 2.1. Run function
-    MODEL <- model_binary(CALL,
+    MODEL <- model_presence_only(CALL,
                           QUERY = QUERY)
-  } # END if binary
+  } # END if presence_only
 
   # --- 3. Redirection to CONTINUOUS model
   if(CALL$DATA_TYPE == "continuous"){

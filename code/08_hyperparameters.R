@@ -11,6 +11,8 @@
 hyperparameter <- function(FOLDER_NAME = NULL){
 
   # --- 1. Initialize the  object
+  set.seed(123)
+  
   # --- 1.1. Output object
   HP <- list()
   # --- 1.2. Load CALL object
@@ -19,7 +21,7 @@ hyperparameter <- function(FOLDER_NAME = NULL){
   # --- 2. Fill up the object with a set of possible grids
   # --- 2.3. GENERALIZED LINEAR MODELS
   # --- 2.3.1. Define the model specifications
-  if(CALL$DATA_TYPE == "binary"){
+  if(CALL$DATA_TYPE == "presence_only"){
     HP$GLM$model_spec <- linear_reg(mode = "regression") %>% 
       set_engine("glm", 
                  family = stats::binomial(link = "logit")) %>% 
@@ -37,9 +39,9 @@ hyperparameter <- function(FOLDER_NAME = NULL){
   
   # --- 2.2. GENERALIZED ADDITIVE MODELS 
   # --- 2.2.1. Define the model specifications
-  if(CALL$DATA_TYPE == "binary"){
+  if(CALL$DATA_TYPE == "presence_only"){
     HP$GAM$model_spec <- gen_additive_mod(mode = "regression",
-                                          # adjust_deg_free = tune(),
+                                          adjust_deg_free = tune(),
                                           select_features = FALSE) %>% 
       set_engine("mgcv",
                  family = stats::binomial(link = "logit")) %>% 
@@ -48,15 +50,15 @@ hyperparameter <- function(FOLDER_NAME = NULL){
   } else {
     HP$GAM$model_spec <- gen_additive_mod(mode = "regression",
                                           engine = "mgcv",
-                                          # adjust_deg_free = tune(),
+                                          adjust_deg_free = tune(),
                                           select_features = FALSE) %>% 
       step_normalize() %>% 
       translate()
   }
   
   # --- 2.2.2. Define the grid according to built in functions
-  # HP$GAM$model_grid <- grid_regular(adjust_deg_free(range = c(0.5, 1.5)),
-  #                                   levels = CALL$LEVELS)
+  HP$GAM$model_grid <- grid_regular(adjust_deg_free(range = c(0.5, 1.5)),
+                                    levels = CALL$LEVELS)
   
   
   # --- 2.1. RANDOM FOREST 
@@ -68,7 +70,7 @@ hyperparameter <- function(FOLDER_NAME = NULL){
   
   # --- 2.1.2. Define the grid according to built in functions
   HP$RF$model_grid <- grid_regular(trees(range = c(200, 1000)),
-                                   min_n(range = c(5, ceiling(CALL$SAMPLE_SELECT$MIN_SAMPLE*0.3))),
+                                   min_n(range = c(5, 20)),
                                    levels = CALL$LEVELS)
   
   # --- 2.4. SINGLE LAYER NEURAL NETWORK
@@ -78,15 +80,16 @@ hyperparameter <- function(FOLDER_NAME = NULL){
                            hidden_units = tune(),
                            penalty = 0.01,
                            dropout = 0,
-                           epochs = 100,
+                           epochs = tune(),
                            activation = NULL,
-                           learn_rate = 1e-1) %>% 
+                           learn_rate = 1e-2) %>% 
     step_normalize() %>% 
     translate()
   
   
   # --- 2.4.2. Define the grid according to built in functions
-  HP$MLP$model_grid <- grid_regular(hidden_units(),
+  HP$MLP$model_grid <- grid_regular(hidden_units(range = c(5,10)),
+                                    epochs(),
                                     levels = CALL$LEVELS)
   
   # --- 2.5. BOOSTED REGRESSION TREES
@@ -95,12 +98,13 @@ hyperparameter <- function(FOLDER_NAME = NULL){
                                   engine = "xgboost",
                                   min_n = tune(),
                                   tree_depth = tune(),
-                                  learn_rate = 1e-1,
-                                  stop_iter = 50)
+                                  learn_rate = tune(),
+                                  stop_iter = 10)
   
   # --- 2.5.2. Define the grid according to built in functions
-  HP$BRT$model_grid <- grid_regular(min_n(range = c(2, ceiling(CALL$SAMPLE_SELECT$MIN_SAMPLE*0.3))),
+  HP$BRT$model_grid <- grid_regular(min_n(range = c(2, 20)),
                                     tree_depth(range = c(3, 10)),
+                                    learn_rate(range = c(1e-1, 1e-3)),
                                     levels = CALL$LEVELS)
   
   # --- 2.6. SUPPORT VECTOR MACHINE
@@ -121,9 +125,9 @@ hyperparameter <- function(FOLDER_NAME = NULL){
   
   # --- 2.7. MULTIVARIATE BOOSTED TREE REGRESSOR
   # Specific to proportions data
-  HP$MBTR$model_grid <- data.frame(LEARNING_RATE = seq(1e-2, 1e-3, length.out = CALL$LEVELS),
+  HP$MBTR$model_grid <- data.frame(LEARNING_RATE = seq(1e-1, 1e-2, length.out = CALL$LEVELS),
                                    N_Q = 25,
-                                   MEAN_LEAF = seq(2, ceiling(CALL$SAMPLE_SELECT$MIN_SAMPLE*0.3), length.out = CALL$LEVELS)) %>% 
+                                   MEAN_LEAF = seq(2, 20, length.out = CALL$LEVELS)) %>% 
     expand.grid() %>% 
     unique()
   

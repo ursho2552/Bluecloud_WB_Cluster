@@ -17,8 +17,7 @@ if(!require("caret")){install.packages("caret")}
 if(!require("xgboost")){install.packages("xgboost")}
 
 # --- 2.3. Data table opening and storage
-if(!require("RSQLite")){install.packages("RSQLite")} # AtlantECO at ETH
-if(!require("RPostgreSQL")){install.packages("RPostgreSQL")} # MATOU
+if(!require("RPostgreSQL")){install.packages("RPostgreSQL")} # MATOU & ATLANTECO
 if(!require("feather")){install.packages("feather")}
 if(!require("vroom")){install.packages("vroom")}
 
@@ -42,7 +41,7 @@ if(!require("dendextend")){install.packages("dendextend")}
 if(!require("mvrsquared")){install.packages("mvrsquared")}
 if(!require("bestNormalize")){install.packages("bestNormalize")}
 if(!require("infotheo")){install.packages("infotheo")}
-if(!require("pdftools")){install.packages("pdftools")}
+if(!require("qpdf")){install.packages("qpdf")}
 if(!require("hillR")){install.packages("hillR")}
 
 
@@ -71,24 +70,24 @@ source(file = "./code/12d_user_synthesis.R")
 
 # --- Wrapped functions
 source(file = "./code/01a_list_occurrence.R")
-source(file = "./code/01b_list_biomass.R")
-source(file = "./code/01c_list_omic.R")
+source(file = "./code/01b_list_abundance_biomass.R")
+source(file = "./code/01c_list_MAG.R")
 source(file = "./code/01d_list_custom.R")
 
 source(file = "./code/03a_query_occurrence.R")
-source(file = "./code/03b_query_biomass.R")
-source(file = "./code/03c_query_omic.R")
+source(file = "./code/03b_query_abundance_biomass.R")
+source(file = "./code/03c_query_MAG.R")
 source(file = "./code/03d_query_custom.R")
 
-source(file = "./code/10a_eval_binary.R")
+source(file = "./code/10a_eval_presence_only.R")
 source(file = "./code/10b_eval_continuous.R")
 source(file = "./code/10c_eval_proportions.R")
 
-source(file = "./code/09a_model_binary.R")
+source(file = "./code/09a_model_presence_only.R")
 source(file = "./code/09b_model_continuous.R")
 source(file = "./code/09c_model_proportions.R")
 
-source(file = "./code/11a_proj_binary.R")
+source(file = "./code/11a_proj_presence_only.R")
 source(file = "./code/11b_proj_continuous.R")
 source(file = "./code/11c_proj_proportions.R")
 

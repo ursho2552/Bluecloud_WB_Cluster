@@ -1,13 +1,13 @@
 #' =============================================================================
-#' @name proj_binary
-#' @description computes spatial projections for the binary data sub-pipeline
+#' @name proj_presence_only
+#' @description computes spatial projections for the presence_only data sub-pipeline
 #' @param CALL the call object from the master pipeline
 #' @param QUERY the query object from the master pipeline
 #' @param MODEL the models object from the master pipeline
 #' @return an updated model list object containing the projections objects
 #' embedded in each model sub-list.
 
-proj_binary <- function(QUERY,
+proj_presence_only <- function(QUERY,
                         MODEL,
                         CALL){
 

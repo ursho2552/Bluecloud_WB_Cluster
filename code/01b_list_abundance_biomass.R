@@ -1,5 +1,5 @@
 #' =============================================================================
-#' @name list_biomass
+#' @name list_abundance_biomass
 #' @description extracts available Aphia_ID corresponding to user defined criteria
 #' among the available data within the Atlanteco database, build locally.
 #' @param DATA_SOURCE parameter passed from the wrapper function
@@ -7,15 +7,22 @@
 #' @return a list of available Worms ID or Aphia ID and number of occurrences
 #' within the data type and sample criteria
 
-list_biomass <- function(DATA_SOURCE,
-                           SAMPLE_SELECT){
+list_abundance_biomass <- function(DATA_SOURCE,
+                                   SAMPLE_SELECT){
 
   # --- 1. Connect to database
-  # This database is only available locally at ETH for now. It contains the data
-  # built by Fabio during the Atlanteco project.
-  db <- dbConnect(RSQLite::SQLite(), paste0(project_wd,"/data/DB_clean.sqlite"))
+  # This database is a light online copy of the AtlantECO base v1
+  # Further details are available in the source material referenced in the database
+  db <- dbConnect(
+    drv=PostgreSQL(),
+    host="postgresql-srv.d4science.org",
+    dbname="bc2026_wb3_db",
+    user="bluecloud_wb3_reader",
+    password="1a6414f89d8a265c8bdd",
+    port=5432
+  )
 
-  # --- 2. Query the database
+  # --- 2. Query the database - abundance or biomass depending on the source
   # Returns the Worms ID, or Aphia ID and number of occurrences within the data
   # type and sample criteria
   message("--- LIST BIO : retrieving species available in ATLANTECO")
@@ -24,9 +31,7 @@ list_biomass <- function(DATA_SOURCE,
                   depth <= !!SAMPLE_SELECT$TARGET_MAX_DEPTH &
                   year >= !!SAMPLE_SELECT$START_YEAR &
                   year <= !!SAMPLE_SELECT$STOP_YEAR &
-                  measurementvalue != "Absence" &
-                  measurementvalue != 0,
-                  !is.na(measurementvalue),
+                  measurementvalue != 0 & !is.na(measurementvalue),
                   worms_id != "Not found") %>%
     group_by(worms_id) %>%
     mutate(nb_occ = n()) %>%

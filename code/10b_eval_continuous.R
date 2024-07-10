@@ -17,70 +17,90 @@ eval_continuous <- function(CALL,
   # --- 1. Model performance assessment
   for(i in MODEL$MODEL_LIST){
     # --- 1.1. Load final model data
-    final_fit <- MODEL[[i]][["final_fit"]] %>%
-      collect_predictions()
-
+    # Loop over the cross validation runs
+    
+    model_data <- lapply(1:(length(MODEL[[i]][["final_fit"]])), function(x){
+      # Extract final fit
+      final_fit <- MODEL[[i]][["final_fit"]][[x]] %>%
+        collect_predictions()
+      
+      # Extract y and y_hat
+      y <- final_fit$measurementvalue
+      y_hat <- final_fit$.pred
+      
+      # Return
+      df <- data.frame(y = y, y_hat = y_hat)
+      return(df)
+    }) %>% bind_rows()
+    
     # --- 1.2. Extract observations and predictions
-    y <- final_fit$measurementvalue
-    y_hat <- final_fit$.pred
+    y <- model_data$y
+    y_hat <- model_data$y_hat
 
     # --- 1.3. Compute R-squared into MODELS object
     df <- data.frame(truth = y, estimate = y_hat)
     MODEL[[i]][["eval"]][["R2"]] <- yardstick::rsq(data = df, truth, estimate ) %>%
       .$.estimate %>%
       round(3)
-
-    # # --- 1.3. Compute the slope of a LM
-    # lm <- lm(y_hat~y-1)
-    # MODEL[[i]][["eval"]][["R2"]] <- (1-abs(lm$coefficients-1)) %>%
-    #   as.numeric() %>%
-    #   round(3)
-
-    # --- 1.4. Compute an over-fitting rate
-    # Calculated as the deviation during training to deviation in testing ratio
-    resample_dev <- MODEL[[i]][["best_fit"]]$mean
-    eval_dev <- rmse(data = data.frame(truth = y, estimate = y_hat), 1, 2)$.estimate
-    MODEL[[i]][["eval"]][["OVF"]] <- ((resample_dev/eval_dev)-1)*100
-
+    
   } # for each model loop
-
 
   # --- 2. Variable importance - algorithm level
   # --- 2.1. Initialize function
   # --- 2.1.1. Storage
   var_imp <- NULL
-
-  # --- 2.1.2. Model related data
-  features <- QUERY$FOLDS$train %>%
+  
+  # --- 2.1.2. General features - used later for plots
+  features <- QUERY[["FOLDS"]][["resample_split"]][["splits"]][[1]]$data %>%
     dplyr::select(all_of(QUERY$SUBFOLDER_INFO$ENV_VAR))
-  target <- QUERY$FOLDS$train %>%
-    dplyr::select(measurementvalue)
+
+  # --- 2.1.3. Loop over models
 
   for(i in MODEL$MODEL_LIST){
-    # --- 2.2. Extract final model fit
-    m <- extract_fit_parsnip(MODEL[[i]][["final_fit"]])
-
-    # --- 2.3. Build model explainer
-    explainer <- explain_tidymodels(model = m,
-                                    data = features,
-                                    y = target)
-
-    # --- 2.4. Compute variable importance
-    # --- 2.4.1. First in terms of RMSE, i.e., raw var importance for later ensemble computing
-    message(paste("--- VAR IMPORTANCE : compute for", i))
-    var_imp[[i]][["Raw"]] <- model_parts(explainer = explainer,
-                                         loss_function = loss_root_mean_square) %>%
-      dplyr::filter(permutation != 0) %>%
-      dplyr::filter(variable != "_baseline_") %>%
-      group_by(permutation) %>%
-      mutate(value = dropout_loss - dropout_loss[variable == "_full_model_"]) %>%
-      dplyr::filter(variable != "_full_model_")
-
-    # --- 2.4.2. Further compute it as percentage for model-level plot
+    
+    # --- 2.2. Loop over the cross-validations
+    var_imp[[i]][["Raw"]] <- lapply(1:CALL$NFOLD, function(x){
+      
+      # --- 2.2.1. Extract related target and feature
+      # Model and cross-validation specific
+      id <- QUERY[["FOLDS"]][["resample_split"]][["splits"]][[x]][["in_id"]]
+      
+      features_x <- QUERY[["FOLDS"]][["resample_split"]][["splits"]][[x]]$data[id,] %>%
+        dplyr::select(all_of(QUERY$SUBFOLDER_INFO$ENV_VAR))
+      
+      target <- QUERY[["FOLDS"]][["resample_split"]][["splits"]][[x]]$data[id,] %>%
+        dplyr::select(measurementvalue)
+      
+      # --- 2.2.2. Extract final model fit
+      m <- extract_fit_parsnip(MODEL[[i]][["final_fit"]][[x]])
+      
+      # --- 2.2.3. Build model explainer
+      explainer <- explain_tidymodels(model = m,
+                                      data = features_x,
+                                      y = target)
+      
+      # --- 2.2.4. First in terms of RMSE, i.e., raw var importance for later ensemble computing
+      message(paste("--- VAR IMPORTANCE : compute for", i))
+      out <- model_parts(explainer = explainer,
+                                           loss_function = loss_root_mean_square) %>%
+        dplyr::filter(permutation != 0) %>%
+        dplyr::filter(variable != "_baseline_") %>%
+        group_by(permutation) %>%
+        mutate(value = dropout_loss - dropout_loss[variable == "_full_model_"]) %>%
+        dplyr::filter(variable != "_full_model_") %>% 
+        ungroup() %>% 
+        mutate(cv = x) # add the cv information for percentage
+      
+      return(out)
+      
+    }) %>% bind_rows() # end cross validation loop
+    
+    # --- 2.3. Further compute it as percentage for model-level plot
     # Security if a model did not fit, hence var_imp = 0 for all predictors
     # Avoids an error leading to a function stop, while other models could be OK
     if(sum(var_imp[[i]][["Raw"]][["value"]]) > 0){
       var_imp[[i]][["Percent"]] <- var_imp[[i]][["Raw"]] %>%
+        group_by(cv, permutation) %>% 
         mutate(value = value / sum(value) * 100)  %>%
         ungroup() %>%
         dplyr::select(variable, value) %>%
@@ -90,7 +110,7 @@ eval_continuous <- function(CALL,
       var_imp[[i]][["Percent"]] <- var_imp[[i]][["Raw"]]
     }
 
-    # --- 2.4.3. Compute cumulative variable importance
+    # --- 2.4. Compute cumulative variable importance
     MODEL[[i]][["eval"]][["CUM_VIP"]] <- var_imp[[i]][["Percent"]] %>%
       group_by(variable) %>%
       summarise(average = mean(value)) %>%
@@ -98,7 +118,7 @@ eval_continuous <- function(CALL,
       dplyr::select(average) %>%
       sum()
 
-    # --- 2.4.4. Save row VIP
+    # --- 2.5. Save row VIP
     MODEL[[i]][["vip"]] <- var_imp[[i]][["Percent"]]
 
   } # for each model loop

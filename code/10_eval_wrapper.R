@@ -12,6 +12,8 @@ eval_wrapper <- function(FOLDER_NAME = NULL,
                          SUBFOLDER_NAME = NULL){
 
   # --- 1. Initialize function
+  set.seed(123)
+  
   # --- 1.1. Start logs - append file
   sinkfile <- log_sink(FILE = file(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/log.txt"), open = "a"),
                        START = TRUE)
@@ -26,14 +28,14 @@ eval_wrapper <- function(FOLDER_NAME = NULL,
   pdf_path <- paste0(project_wd,"/output/",FOLDER_NAME,"/",SUBFOLDER_NAME,"/04_variable_importance.pdf")
 
   # --- 2. Redirection to PRESENCE model evaluation
-  if(CALL$DATA_TYPE == "binary"){
+  if(CALL$DATA_TYPE == "presence_only"){
 
     # --- 2.1. Run function
-    MODEL<- eval_binary(CALL = CALL,
-                        QUERY = QUERY,
-                        MODEL = MODEL,
-                        PDF_PATH = pdf_path)
-  } # END if binary
+    MODEL<- eval_presence_only(CALL = CALL,
+                               QUERY = QUERY,
+                               MODEL = MODEL,
+                               PDF_PATH = pdf_path)
+  } # END if presence_only
 
   # --- 3. Redirection to CONTINUOUS model evaluation
   if(CALL$DATA_TYPE == "continuous"){

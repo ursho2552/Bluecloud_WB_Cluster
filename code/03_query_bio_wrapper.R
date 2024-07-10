@@ -16,6 +16,8 @@ query_bio_wrapper <- function(FOLDER_NAME = NULL,
                               SUBFOLDER_NAME = NULL){
 
   # --- 1. Initialize function
+  set.seed(123)
+  
   # --- 1.1. Start logs - new file
   sinkfile <- log_sink(FILE = file(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/log.txt"), open = "wt"),
                        START = TRUE)
@@ -36,11 +38,11 @@ query_bio_wrapper <- function(FOLDER_NAME = NULL,
 
   # --- 3. Redirection to the ATLANTECO query
   # For continuous  source data
-  if(CALL$DATA_SOURCE == "biomass"){
+  if(CALL$DATA_SOURCE == "biomass" | CALL$DATA_SOURCE == "abundance"){
 
     # --- 3.1. Run function
-    QUERY <- query_biomass(FOLDER_NAME = FOLDER_NAME,
-                             QUERY = QUERY)
+    QUERY <- query_abundance_biomass(FOLDER_NAME = FOLDER_NAME,
+                                     QUERY = QUERY)
   } # End ATLANTECO redirection
 
   # --- 4. Redirection to the MGNIFY query
@@ -52,7 +54,7 @@ query_bio_wrapper <- function(FOLDER_NAME = NULL,
   } # End MGNIFY redirection
 
   # --- 5. Redirection to the CUSTOM query
-  if(CALL$DATA_SOURCE != "omic" & CALL$DATA_SOURCE != "biomass" & CALL$DATA_SOURCE != "occurrence"){
+  if(CALL$DATA_SOURCE != "omic" & CALL$DATA_SOURCE != "biomass" & CALL$DATA_SOURCE != "abundance" & CALL$DATA_SOURCE != "occurrence"){
     # --- 5.1. Load function
     source(file = paste0(project_wd, "/code/03d_query_custom.R"))
 

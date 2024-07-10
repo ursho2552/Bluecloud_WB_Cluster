@@ -1,15 +1,15 @@
 #' =============================================================================
-#' @name model_binary
+#' @name model_presence_only
 #' @description sub-pipeline corresponding to the model fitting procedure for
-#' binary data. Called via the model_wrapper.R function, thus no default
+#' presence_only data. Called via the model_wrapper.R function, thus no default
 #' parameter values are defined.
 #' @param CALL the call object from the master pipeline. 
 #' @param QUERY the query object from the master pipeline
 #' @return returns a list object containing the best model, associated hyper
 #' parameters and predicted values per re sampling folds
 
-model_binary <- function(CALL,
-                         QUERY){
+model_presence_only <- function(CALL,
+                                QUERY){
   
   # --- 1. Initialize
   # --- 1.1. Storage in MODEL object
@@ -48,9 +48,9 @@ model_binary <- function(CALL,
     # --- 2.5. Select best hyper parameter set
     # Based on RMSE values per model run (rsq does not work with 0's)
     model_best <- model_res %>% 
-      select_best("rmse")
+      select_best(metric = "rmse")
     # Retrieve the corresponding RMSE as well
-    rmse_best <- model_res %>% show_best("rmse") %>% .[1,]
+    rmse_best <- model_res %>% show_best(metric = "rmse") %>% .[1,]
     MODEL[[CALL$MODEL_LIST[i]]][["best_fit"]] <- rmse_best
     
     # --- 2.6. Define final workflow
@@ -58,9 +58,12 @@ model_binary <- function(CALL,
       finalize_workflow(model_best)
     
     # --- 2.7. Run the model on the initial split
-    # Save the workflow and model object in a list to be passed to further steps
-    final_fit <- final_wf %>%
-      last_fit(QUERY$FOLDS$init_split) 
+    # We have one fit per cross validation saved in a list, to be passed to further steps
+    final_fit <- lapply(1:CALL$NFOLD, function(x){
+      out <- final_wf %>% 
+        last_fit(QUERY$FOLDS$resample_split$splits[[x]])
+      return(out)
+    }) # loop over the same cross validation folds
     
     MODEL[[CALL$MODEL_LIST[i]]][["final_wf"]] <- final_wf
     MODEL[[CALL$MODEL_LIST[i]]][["final_fit"]] <- final_fit

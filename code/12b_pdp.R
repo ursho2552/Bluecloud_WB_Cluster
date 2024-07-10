@@ -10,6 +10,8 @@ pdp <- function(FOLDER_NAME = NULL,
                 SUBFOLDER_NAME = NULL){
   
   # --- 1. Initialize function
+  set.seed(123)
+  
   # --- 1.1. Parameter loading
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))

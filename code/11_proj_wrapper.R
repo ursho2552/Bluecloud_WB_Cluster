@@ -14,6 +14,8 @@ proj_wrapper <- function(FOLDER_NAME = NULL,
                          SUBFOLDER_NAME = NULL){
 
   # --- 1. Initialize function
+  set.seed(123)
+  
   # --- 1.1. Start logs - append file
   sinkfile <- log_sink(FILE = file(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/log.txt"), open = "a"),
                        START = TRUE)
@@ -25,13 +27,13 @@ proj_wrapper <- function(FOLDER_NAME = NULL,
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/MODEL.RData"))
 
   # --- 2. Redirection to the PRESENCE model projections
-  if(CALL$DATA_TYPE == "binary"){
+  if(CALL$DATA_TYPE == "presence_only"){
 
     # --- 2.1. Run function
-    MODEL <- proj_binary(QUERY = QUERY,
+    MODEL <- proj_presence_only(QUERY = QUERY,
                          MODEL = MODEL,
                          CALL = CALL)
-  } # END if binary
+  } # END if presence_only
 
   # --- 3. Redirection to the CONTINUOUS model projections
   if(CALL$DATA_TYPE == "continuous"){

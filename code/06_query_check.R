@@ -11,6 +11,7 @@ query_check <- function(FOLDER_NAME = NULL,
   
   # --- 1. Initialize function
   set.seed(123)
+  
   # --- 1.1. Start logs - append file
   sinkfile <- log_sink(FILE = file(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/log.txt"), open = "a"),
                        START = TRUE)
@@ -37,10 +38,16 @@ query_check <- function(FOLDER_NAME = NULL,
     Y <- QUERY$Y %>% as.data.frame()
   } # end if
   
-  # --- 2. Target outlier analysis
+  # --- 2. Early return if the target has unique values (e.g., only 0)
+  if(length(unique(QUERY$Y$measurementvalue)) == 1){
+    message("QUERY CHECK: the target seem to have only unique values. It is therefore not possible to model a response. ")
+    return(NA)
+  } # return if unique target
+  
+  # --- 3. Target outlier analysis
   # Outlier check on the query based on z-score (from Nielja code)
   if(CALL$OUTLIER == TRUE){
-    if(CALL$DATA_TYPE == "binary"){
+    if(CALL$DATA_TYPE == "presence_only"){
       message("--- Cannot perform outlier analysis on presence - pseudo absence data ---")
     } else {
       to_remove <- outlier_iqr_col(Y, n = 2.5) %>% as.vector()
@@ -55,11 +62,11 @@ query_check <- function(FOLDER_NAME = NULL,
     }
   } # END if outlier TRUE
   
-  # --- 2. Univariate feature check
+  # --- 4. Univariate feature check
   # Remove features that are not explaining the target better than a random one
   # We use both Mutual Information and Spearman as they are slightly different processes
   
-  # --- 2.1. Prepare data for the plot // by feature x metric x random
+  # --- 4.1. Prepare data for the plot // by feature x metric x random
   # Loops over columns if data are proportions
   univ_data <- lapply(1:ncol(QUERY$X), function(x){
     x <- lapply(1:ncol(Y), function(y){
@@ -73,23 +80,23 @@ query_check <- function(FOLDER_NAME = NULL,
   # Security for NA
   univ_data[is.na(univ_data)] <- 0
   
-  # --- 2.2. Compute the average and SD per bins // for the error bars
+  # --- 4.2. Compute the average and SD per bins // for the error bars
   univ_data_med <- apply(univ_data, c(1,2), median)
   univ_data_sd <- apply(univ_data, c(1,2), sd)
   
-  # --- 2.3. Nice output table
+  # --- 4.3. Nice output table
   univ_feature_check <- univ_data_med %>% 
     as.data.frame() %>% 
     mutate(ID = row_number(),
            varname = colnames(QUERY$X))
   
-  # --- 2.4. List features to keep
+  # --- 4.4. List features to keep
   univ_to_keep <- univ_feature_check %>% 
     dplyr::filter(mutual_information > 0 | spearman > 0)
   univ_to_remove <- colnames(QUERY$X)[-univ_to_keep$ID] # useful for the message to user
   
-  # --- 2.5. Update QUERY with feature names to keep
-  # --- 2.5.1. Inform user and log file
+  # --- 4.5. Update QUERY with feature names to keep
+  # --- 4.5.1. Inform user and log file
   if(length(univ_to_keep) == 0){
     message(paste("FEATURE UNIVARIATE CHECK:", SUBFOLDER_NAME, "no features explain the target distribution better than a random one. 
             Please check the chosen feature and your target distribution."))
@@ -99,31 +106,31 @@ query_check <- function(FOLDER_NAME = NULL,
                   "- no more variance explained than a NULL \n"))
   }
   
-  # --- 2.5.2. Do the update
+  # --- 4.5.2. Do the update
   QUERY$SUBFOLDER_INFO$ENV_VAR <- colnames(QUERY$X)[univ_to_keep$ID]
   
-  # --- 3. Environmental variable correlation check
+  # --- 5. Environmental variable correlation check
   # Removing correlated environmental variables to avoid correlated model features
   if(is.numeric(CALL$ENV_COR) == TRUE){
-    # --- 3.1. Opening environmental value at presence points
+    # --- 5.1. Opening environmental value at presence points
     features <- QUERY$X[,QUERY$SUBFOLDER_INFO$ENV_VAR] # accounting for univariate check
-    if(CALL$DATA_TYPE == "binary"){
+    if(CALL$DATA_TYPE == "presence_only"){
       features <- features[which(QUERY$Y$measurementvalue != 0),]
     }
     
-    # --- 3.2. Filter out unique features
+    # --- 5.2. Filter out unique features
     features_unique <- apply(features, 2, function(x)(x = length(unique(x))))
     features <- features[, which(features_unique > 1)]
     
-    # --- 3.2. Check correlation/distance between variables
+    # --- 5.2. Check correlation/distance between variables
     features_dist <- cor(features, method = "pearson")
     features_dist <- as.dist(1-abs(features_dist))
     
-    # --- 3.3. Do a clustering and cut
+    # --- 5.3. Do a clustering and cut
     features_clust <- hclust(features_dist) %>% as.dendrogram()
     features_group <- cutree(features_clust, h = 1-CALL$ENV_COR)
     
-    # --- 3.4. Choose one variable within each inter-correlated clusters
+    # --- 5.4. Choose one variable within each inter-correlated clusters
     # Keeping the one with the highest Spearman and Mutual Information rel. to NULL
     cor_to_keep <- NULL
     for(i in 1:max(features_group)){
@@ -140,7 +147,7 @@ query_check <- function(FOLDER_NAME = NULL,
       }
     }
     
-    # --- 3.5. Plot the corresponding dendrogram
+    # --- 5.5. Plot the corresponding dendrogram
     pdf(paste0(project_wd, "/output/", FOLDER_NAME, "/", SUBFOLDER_NAME,"/02_env_cor.pdf"))
     par(mfrow = c(1,1), mar = c(10,2,4,15), cex = 0.6)
     pal <- rep("darkorange", length(features))
@@ -157,33 +164,33 @@ query_check <- function(FOLDER_NAME = NULL,
     abline(v = 1-CALL$ENV_COR, col = "darkorange")
     dev.off()
     
-    # --- 3.6. Update ENV_VAR
+    # --- 5.6. Update ENV_VAR
     QUERY$SUBFOLDER_INFO$ENV_VAR <- cor_to_keep
   } # END if env_cor TRUE
   
-  # # --- 4. RFE (recursive feature elimination) importance analysis
+  # # --- 6. RFE (recursive feature elimination) importance analysis
   # Done with a Random forest using the method developed in the "Caret" library
   if(CALL$RFE == TRUE){
     if(CALL$DATA_TYPE == "proportions"){
       message("A RFE predictor selection is not possible for proportion data,
               please select carefully your predictors")
     } else {
-      # --- 4.1. Initialize data and control parameters
+      # --- 6.1. Initialize data and control parameters
       features <- QUERY$X[,QUERY$SUBFOLDER_INFO$ENV_VAR]
       rfe_df <- cbind(QUERY$Y, features)
       # Modify rfFuncs : we modify the selectSize code to use pickSizeBest instead of a 1.5 tolerance around the best
       rfFuncs$selectSize <- function(...) pickSizeBest(...) # weird functioning :-)
       rfe_control <- rfeControl(functions=rfFuncs, method="cv", number=5, rerank = FALSE)
-      # --- 4.2. Run the RFE algorithm
+      # --- 6.2. Run the RFE algorithm
       message(paste(Sys.time(), "--- RFE : Fitting the Recursive Feature Exclusion algorithm \n"))
       rfe_fit <- rfe(rfe_df[,-1], rfe_df[,1], sizes = c(1:ncol(rfe_df[,-1])), rfeControl = rfe_control)
 
-      # --- 4.3. Extract the relevant predictors
-      # --- 4.3.1. Compute the moving average loss
+      # --- 6.3. Extract the relevant predictors
+      # --- 6.3.1. Compute the moving average loss
       loss_ma <- ma(rfe_fit$results$RMSE, n = 10)
-      # --- 4.3.2. Compute the percentage loss
+      # --- 6.3.2. Compute the percentage loss
       loss_ma_pct <- (loss_ma[-1] - loss_ma[-length(loss_ma)])/loss_ma[-length(loss_ma)]*100
-      # --- 4.3.3. Find the first minimum or <1% loss percentage
+      # --- 6.3.3. Find the first minimum or <1% loss percentage
       # Consider all variables if "id" is NA, due to moving average not working for low variable number
       id <- which(loss_ma_pct > -1)[1]
       if(is.na(id) == TRUE){
@@ -192,16 +199,16 @@ query_check <- function(FOLDER_NAME = NULL,
         id <- ncol(features)
       }
 
-      # --- 4.4. Compute variable importance
+      # --- 6.4. Compute variable importance
       rfe_vip <- rfe_fit$variables %>%
         dplyr::select(var, Overall) %>%
         mutate(var = fct_reorder(as.factor(var), Overall, .desc = TRUE))
 
-      # --- 4.5. Extract the environmental variables
+      # --- 6.5. Extract the environmental variables
       rfe_to_keep <- rfe_vip$var[1:id] %>% as.character()
       message(paste("--- RFE : Selecting", rfe_to_keep, "\n"))
 
-      # --- 4.6. Produce an information plot
+      # --- 6.6. Produce an information plot
       pdf(paste0(project_wd, "/output/", FOLDER_NAME, "/", SUBFOLDER_NAME,"/03_feature_pre_selection.pdf"))
       par(mfrow = c(2,1), mar = c(4,3,2,15))
       # --- Variable importance
@@ -231,56 +238,56 @@ average of 5) by 1 %. The considered features are in green. The ones that do not
 displayed in yellow.", cex = 0.6, adj = 0)
       dev.off()
 
-      # --- 4.7. Update ENV_VAR
+      # --- 6.7. Update ENV_VAR
       QUERY$SUBFOLDER_INFO$ENV_VAR <- rfe_to_keep
 
     }
   } # END if RFE TRUE
 
-  # --- 5. MESS analysis
+  # --- 7. MESS analysis
   r_mess <- NULL
   for(m in 1:length(CALL$ENV_DATA)){
-    # --- 5.1. Load necessary data
+    # --- 7.1. Load necessary data
     features <- CALL$ENV_DATA[[m]] %>%
       raster::subset(QUERY$SUBFOLDER_INFO$ENV_VAR)
     names(features) <- QUERY$SUBFOLDER_INFO$ENV_VAR
 
-    # --- 5.2. Compute the mess analysis
-    # --- 5.2.1. Load environmental samples data
+    # --- 7.2. Compute the mess analysis
+    # --- 7.2.1. Load environmental samples data
     tmp <- QUERY$X %>% dplyr::select(all_of(QUERY$SUBFOLDER_INFO$ENV_VAR))
 
-    # --- 5.2.2. Remove the pseudo-absences from the analysis
+    # --- 7.2.2. Remove the pseudo-absences from the analysis
     # We should not consider them as true input data as they are user defined
-    if(CALL$DATA_TYPE == "binary"){
+    if(CALL$DATA_TYPE == "presence_only"){
       tmp <- tmp[which(QUERY$Y != 0),]
     } # if pres remove pseudo abs
 
-    # --- 5.2.3. Analysis
+    # --- 7.2.3. Analysis
     r_mess[[m]] <- dismo::mess(x = features, v = as.data.frame(tmp), full = FALSE)
 
   } # for m month
 
-  # --- 5.3. Append to query
+  # --- 7.3. Append to query
   QUERY$MESS <- stack(r_mess)
   
-  # --- 6. Verification of feature pre-selection
-  # --- 6.1. Initialize QC and necessary data
+  # --- 8. Verification of feature pre-selection
+  # --- 8.1. Initialize QC and necessary data
   post_check <- univ_feature_check %>% 
     dplyr::filter(varname %in% !!QUERY$SUBFOLDER_INFO$ENV_VAR)
   
-  # --- 6.2. Compute the quality check
+  # --- 8.2. Compute the quality check
   MI_diff <- mean(post_check$mutual_information)
   S_diff <- mean(post_check$spearman)
   PRE_VIP <- max(c(MI_diff, S_diff))
   
-  # --- 6.3. Append QUERY
+  # --- 8.3. Append QUERY
   QUERY[["eval"]][["PRE_VIP"]] <- PRE_VIP
   
-  # --- 7. Verification plot
-  # --- 7.1. Initialize plot
+  # --- 9. Verification plot
+  # --- 9.1. Initialize plot
   pdf(paste0(project_wd, "/output/", FOLDER_NAME, "/", SUBFOLDER_NAME,"/04_feature_verification.pdf"))
   
-  # --- 7.2. Initialize colors
+  # --- 9.2. Initialize colors
   pal <- rep("#B64A60", ncol(QUERY$X))
   pal[which(names(QUERY$X) %in% univ_to_keep$varname)] <- "darkorange" # passed univariate selection
   pal[which(names(QUERY$X) %in% cor_to_keep)] <- "gold" # passed univariate selection
@@ -289,11 +296,11 @@ displayed in yellow.", cex = 0.6, adj = 0)
     pal[which(names(QUERY$X) %in% QUERY$SUBFOLDER_INFO$ENV_VAR)] <- "#1F867B" # final selection OR after RFE
   } # end if
   
-  # --- 7.3. Mutual information and Spearman plot
-  # --- 7.3.1. Initialize plot
+  # --- 9.3. Mutual information and Spearman plot
+  # --- 9.3.1. Initialize plot
   par(mfrow = c(1,1), mar = c(10,6,4,4))
   
-  # --- 7.3.2. Plot points
+  # --- 9.3.2. Plot points
   plot(univ_data_med[,1], univ_data_med[,2], 
        xlim = c(min(univ_data_med[,1])-0.1, max(univ_data_med[,1]))+0.1, 
        ylim = c(min(univ_data_med[,2])-0.1, max(univ_data_med[,2]))+0.1,
@@ -312,7 +319,7 @@ feature set is considered as sufficient", cex = 0.5, adj = 0)
   grid(col = "black")
   abline(h = c(0, 0.05), v = c(0, 0.05) , lwd = 1, col = c("darkred", "orange"))
   
-  # --- 7.3.3. Plot error bars
+  # --- 9.3.3. Plot error bars
   for(i in 1:ncol(QUERY$X)){
     lines(x = c(univ_data_med[i,1]-univ_data_sd[i,1], univ_data_med[i,1]+univ_data_sd[i,1]),
           y = rep(univ_data_med[i,2], 2), 
@@ -322,26 +329,26 @@ feature set is considered as sufficient", cex = 0.5, adj = 0)
           lwd = 2)
   } # end for
   
-  # --- 7.3.4. Add labels
+  # --- 9.3.4. Add labels
   points(univ_data_med[,1], univ_data_med[,2], pch = 20, cex = 6, col = pal) # background
   points(univ_data_med[,1], univ_data_med[,2], cex = 4, lwd = 2) # circle
   text(univ_data_med[,1], univ_data_med[,2], labels = seq(1:ncol(QUERY$X)), offset = 0, col = "black", cex = 1, lwd = 10)
   
-  # --- 7.4. Univariate target vs. feature plot
-  # --- 7.4.1. initialize plot
+  # --- 9.4. Univariate target vs. feature plot
+  # --- 9.4.1. initialize plot
   par(mfrow = c(4,3), mar = c(6,4,3,4))
   
-  # --- 7.4.2. Loop over the features (and target if proportions)
+  # --- 9.4.2. Loop over the features (and target if proportions)
   for(x in 1:ncol(QUERY$X)){
     for(y in 1:ncol(Y)){
-      # --- 7.4.2.1. Prepare the data and bin the feature
+      # --- 9.4.2.1. Prepare the data and bin the feature
       feature_bin <- discretize(QUERY$X[,x], nbins = 10, disc = "equalwidth")
       bin_mid <- seq(min(QUERY$X[,x]),max(QUERY$X[,x]), length.out = 10) %>% signif(2)
       
       if(ncol(QUERY$Y) > 1){yname <- paste("Target:", colnames(QUERY$Y)[y])} else{yname <- paste("Target:", SUBFOLDER_NAME)}
       
-      # --- 7.4.2.2. Do the plot
-      if(CALL$DATA_TYPE != "binary"){
+      # --- 9.4.2.2. Do the plot
+      if(CALL$DATA_TYPE != "presence_only"){
         boxplot(Y[,y]~feature_bin[,1], axes = FALSE, col = pal[x],
                 main  = paste("(", x, ")", names(QUERY$X[x])), cex.main = 0.8,
                 sub = paste("Mutual Information:", signif(univ_feature_check$mutual_information[x],2), "| Spearman cor.:", signif(univ_feature_check$spearman[x],2)), cex.sub = 0.8,
@@ -367,19 +374,19 @@ feature set is considered as sufficient", cex = 0.5, adj = 0)
           box("figure", col="black", lwd = 1)
           grid(col = "gray20")
         } # if unique value
-      } # if binary data
+      } # if presence_only data
     } # for x features
   } # for y target
   
-  # --- 7.5. Wrap up plot
+  # --- 9.5. Wrap up plot
   dev.off()
   
-  # --- 8. Wrap up and save
-  # --- 8.1. Save file(s)
+  # --- 10. Wrap up and save
+  # --- 10.1. Save file(s)
   save(QUERY, file = paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))
-  # --- 8.2. Stop logs
+  # --- 10.2. Stop logs
   log_sink(FILE = sinkfile, START = FALSE)
-  # --- 8.3. Pretty return
+  # --- 10.3. Pretty return
   # Updates the list of species to model depending on the PRE_VIP (> 0.05) to avoid non meaningful feature ensembles
   if(QUERY$eval$PRE_VIP >= 0.05 | CALL$FAST == FALSE){
     return(SUBFOLDER_NAME)

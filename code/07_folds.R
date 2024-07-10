@@ -32,59 +32,42 @@ folds <- function(FOLDER_NAME = NULL,
     Y <- QUERY$Y
   }
 
-  # --- 2. Initial split
+  # --- 2. Define cross-validation split
+  # We use the same for both hyper parameter tuning and model evaluation
+  
   # --- 2.1. Re-assemble all query tables
   tmp <- cbind(Y, QUERY$X, QUERY$S)
-
-  # --- 2.2. Do the initial split
-  # The initial split is done on 30% of the data, stratified,
-  # to have a well representative evaluation sample
-  # --- 2.2.1. For univariate data - strata is possible so we do it
-  if(CALL$DATA_TYPE != "proportions"){
-    init_split <- tmp %>%
-      initial_split(prop = 0.7,
-                    strata = measurementvalue)
-  }
-  # --- 2.2.2. For multivariate data - strata is not possible
-  if(CALL$DATA_TYPE == "proportions"){
-    init_split <- tmp %>%
-      initial_split(prop = 0.7)
-  }
-
-  # --- 2.2.3. Append FOLD object
-  QUERY$FOLDS$init_split <- init_split
-  QUERY$FOLDS$test <- testing(init_split)
-  QUERY$FOLDS$train <- training(init_split)
-
-  # --- 3. Train set resampling
-  # --- 3.1. Parameter check
+  
+  # --- 2.2. Parameter check
   if(CALL$FOLD_METHOD != "kfold" & CALL$FOLD_METHOD != "lon"){
     stop("FOLD_METHOD not implemented or incorrect. It should be 'kfold' or 'lon'")
   }
 
-  # --- 3.2. Normal k-fold re sampling
-  # --- 3.2.1. For univariate data - strata is possible so we do it
+  # --- 2.3. Normal k-fold re sampling
+  # --- 2.3.1. For univariate data - strata is possible so we do it
   if(CALL$FOLD_METHOD == "kfold" & CALL$DATA_TYPE != "proportions"){
-    folds <- vfold_cv(data = QUERY$FOLDS$train,
+    folds <- vfold_cv(data = tmp,
                       strata = measurementvalue,
                       v = CALL$NFOLD)
   }
-  # --- 3.2.2. For multivariate data - strata is not possible
+  
+  # --- 2.3.2. For multivariate data - strata is not possible
   if(CALL$FOLD_METHOD == "kfold" & CALL$DATA_TYPE == "proportions"){
-    folds <- vfold_cv(data = QUERY$FOLDS$train,
+    folds <- vfold_cv(data = tmp,
                       v = CALL$NFOLD)
   }
 
-  # --- 3.3. Longitudinal block re sampling
+  # --- 2.4. Longitudinal block re sampling
   if(CALL$FOLD_METHOD == "lon"){
-    folds <- group_vfold_cv(data = QUERY$FOLDS$train,
+    folds <- group_vfold_cv(data = tmp,
                             group = c(decimallongitude),
                             v = CALL$NFOLD)
   }
 
-  # --- 4. Append QUERY and CALL objects
+  # --- 3. Append QUERY and CALL objects
   # S$id keeps track of the initial row numbers within each split/re sample
-  # --- 4.1. Append QUERY
+  
+  # --- 3.1. Append QUERY
   QUERY$FOLDS$resample_split <- folds
   for(i in 1:nrow(folds)){
     fold_name <- folds$id[i]
@@ -92,12 +75,12 @@ folds <- function(FOLDER_NAME = NULL,
     QUERY$FOLDS[["resample_folds"]][[fold_name]][["analysis"]] <- folds$splits[[i]] %>% analysis()
   }
 
-  # --- 5. Wrap up and save
-  # --- 5.1. Save file(s)
+  # --- 4. Wrap up and save
+  # --- 4.1. Save file(s)
   save(QUERY, file = paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))
-  # --- 5.2. Stop logs
+  # --- 4.2. Stop logs
   log_sink(FILE = sinkfile, START = FALSE)
-  # --- 5.3. Pretty return
+  # --- 4.3. Pretty return
   return(SUBFOLDER_NAME)
 
 } # END FUNCTION

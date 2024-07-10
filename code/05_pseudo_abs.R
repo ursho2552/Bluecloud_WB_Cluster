@@ -13,6 +13,7 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
   
   # --- 1. Initialize function
   set.seed(123)
+  
   # --- 1.1. Start logs - append file
   sinkfile <- log_sink(FILE = file(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/log.txt"), open = "a"),
                        START = TRUE)
@@ -32,7 +33,7 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
   land[land != 9999] <- NA
   
   # --- 2. Double check data type - plot observation locations anyway
-  if(CALL$DATA_TYPE != "binary"){
+  if(CALL$DATA_TYPE != "presence_only"){
     message("No Pseudo-absence generation necessary for this data type")
     pdf(paste0(project_wd,"/output/",FOLDER_NAME,"/",SUBFOLDER_NAME,"/01_observations.pdf"))
     par(mfrow = c(2,2), mar = c(7,3,7,3))
@@ -82,7 +83,7 @@ pseudo_abs <- function(FOLDER_NAME = NULL,
     
     log_sink(FILE = sinkfile, START = FALSE)
     return(SUBFOLDER_NAME)
-  } # if datatype !binary
+  } # if datatype !presence_only
   
   # --- 3. Initialize background definition
   # --- 3.1. Extract the monthly bias

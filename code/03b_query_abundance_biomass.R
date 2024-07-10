@@ -1,5 +1,5 @@
 #' =============================================================================
-#' @name query_abundance
+#' @name query_abundance_biomass
 #' @description extracts biological from the Atlanteco database, according to a
 #' user provided list of species, time and depth range. The extracted data is
 #' formatted to be directly usable by the models available in this workbench.
@@ -12,8 +12,8 @@
 #' for each target species.
 #' @return the output in a QUERY object
 
-query_biomass <- function(FOLDER_NAME = NULL,
-                            QUERY = NULL){
+query_abundance_biomass <- function(FOLDER_NAME = NULL,
+                                    QUERY = NULL){
 
   # --- 1. Parameter loading
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
@@ -25,11 +25,18 @@ query_biomass <- function(FOLDER_NAME = NULL,
   }
 
   # --- 2. Connect to database
-  # For now only the occurrence and abundance data from AtlantECO are available
-  # in a temporary SQLite database because working on the data access service
-  db <- dbConnect(RSQLite::SQLite(), paste0(project_wd,"/data/DB_clean.sqlite"))
+  # This database is a light online copy of the AtlantECO base v1
+  # Further details are available in the source material referenced in the database
+  db <- dbConnect(
+    drv=PostgreSQL(),
+    host="postgresql-srv.d4science.org",
+    dbname="bc2026_wb3_db",
+    user="bluecloud_wb3_reader",
+    password="1a6414f89d8a265c8bdd",
+    port=5432
+  )
 
-  # --- 3. Extract data from our Aphia_ID of interest
+  # --- 3. Extract data from our Aphia_ID of interest - abundance or biomass depending on the source
   target <- tbl(db, paste0(CALL$DATA_SOURCE, "_data")) %>%
     dplyr::filter(worms_id %in% !!SP_SELECT) %>%
     collect() %>%
@@ -42,7 +49,7 @@ query_biomass <- function(FOLDER_NAME = NULL,
                     depth <= !!CALL$SAMPLE_SELECT$TARGET_MAX_DEPTH &
                     year >= !!CALL$SAMPLE_SELECT$START_YEAR &
                     year <= !!CALL$SAMPLE_SELECT$STOP_YEAR &
-                    measurementvalue != "Absence") %>%
+                    measurementvalue != 0 & !is.na(measurementvalue)) %>%
     group_by(worms_id) %>%
     ungroup() %>%
     distinct() %>%
