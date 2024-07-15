@@ -1,6 +1,6 @@
 #' =============================================================================
-#' @name eval_binary
-#' @description sub-pipeline for model evaluation corresponding to binary data
+#' @name eval_presence_only
+#' @description sub-pipeline for model evaluation corresponding to presence_only data
 #' @param CALL the call object from the master pipeline
 #' @param QUERY the query object from the master pipeline
 #' @param MODEL the models object from the master pipeline
@@ -9,7 +9,7 @@
 #' metric and variable importance metric)
 #' @return variable importance plots as PDF file
 
-eval_binary <- function(CALL,
+eval_presence_only <- function(CALL,
                         QUERY,
                         MODEL,
                         PDF_PATH){
@@ -130,7 +130,7 @@ eval_binary <- function(CALL,
   # --- 3. Removing low quality algorithms
   for(i in MODEL$MODEL_LIST){
     # --- 3.1. Based on model performance
-    # Fixed at 0.3 for CBI value or NA (in case of a 0 & 1 binary model prediction)
+    # Fixed at 0.3 for CBI value or NA (in case of a 0 & 1 presence_only model prediction)
     if(MODEL[[i]][["eval"]][["CBI"]] < 0.5 | is.na(MODEL[[i]][["eval"]][["CBI"]])){
       MODEL$MODEL_LIST <- MODEL$MODEL_LIST[MODEL$MODEL_LIST != i]
       message(paste("--- EVAL : discarded", i, "due to CBI =", MODEL[[i]][["eval"]][["CBI"]], "< 0.5 \n"))

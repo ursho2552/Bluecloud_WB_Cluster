@@ -1,5 +1,5 @@
 #' =============================================================================
-#' @name query_omic
+#' @name query_MAG
 #' @description extracts biological from the MATOU data downloaded in list_bio, 
 #' according to a user provided list of species, time and depth range. 
 #' The extracted data is formatted to be directly usable by the models available
@@ -12,7 +12,7 @@
 #' for each target species.
 #' @return output in a QUERY object
 
-query_omic <- function(FOLDER_NAME = NULL,
+query_MAG <- function(FOLDER_NAME = NULL,
                          QUERY = NULL){
   
   # --- 1. Initialize
@@ -42,14 +42,14 @@ query_omic <- function(FOLDER_NAME = NULL,
     as.factor() %>% summary()
   trank <- which(taxo_rank_nb == length(SP_SELECT)) %>% names()
   if(length(trank) == 0){
-    message("QUERY_OMIC: Could not find the right taxonomic rank. Please select names that correspond to a unique taxonomic rank.")
+    message("QUERY_MAG: Could not find the right taxonomic rank. Please select names that correspond to a unique taxonomic rank.")
     return(NULL)
     } # end early return
   
   # --- 2. Raw query
   # --- 2.1. Retrieve data for the taxa of interest
   # Do this in parallel to speed up the process
-  message(paste(Sys.time(), "QUERY_OMIC: querying the raw data, this might take a while"))
+  message(paste(Sys.time(), "QUERY_MAG: querying the raw data, this might take a while"))
   target <- tbl(db, "data") %>% 
     mutate(MAG = str_sub(Genes, 1, 22)) %>% 
     dplyr::select(readCount, Station, Latitude, Longitude, Filter, Phylum, Class, Order, Family, Genus, MAG) %>% 

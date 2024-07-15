@@ -26,7 +26,7 @@ query_custom <- function(FOLDER_NAME = NULL,
   
   # --- 2. Create Y target table
   # --- 2.1. For presence data
-  if(CALL$DATA_TYPE == "binary"){
+  if(CALL$DATA_TYPE == "presence_only"){
     Y <- CALL$LIST_BIO %>% 
       dplyr::filter(worms_id %in% !!SP_SELECT) %>% 
       dplyr::select(measurementvalue)
@@ -56,8 +56,8 @@ query_custom <- function(FOLDER_NAME = NULL,
   }
   
   # --- 3. Create S sample table
-  # --- 3.1. For binary or continuous data
-  if(CALL$DATA_TYPE == "binary" | CALL$DATA_TYPE == "continuous"){
+  # --- 3.1. For presence_only or continuous data
+  if(CALL$DATA_TYPE == "presence_only" | CALL$DATA_TYPE == "continuous"){
     S <- CALL$LIST_BIO %>% 
       dplyr::filter(worms_id %in% !!SP_SELECT) %>%
       dplyr::select(-any_of(c("measurementvalue", "worms_id", "taxonrank", "scientificname", "nb_occ"))) %>% 

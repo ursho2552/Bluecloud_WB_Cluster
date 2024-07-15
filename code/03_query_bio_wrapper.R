@@ -46,15 +46,15 @@ query_bio_wrapper <- function(FOLDER_NAME = NULL,
   } # End ATLANTECO redirection
 
   # --- 4. Redirection to the MGNIFY query
-  if(CALL$DATA_SOURCE == "omic"){
+  if(CALL$DATA_SOURCE == "MAG"){
 
     # --- 4.2. Run function
-    QUERY <- query_omic(FOLDER_NAME = FOLDER_NAME,
+    QUERY <- query_MAG(FOLDER_NAME = FOLDER_NAME,
                           QUERY = QUERY)
   } # End MGNIFY redirection
 
   # --- 5. Redirection to the CUSTOM query
-  if(CALL$DATA_SOURCE != "omic" & CALL$DATA_SOURCE != "biomass" & CALL$DATA_SOURCE != "abundance" & CALL$DATA_SOURCE != "occurrence"){
+  if(CALL$DATA_SOURCE != "MAG" & CALL$DATA_SOURCE != "biomass" & CALL$DATA_SOURCE != "abundance" & CALL$DATA_SOURCE != "occurrence"){
     # --- 5.1. Load function
     source(file = paste0(project_wd, "/code/03d_query_custom.R"))
 

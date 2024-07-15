@@ -17,12 +17,12 @@
 #' species distribution. Can be copied in the run folder after list_bio.
 
 generate_virtual <- function(ENV_VAR = c("!dist2coast_allmonths"),
-                             ENV_PATH = "/net/meso/work/nknecht/Masterarbeit/General_Pipeline/Data/environmental_climatologies",
+                             ENV_PATH = "/nfs/meso/work/nknecht/Masterarbeit/General_Pipeline/Data/environmental_climatologies",
                              MONTH = 6,
                              SP_NB = 20,
                              N = c(50, 200, 1000),
                              NOISE_SD = c(1,2,3),
-                             DATA_TYPE = "binary"){
+                             DATA_TYPE = "presence_only"){
 
   # --- 1. Prepare the raster stack
   # It has to be the same as the one used in the master script later (i.e; variables and month)
@@ -96,9 +96,9 @@ generate_virtual <- function(ENV_VAR = c("!dist2coast_allmonths"),
   message(paste("--- VIRTUAL : generate sample for", DATA_TYPE, "data type"))
   sampling_par <- expand.grid(SP = 1:SP_NB, N = N, BIAS = names(bias))
   
-  # --- 5.2. Sample binary data
+  # --- 5.2. Sample presence_only data
   # Weights have to use terra::rast format... we  **5 to increase the bias a bit
-  if(DATA_TYPE == "binary"){
+  if(DATA_TYPE == "presence_only"){
     all_target <- lapply(1:nrow(sampling_par),
                          function(x){
                            tmp <- sampling_par[x,]
@@ -123,8 +123,8 @@ generate_virtual <- function(ENV_VAR = c("!dist2coast_allmonths"),
       bind_rows()
     
     # Save as CSV file
-    write.csv(all_target, file = "/net/meso/work/aschickele/Bluecloud_WB_local/data/virtual_binary.csv", row.names = FALSE)
-  } # if binary
+    write.csv(all_target, file = "/nfs/meso/work/aschickele/Bluecloud_WB_local/data/virtual_presence_only.csv", row.names = FALSE)
+  } # if presence_only
   
   # --- 5.3. Sample continuous data
   # Weights have to use terra::rast format... we  **5 to increase the bias a bit
@@ -175,7 +175,7 @@ generate_virtual <- function(ENV_VAR = c("!dist2coast_allmonths"),
     sampling_par <- new_sampling_par
     
     # --- 5.3.3. Save as CSV file
-    write.csv(all_target, file = "/net/meso/work/aschickele/Bluecloud_WB_local/data/virtual_continuous.csv", row.names = FALSE)
+    write.csv(all_target, file = "/nfs/meso/work/aschickele/Bluecloud_WB_local/data/virtual_continuous.csv", row.names = FALSE)
   } # if continuous
   
   # --- 5.3. Sample proportion data
@@ -236,7 +236,7 @@ generate_virtual <- function(ENV_VAR = c("!dist2coast_allmonths"),
       sub_target <- all_target %>% 
         dplyr::filter(grepl(i, worms_id))
       # --- 5.3.3.2. Save
-      write.csv(sub_target, file = paste0("/net/meso/work/aschickele/Bluecloud_WB_local/data/virtual_proportions_", i, ".csv"), row.names = FALSE)
+      write.csv(sub_target, file = paste0("/nfs/meso/work/aschickele/Bluecloud_WB_local/data/virtual_proportions_", i, ".csv"), row.names = FALSE)
     } # for i
   } # if proportions
   
@@ -288,7 +288,7 @@ evaluate_virtual <- function(FOLDER_NAME){
   
   # --- 1.4. Get parameter grid
   message("--- VIRTUAL : Get parameter grid")
-  if(CALL$DATA_TYPE == "binary"){
+  if(CALL$DATA_TYPE == "presence_only"){
     tmp <- VIRTUAL$sample_parameters %>% 
       mutate(SUBFOLDER_NAME = paste(SP, N, BIAS))
   } else {
@@ -334,7 +334,7 @@ evaluate_virtual <- function(FOLDER_NAME){
     
     out_df <- data.frame(ID,
                          EST_FIT = EST_FIT,
-                         CUM_VIP = CUM_VIP,
+                         CUM_VIP = if(length(CUM_VIP) != 0){CUM_VIP} else {NA},
                          NSD = NSD,
                          TRUE_FIT = TRUE_FIT,
                          IN_ENSEMBLE = IN_ENSEMBLE) 
@@ -466,7 +466,7 @@ evaluate_virtual <- function(FOLDER_NAME){
                     "Median =", round(median(decision$EST_FIT), 2)
        ))
   abline(coef = c(0,1), lty = "dashed", col = "black", lwd = 2)
-  if(CALL$DATA_TYPE == "binary"){
+  if(CALL$DATA_TYPE == "presence_only"){
     abline(h = 0.5, col = "black", lwd = 2)
   } else {abline(h = 0.25, col = "black", lwd = 2)}
   grid(col = "gray50")
@@ -531,7 +531,7 @@ evaluate_virtual <- function(FOLDER_NAME){
   
   # --- 1.4. Get parameter grid
   message("--- VIRTUAL : Get parameter grid")
-  if(CALL$DATA_TYPE == "binary"){
+  if(CALL$DATA_TYPE == "presence_only"){
     tmp <- VIRTUAL$sample_parameters %>% 
       mutate(SUBFOLDER_NAME = paste(SP, N, BIAS))
   } else {
