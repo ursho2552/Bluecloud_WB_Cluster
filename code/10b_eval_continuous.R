@@ -153,7 +153,7 @@ eval_continuous <- function(CALL,
 
     # --- 4.2. Further compute it as percentage
     var_imp[["ENSEMBLE"]][["Percent"]] <- ens_imp %>%
-      group_by(permutation) %>%
+      group_by(cv, permutation) %>%
       mutate(value = value / sum(value) * 100 * length(MODEL$MODEL_LIST))  %>%
       ungroup() %>%
       dplyr::select(variable, value) %>%
