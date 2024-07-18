@@ -14,21 +14,21 @@ rm(list=ls())
 closeAllConnections()
 setwd("/nfs/meso/work/aschickele/CEPHALOPOD")
 source(file = "./code/00_config.R")
-run_name <- "new_TUNE_prop"
+run_name <- "cocco_pfirst_shannon_omic_auto_pred_v2"
 MAX_CLUSTER = 30
 
 # --- 1. List the available species
 # Within the user defined selection criteria
 list_bio <- list_bio_wrapper(FOLDER_NAME = run_name,
-                             DATA_SOURCE = "/net/meso/work/aschickele/CEPHALOPOD/data/cocco_richness_predict_first_from_omic.csv",
+                             DATA_SOURCE = "MAG",
                              SAMPLE_SELECT = list(MIN_SAMPLE = 50, TARGET_MIN_DEPTH = 0, TARGET_MAX_DEPTH = 200, START_YEAR = 1950, STOP_YEAR = 2020))
 
 # ------------------------------------------------------------------------------
 # --- USER INPUT: Define the list of species to consider
 sp_list <- list_bio %>%
-  # dplyr::filter(taxonrank == "Species") %>%
-  # dplyr::filter(scientificname == "Emiliania huxleyi") %>% 
-  dplyr::select(worms_id) %>%
+  dplyr::filter(taxonrank == "MAG") %>% # all MAG
+  dplyr::filter(Class == "Prymnesiophyceae") %>%# of class prymnesiophyceae
+  dplyr::select(scientificname) %>% 
   unique() %>% pull() %>% .[!grepl("No match", .)]
 
 # ------------------------------------------------------------------------------
@@ -42,7 +42,9 @@ subfolder_list <- run_init(FOLDER_NAME = run_name,
                            FAST = TRUE,
                            LOAD_FROM = NULL,
                            DATA_TYPE = "proportions",
-                           ENV_VAR = c("!climatology_s_0_50","!climatology_s_200_300"),
+                           # ENV_VAR = NULL,
+                           # ENV_VAR = c("!climatology_s_0_50","!climatology_s_200_300","!climatology_talk_SODA"),
+                           ENV_VAR = c("!climatology_s_0_50","!climatology_s_200_300","!climatology_t_200_300","!climatology_A_200_300","!climatology_i_200_300","!climatology_n_200_300","!climatology_p_200_300","!climatology_o_200_300","!climatology_O_200_300"),
                            # ENV_VAR = c("climatology_M_0_0","climatology_i_0_50","climatology_t_0_50","climatology_p_0_50","climatology_n_0_50","climatology_omega_ca_SODA","climatology_A_PAR_regridded"),
                            ENV_PATH = "/nfs/meso/work/clercc/Predictors/PIPELINE_SET/VIRTUAL_SPECIES",
                            METHOD_PA = "density",
@@ -55,8 +57,8 @@ subfolder_list <- run_init(FOLDER_NAME = run_name,
                            FOLD_METHOD = "lon",
                            MODEL_LIST = c("GLM","MLP","BRT","GAM","SVM","RF"), # light version
                            LEVELS = 3,
-                           # TARGET_TRANSFORMATION = NULL,
-                           TARGET_TRANSFORMATION = "/nfs/meso/work/aschickele/CEPHALOPOD/function/target_transformation_yj_auto.R",
+                           TARGET_TRANSFORMATION = NULL,
+                           # TARGET_TRANSFORMATION = "/nfs/meso/work/aschickele/CEPHALOPOD/function/target_transformation_yj_auto.R",
                            ENSEMBLE = TRUE,
                            N_BOOTSTRAP = 10,
                            CUT = 0)

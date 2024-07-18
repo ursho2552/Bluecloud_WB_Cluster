@@ -14,7 +14,7 @@ rm(list=ls())
 closeAllConnections()
 setwd("/net/meso/work/aschickele/CEPHALOPOD")
 source(file = "./code/00_config.R")
-run_name <- "VIRTUALSPECIES_presence_only_v2"
+run_name <- "VIRTUALSPECIES_continuous_v2"
 MAX_CLUSTERS <- 100
 
 # --- 0. Generate the virtual species

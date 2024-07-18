@@ -651,7 +651,7 @@ evaluate_virtual <- function(FOLDER_NAME){
   # --- 4.5. Taylor diagram
   # --- 4.5.1. Initialize - to calibrate Y and X axis with fake distribution
   library(plotrix)
-  pal <- alpha(viridis_pal(101), 0.5)
+  pal <- scales::alpha(viridis_pal(101), 0.5)
   taylor.diagram(ref = getValues(virtual_proj[[1]]), model = getValues(virtual_proj[[1]])*1.34,
                  normalize = TRUE, col = "black", pcex = 0.01, cex.axis = 1.5, ref.sd = TRUE)
   sd_track <- NULL # tracker for the standard deviation values
@@ -668,7 +668,7 @@ evaluate_virtual <- function(FOLDER_NAME){
       
       if(ID$IN_ENSEMBLE == "Y"){
         taylor.diagram(ref = REF, model = EST, normalize = TRUE, col = COL, pcex = 2, add = TRUE)
-        taylor.diagram(ref = REF, model = EST, normalize = TRUE, pch = 1, col = alpha("black", 0.3), pcex = 2, add = TRUE)
+        taylor.diagram(ref = REF, model = EST, normalize = TRUE, pch = 1, col = scales::alpha("black", 0.3), pcex = 2, add = TRUE)
         sd_track <- c(sd_track, (sd(EST, na.rm = TRUE)/sd(REF, na.rm = TRUE))) # saved here if needed
       } else {
         taylor.diagram(ref = REF, model = EST, normalize = TRUE, col = COL, pcex = 2, add = TRUE)

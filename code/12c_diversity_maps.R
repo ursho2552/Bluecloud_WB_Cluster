@@ -51,7 +51,7 @@ diversity_maps <- function(FOLDER_NAME = NULL,
         }) %>% abind(along = 4) %>% apply(c(1,2,3), mean)
       } # MODEL_LIST size check
     },
-    mc.cores = min(length(model_files), MAX_CLUSTERS), mc.preschedule = PRESCHEDULE) %>%
+    mc.cores = min(length(model_files), MAX_CLUSTERS), mc.preschedule = FALSE) %>%
     abind(along = 4) %>%
     aperm(c(1,4,2,3))
   } # if presence_only or continuous
@@ -98,7 +98,7 @@ diversity_maps <- function(FOLDER_NAME = NULL,
       mess_s <- getValues(QUERY$MESS*-1)
       }
   },
-  mc.cores = min(length(model_files), MAX_CLUSTERS), mc.preschedule = PRESCHEDULE) %>%
+  mc.cores = min(length(model_files), MAX_CLUSTERS), mc.preschedule = FALSE) %>%
   abind(along = 3) %>%
   apply(c(1,2), mean)
 

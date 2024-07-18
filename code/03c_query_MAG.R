@@ -45,13 +45,17 @@ query_MAG <- function(FOLDER_NAME = NULL,
     message("QUERY_MAG: Could not find the right taxonomic rank. Please select names that correspond to a unique taxonomic rank.")
     return(NULL)
     } # end early return
-  
+
   # --- 2. Raw query
   # --- 2.1. Retrieve data for the taxa of interest
   # Do this in parallel to speed up the process
+  
+  # Name repair on the MAGs (to remove the last "_" eventually)
+  # Due to a shift in the character number, because of 2 or 3 digit station where the MAG was referenced first
   message(paste(Sys.time(), "QUERY_MAG: querying the raw data, this might take a while"))
   target <- tbl(db, "data") %>% 
-    mutate(MAG = str_sub(Genes, 1, 22)) %>% 
+    mutate(tmp = paste0(str_sub(Genes, 1, 22), "tmp")) %>% 
+    mutate(MAG = str_replace(tmp, "_tmp|tmp", "")) %>% 
     dplyr::select(readCount, Station, Latitude, Longitude, Filter, Phylum, Class, Order, Family, Genus, MAG) %>% 
     dplyr::filter_at(vars(trank), any_vars(. %in% SP_SELECT)) %>%
     mutate(taxonrank = trank, 
@@ -126,13 +130,13 @@ query_MAG <- function(FOLDER_NAME = NULL,
   }
   
   # --- 4.3. Transform to presence data
-  if(CALL$DATA_TYPE == "binary"){
+  if(CALL$DATA_TYPE == "presence_only"){
     Y <- Y/Y %>% 
       as.data.frame()
     names(Y) <- "measurementvalue"
   }
   
-  # --- 4.4. Transform to richness
+  # --- 4.4. Transform to diversity
   # In form of a Shannon index for now but we would compute more
   if(CALL$DATA_TYPE == "continuous"){
     Y <- apply(Y, 1, function(x)(x = vegan::diversity(x, "shannon"))) %>% 
