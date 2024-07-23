@@ -24,8 +24,10 @@ pdp <- function(FOLDER_NAME = NULL,
   }
   
   # --- 1.3. Source the MBTR functions
-  library(reticulate)
-  source_python(paste0(project_wd,"/function/mbtr_function.py"))
+  if(CALL$DATA_TYPE == "proportions"){
+    library(reticulate)
+    source_python(paste0(project_wd,"/function/mbtr_function.py"))
+  } # if proportions
   
   # --- 1.4. Multivariate PDP function - for proportions
   mpartial <- function(object, train, pred_var, nboosts, grid_resolution=10, cores=10) {
