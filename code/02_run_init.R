@@ -99,8 +99,6 @@ run_init <- function(FOLDER_NAME = "test_run",
                      PROJ_PATH = NULL){
   
   # --- 1. Initialize function
-  set.seed(123)
-  
   # --- 1.1. Start logs - create file
   if(is.null(LOAD_FROM)){
     sinkfile <- log_sink(FILE = file(paste0(project_wd, "/output/", FOLDER_NAME, "/log.txt"), open = "wt"),

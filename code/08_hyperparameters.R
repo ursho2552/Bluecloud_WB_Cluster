@@ -11,7 +11,10 @@
 hyperparameter <- function(FOLDER_NAME = NULL){
 
   # --- 1. Initialize the  object
-  set.seed(123)
+  if(!exists("SEED")){
+    SEED <- 123
+  }
+  set.seed(SEED)
   
   # --- 1.1. Output object
   HP <- list()

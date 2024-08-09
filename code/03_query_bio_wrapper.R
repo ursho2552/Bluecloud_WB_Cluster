@@ -16,7 +16,10 @@ query_bio_wrapper <- function(FOLDER_NAME = NULL,
                               SUBFOLDER_NAME = NULL){
 
   # --- 1. Initialize function
-  set.seed(123)
+  if(!exists("SEED")){
+    assign("SEED", 123, envir = .GlobalEnv)
+  }
+  set.seed(SEED)
   
   # --- 1.1. Start logs - new file
   sinkfile <- log_sink(FILE = file(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/log.txt"), open = "wt"),
