@@ -12,23 +12,29 @@
 # All will be called in the config file later
 rm(list=ls())
 closeAllConnections()
-setwd("/nfs/meso/work/aschickele/CEPHALOPOD")
+setwd("./CEPHALOPOD")
 source(file = "./code/00_config.R")
-run_name <- "cocco_pfirst_shannon_omic_auto_pred_v2"
-MAX_CLUSTER = 30
+run_name <- "test"
+MAX_CLUSTER = 20
 
 # --- 1. List the available species
 # Within the user defined selection criteria
 list_bio <- list_bio_wrapper(FOLDER_NAME = run_name,
-                             DATA_SOURCE = "MAG",
+                             DATA_SOURCE = "MAG", # occurrence ; abundance ; biomass ; MAG; or path to a .csv file
                              SAMPLE_SELECT = list(MIN_SAMPLE = 50, TARGET_MIN_DEPTH = 0, TARGET_MAX_DEPTH = 200, START_YEAR = 1950, STOP_YEAR = 2020))
 
 # ------------------------------------------------------------------------------
 # --- USER INPUT: Define the list of species to consider
+# To extract coccolithophore MAGs from MATOU
 sp_list <- list_bio %>%
   dplyr::filter(taxonrank == "MAG") %>% # all MAG
   dplyr::filter(Class == "Prymnesiophyceae") %>%# of class prymnesiophyceae
-  dplyr::select(scientificname) %>% 
+  dplyr::select(worms_id) %>% 
+  unique() %>% pull() %>% .[!grepl("No match", .)]
+
+# To extract all species available in a .csv file
+sp_list <- list_bio %>%
+  dplyr::select(worms_id) %>% 
   unique() %>% pull() %>% .[!grepl("No match", .)]
 
 # ------------------------------------------------------------------------------
@@ -41,24 +47,21 @@ subfolder_list <- run_init(FOLDER_NAME = run_name,
                            WORMS_CHECK = FALSE,
                            FAST = TRUE,
                            LOAD_FROM = NULL,
-                           DATA_TYPE = "proportions",
-                           # ENV_VAR = NULL,
-                           # ENV_VAR = c("!climatology_s_0_50","!climatology_s_200_300","!climatology_talk_SODA"),
+                           DATA_TYPE = "continuous", # presence_only ; continuous ; proportions
                            ENV_VAR = c("!climatology_s_0_50","!climatology_s_200_300","!climatology_t_200_300","!climatology_A_200_300","!climatology_i_200_300","!climatology_n_200_300","!climatology_p_200_300","!climatology_o_200_300","!climatology_O_200_300"),
                            # ENV_VAR = c("climatology_M_0_0","climatology_i_0_50","climatology_t_0_50","climatology_p_0_50","climatology_n_0_50","climatology_omega_ca_SODA","climatology_A_PAR_regridded"),
-                           ENV_PATH = "/nfs/meso/work/clercc/Predictors/PIPELINE_SET/VIRTUAL_SPECIES",
+                           ENV_PATH = NULL, # replace by local path to environmental predictors : https://data.d4science.net/m9WC
                            METHOD_PA = "density",
                            PER_RANDOM = 0,
                            PA_ENV_STRATA = TRUE,
                            OUTLIER = FALSE,
                            RFE = TRUE,
                            ENV_COR = 0.8,
-                           NFOLD = 5,
+                           NFOLD = 3,
                            FOLD_METHOD = "lon",
                            MODEL_LIST = c("GLM","MLP","BRT","GAM","SVM","RF"), # light version
                            LEVELS = 3,
                            TARGET_TRANSFORMATION = NULL,
-                           # TARGET_TRANSFORMATION = "/nfs/meso/work/aschickele/CEPHALOPOD/function/target_transformation_yj_auto.R",
                            ENSEMBLE = TRUE,
                            N_BOOTSTRAP = 10,
                            CUT = 0)
@@ -132,15 +135,6 @@ mcmapply(FUN = standard_maps,
          FOLDER_NAME = run_name,
          SUBFOLDER_NAME = subfolder_list,
          mc.cores = min(length(subfolder_list), MAX_CLUSTERS), USE.NAMES = FALSE, mc.preschedule = FALSE)
-
-# --- 12.2. Partial dependency plots
-# mcmapply(FUN = pdp,
-#          FOLDER_NAME = run_name,
-#          SUBFOLDER_NAME = subfolder_list,
-#          mc.cores = min(length(subfolder_list), MAX_CLUSTERS), USE.NAMES = FALSE, mc.preschedule = FALSE)
-
-# --- 12.3 Diversity
-# diversity_maps(FOLDER_NAME = run_name)
 
 # --- 12.4 User synthesis
 user_synthesis(FOLDER_NAME = run_name)

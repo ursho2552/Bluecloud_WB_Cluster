@@ -127,7 +127,7 @@ subfolder_list <- run_init(FOLDER_NAME = run_name,
                            SP_SELECT = sp_list,
                            FAST = FALSE,
                            LOAD_FROM = NULL,
-                           DATA_TYPE = "binary",
+                           DATA_TYPE = "presence_only",
                            ENV_VAR = c("!climatology_s_0_50","!climatology_s_200_300"),
                            ENV_PATH = "/net/meso/work/nknecht/Masterarbeit/General_Pipeline/Data
                                        /environmental_climatologies",
@@ -278,3 +278,4 @@ Supplementary analysis such as diversity estimates can be performed by any user 
 Here you will find updated informations concerning the code status from a development perspective.
 
 -   In its current state, the list of suggested predictors is also specific to local data. However, one can link to another predictor collection in the same format (WOA grid, 1x1 degree, depth resolved optional; variable = LAYER; dimensions = lon, lat, time, depth).
+-   The predictor set can be found online at: <https://data.d4science.net/m9WC>

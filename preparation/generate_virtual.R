@@ -392,7 +392,7 @@ evaluate_virtual <- function(FOLDER_NAME){
   
   # --- 4. Do the plots
   # --- 4.1. Initialize
-  pdf(paste0(project_wd, "/output/", FOLDER_NAME,"/virtual.pdf"))
+  pdf(paste0(project_wd, "/output/", FOLDER_NAME,"/virtual_noise.pdf"))
   par(xpd = FALSE, mar = c(2,2,2,2))
   
   # --- 4.2. Create land
@@ -417,7 +417,8 @@ evaluate_virtual <- function(FOLDER_NAME){
   # --- 4.5. Taylor diagram
   # --- 4.5.1. Initialize - to calibrate Y and X axis with fake distribution
   library(plotrix)
-  pal <- alpha(viridis_pal(101), 0.5)
+  # pal <- alpha(viridis_pal(101), 0.5) # prevalence pal
+  pal <- alpha(brewer.pal(3, "Set1"), 0.5) # other factors
   taylor.diagram(ref = getValues(virtual_proj[[1]]), model = getValues(virtual_proj[[1]])*1.34,
                  normalize = TRUE, col = "black", pcex = 0.01, cex.axis = 1.5, ref.sd = TRUE)
   sd_track <- NULL # tracker for the standard deviation values
@@ -429,8 +430,9 @@ evaluate_virtual <- function(FOLDER_NAME){
     
     PREVALENCE <- VIRTUAL$distribution[[ID$SP]]$PA.conversion["species.prevalence"] %>% 
       as.numeric() %>% round(2) %>% .[]*100
-    COL <- pal[PREVALENCE]
-    # COL <- pal[ID$NOISE_SD]
+    # COL <- pal[PREVALENCE]
+    COL <- pal[ID$NOISE_SD]
+    # COL <- pal[ID$BIAS]
     
     if(ID$IN_ENSEMBLE == "Y"){
       taylor.diagram(ref = REF, model = EST, normalize = TRUE, col = COL, pcex = 2, add = TRUE)
@@ -475,8 +477,9 @@ evaluate_virtual <- function(FOLDER_NAME){
     ID <- metric_comparison[i,]
     PREVALENCE <- VIRTUAL$distribution[[ID$SP]]$PA.conversion["species.prevalence"] %>% 
       as.numeric() %>% round(2) %>% .[]*100
-    COL <- pal[PREVALENCE]
+    # COL <- pal[PREVALENCE]
     # COL <- pal[ID$NOISE_SD]
+    COL <- pal[ID$BIAS]
     
     if(ID$IN_ENSEMBLE == "Y"){
       points(x = ID$TRUE_FIT, y = ID$EST_FIT, bg = COL, pch = 21, cex = 2)
@@ -626,7 +629,7 @@ evaluate_virtual <- function(FOLDER_NAME){
   
   # --- 4. Do the plots
   # --- 4.1. Initialize
-  pdf(paste0(project_wd, "/output/", FOLDER_NAME,"/virtual.pdf"))
+  pdf(paste0(project_wd, "/output/", FOLDER_NAME,"/virtual_bias.pdf"))
   par(xpd = FALSE, mar = c(2,2,2,2))
   
   # --- 4.2. Create land
@@ -651,7 +654,8 @@ evaluate_virtual <- function(FOLDER_NAME){
   # --- 4.5. Taylor diagram
   # --- 4.5.1. Initialize - to calibrate Y and X axis with fake distribution
   library(plotrix)
-  pal <- scales::alpha(viridis_pal(101), 0.5)
+  # pal <- scales::alpha(viridis_pal(101), 0.5) # prevalence pal
+  pal <- scales::alpha(brewer.pal(3, "Set1"), 0.5) # other factors
   taylor.diagram(ref = getValues(virtual_proj[[1]]), model = getValues(virtual_proj[[1]])*1.34,
                  normalize = TRUE, col = "black", pcex = 0.01, cex.axis = 1.5, ref.sd = TRUE)
   sd_track <- NULL # tracker for the standard deviation values
@@ -663,8 +667,9 @@ evaluate_virtual <- function(FOLDER_NAME){
       EST <- estimated_proj[, j, ID$SUBFOLDER_NAME]
       PREVALENCE <- VIRTUAL$distribution[[j]]$PA.conversion["species.prevalence"] %>% 
         as.numeric() %>% round(2) %>% .[]*100
-      COL <- pal[PREVALENCE]
+      # COL <- pal[PREVALENCE]
       # COL <- pal[ID$NOISE_SD]
+      COL <- pal[ID$BIAS]
       
       if(ID$IN_ENSEMBLE == "Y"){
         taylor.diagram(ref = REF, model = EST, normalize = TRUE, col = COL, pcex = 2, add = TRUE)
@@ -684,7 +689,6 @@ evaluate_virtual <- function(FOLDER_NAME){
   # }
   
   # --- 4.6. Estimated QC vs True QC
-  pal <- brewer.pal(3, "Set2")
   # --- 4.6.1. Extract corresponding metric - for future decision making
   decision <- metric_comparison %>% 
     dplyr::filter(IN_ENSEMBLE == "Y") %>% 
@@ -704,6 +708,7 @@ evaluate_virtual <- function(FOLDER_NAME){
   for(i in 1:nrow(metric_comparison)){
     ID <- metric_comparison[i,]
     COL <- pal[ID$BIAS]
+    # COL <- pal[ID$NOISE_SD]
     
     if(ID$IN_ENSEMBLE == "Y"){
       points(x = ID$TRUE_FIT, y = ID$EST_FIT, bg = COL, pch = 21, cex = 2)
