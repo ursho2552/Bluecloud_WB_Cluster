@@ -52,7 +52,11 @@ standard_maps <- function(FOLDER_NAME = NULL,
 
   # --- 2. Plot the quality checks
   # --- 2.1. Compute the recommendation table
+  # Compute and save algorithm level recommendations in MODEL
   rec <- qc_recommandations(QUERY = QUERY, MODEL = MODEL, DATA_TYPE = CALL$DATA_TYPE)
+  MODEL$recommandations <- rec
+  
+  # Transform to traffic light
   traffic_col <- rep(rec$COL, each = 4)
   traffic_val <- rec[,1:4] %>% as.matrix() %>% t() %>% c()
   traffic_col[which(traffic_val == 0)] <- "white"
@@ -214,9 +218,11 @@ standard_maps <- function(FOLDER_NAME = NULL,
   if(CALL$ENSEMBLE == TRUE & (length(MODEL$MODEL_LIST) > 1)){
     # --- 5.1. Compute the recommendation table
     rec <- qc_recommandations(QUERY = QUERY, MODEL = MODEL, DATA_TYPE = CALL$DATA_TYPE, ENSEMBLE = TRUE)
+
     traffic_col <- rep(rec$COL, each = 4)
     traffic_val <- rec[,1:4] %>% as.matrix() %>% t() %>% c()
     traffic_col[which(traffic_val == 0)] <- "white"
+    
     # --- 2.2. Plot the traffic lights and recommendations
     plot.new()
     par(mar = c(1,3,7,1), xpd = NA)

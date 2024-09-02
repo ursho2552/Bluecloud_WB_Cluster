@@ -104,6 +104,7 @@ source("./function/bivar_raster_plot.R")
 source("./function/get_cell_neighbors.R")
 source("./function/regrid_env.R")
 source("./function/memory_cleanup.R")
+source("./function/CEPHALOPOD_to_netcdf.R")
 
 # --- Data specific parameters
 

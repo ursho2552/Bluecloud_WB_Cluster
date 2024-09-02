@@ -35,12 +35,14 @@ qc_recommandations <- function(QUERY, MODEL,
   
   # --- 1. Extract labels
   # --- 1.1. Algorithm names
+  # remove all other list item to have only the algorithm names left
+  
   if(ENSEMBLE == TRUE){
     m_names <- names(MODEL) %>% 
       .[. ==  "ENSEMBLE"]
   } else {
     m_names <- names(MODEL) %>% 
-      .[. != "ENSEMBLE" & . !=  "MODEL_LIST"]
+      .[. != "ENSEMBLE" & . !=  "MODEL_LIST" & . !=  "IPCC" & . !=  "recommandations"]
   }
 
   # --- 1.2. Quality checks names

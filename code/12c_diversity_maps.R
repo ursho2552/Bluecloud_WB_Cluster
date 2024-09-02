@@ -3,10 +3,11 @@
 #' @description Function extracting all projections by species and bootstrap.
 #' Then computes a set of diversity metrics and plots
 #' @param FOLDER_NAME name of the corresponding folder
-#' @param N_BOOTSTRAP the number of bootstrap in the projection step
+#' @param MONTH a list of month to concatenate together
 #' @return plots mean and uncertainty maps per diversity metric
 #' @return a diversity and mess object per projection, species and bootstrap.
-#' Saved in FOLDERNAME.
+#' @return a .nc matching the EMODnet standards with the same informations as 
+#' above. - Saved in FOLDERNAME.
 
 diversity_maps <- function(FOLDER_NAME = NULL,
                            MONTH = list(c(10,11,12,1,2,3),
@@ -24,67 +25,125 @@ diversity_maps <- function(FOLDER_NAME = NULL,
   land[is.na(land)] <- 9999
   land[land != 9999] <- NA
 
-
-  # --- 1.4 Get all species with MODEL.RData
-  model_files <- list.files(paste0(project_wd, "/output/", FOLDER_NAME), recursive = TRUE) %>%
-    .[grepl("MODEL.RData", .)] %>%
-    dirname() %>%
-    unique()
-
-  # --- 1.5 ensure there are MODEL.RData files
-  if (length(model_files) == 0){
-    message("DIVERSITY: No MODEL.RData files")
-    return(NA)
-  }# early return if empty
-
-  # --- 2. Extract ensembles by species
-  # --- 2.1. For presence_only or continuous data
-  if(CALL$DATA_TYPE != "proportions"){
-
-    all_ens <- mclapply(model_files, FUN = function(s){
-      # --- 2.1.1. Load subfolder information
-      load(paste0(project_wd, "/output/", FOLDER_NAME,"/", s, "/MODEL.RData"))
-      if(length(MODEL$MODEL_LIST) > 0){
-        # --- 2.1.3. Compute ensemble across algorithms
-        s_ens <- lapply(MODEL$MODEL_LIST, FUN = function(m){
-          MODEL[[m]]$proj$y_hat
-        }) %>% abind(along = 4) %>% apply(c(1,2,3), mean)
-      } # MODEL_LIST size check
-    },
-    mc.cores = min(length(model_files), MAX_CLUSTERS), mc.preschedule = FALSE) %>%
-    abind(along = 4) %>%
+  # --- 2. Build the ensemble(s)
+  message(paste0(Sys.time(), "--- DIVERSITY: build the ensembles - START"))
+  
+  # --- 2.1. Extract file information
+  # Which subfolder list and which model in the ensemble
+  all_files <- list.files(paste0(project_wd, "/output/", FOLDER_NAME), recursive = TRUE)
+  model_files <- unique(dirname(all_files[grepl("MODEL.RData", all_files)])) #%>% .[1:30]
+  ensemble_files <- mclapply(model_files, function(x){
+    memory_cleanup() # low memory use
+    
+    load(paste0(project_wd, "/output/", FOLDER_NAME,"/", x, "/MODEL.RData"))
+    if(length(MODEL$MODEL_LIST) >= 1){
+      load(paste0(project_wd, "/output/", FOLDER_NAME,"/", x, "/QUERY.RData"))
+      return(list(SUBFOLDER_NAME = x, MODEL_LIST = MODEL$MODEL_LIST, Y = QUERY$Y, MESS = QUERY$MESS, REC = MODEL$recommandations))
+    } else {
+      return(NULL)
+    } # if model list
+  }, mc.cores = round(MAX_CLUSTERS/2, 0)) %>% .[lengths(.) != 0]
+  
+  # --- 2.2. Loop over the files
+  message(paste0(Sys.time(), "--- DIVERSITY: build the ensembles - loop over files"))
+  tmp <- mclapply(ensemble_files, function(x){
+    memory_cleanup() # low memory use
+    
+    # --- 2.2.1. Load MODEL files
+    load(paste0(project_wd, "/output/", FOLDER_NAME,"/", x$SUBFOLDER_NAME, "/MODEL.RData"))
+    
+    # --- 2.2.2. Extract projections in a matrix
+    # If there is more than 1 algorithm, we extract and average across algorithm
+    # Output matrix is cell x bootstrap x month
+    if(length(x$MODEL_LIST) > 1){
+      m <- lapply(x$MODEL_LIST, function(y){
+        MODEL[[y]][["proj"]]$y_hat
+      }) %>% abind(along = 4) %>% apply(c(1,2,3), function(z)(z = mean(z, na.rm = TRUE)))
+    } else {
+      m <- MODEL[[x$MODEL_LIST]][["proj"]]$y_hat
+    } # end if
+  }, mc.cores = round(MAX_CLUSTERS/2, 0), mc.cleanup = TRUE)
+  
+  # --- 2.3. Stack in a cell x species x bootstrap x month matrix
+  # --- 2.3.1. Re-arrange the array
+  message(paste0(Sys.time(), "--- DIVERSITY: build the ensembles - format to array"))
+  all_ens <- tmp %>% 
+    abind(along = 4) %>% 
     aperm(c(1,4,2,3))
-  } # if presence_only or continuous
-
-  # --- 2.2. For proportions
-  # should work with model_files as well. Above it would find the folder "."
-  if(CALL$DATA_TYPE == "proportions"){
-    load(paste0(project_wd, "/output/", FOLDER_NAME,"/", model_files, "/MODEL.RData"))
-    if(length(MODEL$MODEL_LIST) > 0){
-      all_ens <- MODEL$MBTR$proj$y_hat %>% aperm(c(1,3,2,4))
-      all_ens[all_ens < 0] <- 0 # security to remove any negative value
-    } # MODEL_LIST size check
-  } # if proportions
-
-  # --- 2.3. Return if not enough ensembles
+  # --- 2.3.2. Pretty dimensions
+  dimnames(all_ens)[[2]] <- lapply(ensemble_files, function(x){out <- x$SUBFOLDER_NAME}) %>% unlist() %>% as.character()
+  dimnames(all_ens)[[4]] <- 1:12 %>% as.character()
+  
+  # --- 2.4. Memory cleanup
+  rm(tmp)
+  gc() # clean garbage and temporary files
+  message(paste0(Sys.time(), "--- DIVERSITY: build the ensembles - DONE"))
+  
+  # --- 2.5. Return if not enough ensembles
   if(dim(all_ens)[[2]] < 5){
     message("--- DIVERSITY : not enough ensembles to compute diversity from")
     return(NA)
   }
-
-  # --- 3. Compute alpha diversity indices
+  
+  # --- 2.6. Convert recommendations to list
+  # --- 2.6.1. Extract recommandations as a list
+  tmp <- lapply(ensemble_files, function(x){
+    out <- setNames(as.list(apply(x$REC, 1, function(row) paste(row, collapse = ", "))), rownames(x$REC))
+    return(out)
+  }) # end lapply
+  
+  # --- 2.6.2. Flatten for each ensemble
+  if(CALL$DATA_TYPE == "proportions"){
+    flat_list <- paste(names(tmp), ": ", tmp[["MBTR"]])
+  } else {
+    flat_list <- lapply(tmp, function(df) {
+      lapply(names(df), function(algo) {
+        paste(algo, ": ", df[[algo]], sep = "")
+      }) # end lapply
+    }) # end lapply
+  } # end if
+  
+  # --- 2.6.3. Flatten again
+  flat_list <- lapply(flat_list, function(x) paste(unlist(x), collapse = "\n"))
+  recommandation_list <- paste(flat_list, collapse = "; ")
+  
+  # --- 3. Compute habitat suitability - for the .nc in the shiny app.
+  # --- 3.1. Across bootstrap for each month
+  a_m <- apply(all_ens, c(1,2,4), function(x)(x = mean(x, na.rm = T)))
+  a_sd <- apply(all_ens, c(1,2,4), function(x)(x = sd(x, na.rm = T)))
+  
+  # --- 3.2. Add a 13th month: mean across the year
+  mean_across_12_a_m_expanded <- array(apply(a_m, c(1, 2), function(x) mean(x, na.rm = TRUE)),
+                                       dim = c(dim(a_m)[1], dim(a_m)[2], 1))
+  sd_across_12_a_sd_expanded <- array(apply(a_sd, c(1,2), function(x) sd(x, na.rm = TRUE)),
+                                      dim = c(dim(a_m)[1],  dim(a_m)[2],1))
+  
+  a_m <- abind::abind(a_m, mean_across_12_a_m_expanded, along = 3) %>% aperm(., c(1, 3, 2))
+  a_sd <- abind::abind(a_sd, sd_across_12_a_sd_expanded, along = 3) %>% aperm(., c(1, 3, 2))
+  
+  # --- 4. Construct diversity
+  # --- 4.1. Compute alpha diversity indices
   a_shannon <- apply(all_ens, c(1,3,4), function(x)(x = vegan::diversity(x, "shannon")))
   a_richness <- apply(all_ens, c(1,3,4), function(x)(x = sum(x, na.rm = TRUE)))
   a_evenness <- a_shannon/(a_richness)
   a_invsimpson <- apply(all_ens, c(1,3,4), function(x)(x = vegan::diversity(x, "invsimpson")))
 
-  # --- 4. Stack diversities
+  # --- 4.2. Stack diversities
   div_all <- abind(a_shannon, a_richness, a_evenness, a_invsimpson, along = 4)
-  div_m <- apply(div_all, c(1,3,4), function(x)(x = mean(x, na.rm = T)))
-  div_sd <- apply(div_all, c(1,3,4), function(x)(x = sd(x, na.rm = T)))
+  div_m <- apply(div_all, c(1,3,4), function(x)(x = mean(x, na.rm = TRUE)))
+  div_sd <- apply(div_all, c(1,3,4), function(x)(x = sd(x, na.rm = TRUE)))
   div_names <- c("a_shannon", "a_richness", "a_evenness", "a_invsimpson")
 
-  # --- 6. Extract MESS analysis
+  # --- 4.3. Add a 13th month: mean across the year
+  mean_across_12_div_m_expanded <- array(apply(div_m, c(1, 3), function(x) mean(x, na.rm = TRUE)),
+                                         dim = c(dim(div_m)[1], 1, dim(div_m)[3]))
+  sd_across_12_div_sd_expanded <- array(apply(div_sd, c(1,3), function(x) sd(x, na.rm = TRUE)),
+                                        dim = c(dim(div_m)[1], 1, dim(div_m)[3]))
+  
+  div_m <- abind::abind(div_m, mean_across_12_div_m_expanded, along = 2)
+  div_sd <- abind::abind(div_sd, sd_across_12_div_sd_expanded, along = 2)
+  
+  # --- 5. Extract MESS analysis
   message(paste(Sys.time(), "--- Extract MESS"))
   mess_all <- mclapply(model_files, FUN = function(s){
     # --- 6.1. Load corresponding objects
@@ -102,19 +161,19 @@ diversity_maps <- function(FOLDER_NAME = NULL,
   abind(along = 3) %>%
   apply(c(1,2), mean)
 
-  # --- 6.3. Final adjustments
+  # --- 5.3. Final adjustments
   mess_all[mess_all > 100] <- 100
 
-  # --- 6.4. Intermediate save
+  # --- 5.4. Intermediate save
   save(div_all, file = paste0(project_wd, "/output/", FOLDER_NAME,"/DIVERSITY.RData"))
 
-  # --- 7. Diversity plots
-  # --- 7.1. Initialize pdf and plot
+  # --- 6. Diversity plots
+  # --- 6.1. Initialize pdf and plot
   pdf(paste0(project_wd,"/output/",FOLDER_NAME,"/diversity_maps.pdf"))
   par(mfrow = c(3,2), mar = c(2,3,3,3))
 
-  # --- 7.2. Plot the legends
-  # --- 7.2.1. Diversity legend
+  # --- 6.2. Plot the legends
+  # --- 6.2.1. Diversity legend
   plot.new()
   colorbar.plot(x = 0.5, y = 0, strip = seq(0,1,length.out = 100),
                 strip.width = 0.3, strip.length = 2.1,
@@ -191,12 +250,21 @@ diversity_maps <- function(FOLDER_NAME = NULL,
     } # m month
   } # i diversity
 
-  # --- 7. Stop PDF
+  # --- 6.4. Stop PDF
   dev.off()
 
-  # --- 8. Save diversity maps
+  # --- 7. Save diversity maps
   save(div_all, file = paste0(project_wd, "/output/", FOLDER_NAME,"/DIVERSITY.RData"))
 
+  # --- 8. Generate the corresponding .nc files
+  # --- 8.1. Species ensemble
+  file = paste0(project_wd, "/output/", FOLDER_NAME,"/","output_ensemble.nc")
+  CEPHALOPOD_to_netcdf(r0, a_m, a_sd, dimnames(a_m)[[3]], recommandation_list, file)
+  
+  # --- 8.2. Diversity level
+  file = paste0(project_wd, "/output/", FOLDER_NAME,"/","output_diversity.nc")
+  CEPHALOPOD_to_netcdf(r0, div_m, div_sd, div_names, recommandation_list, file)
+  
 } # END FUNCTION
 
 
