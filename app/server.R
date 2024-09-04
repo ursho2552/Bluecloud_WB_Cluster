@@ -1,16 +1,20 @@
-
 server <- function(input, output, session) {
+  
+  # --- Set maximum upload size ---
   options(shiny.maxRequestSize = 500 * 1024^2)  # Set maximum upload size to 500 MB
+  # End of Set maximum upload size
   
-  # Path to default NetCDF file
+  # --- Define default NetCDF file path ---
   default_nc_path <- "./output_diversity.nc"
+  # End of Define default NetCDF file path
   
-  # Function to extract file name without extension
+  # --- Function to extract file name without extension ---
   extract_file_name <- function(file_path) {
     tools::file_path_sans_ext(basename(file_path))
   }
+  # End of Function to extract file name without extension
   
-  # Function to check if ensemble or diversity keyword is present in the file name
+  # --- Function to check file name for data type ---
   check_file_name <- function(file_name, data_type) {
     if (data_type == "Ensemble") {
       return(grepl("ensemble", tolower(file_name)) || grepl("ens", tolower(file_name)))
@@ -19,11 +23,13 @@ server <- function(input, output, session) {
     }
     return(FALSE)
   }
+  # End of Function to check file name for data type
   
-  # Define custom palette
-  pal <- colorRampPalette(c("white", brewer.pal(9, "GnBu"), "black"))(100) %>% rev()
+  # --- Define custom color palette ---
+  pal <- mako_pal(100)
+  # End of Define custom color palette
   
-  # Dynamically render selectInput for highlight_type based on highlight_high_sd checkbox
+  # --- Dynamically render UI for highlight type ---
   output$highlight_type_ui <- renderUI({
     req(input$highlight_high_sd)  # Show only if highlight_high_sd is checked
     if (input$highlight_high_sd) {
@@ -31,14 +37,17 @@ server <- function(input, output, session) {
                   choices = c("Red pixel" = "red", "Area Outline" = "hatched"))
     }
   })
+  # End of Dynamically render UI for highlight type
   
-  # Reset file input when data_type changes
+  # --- Reset file input when data_type changes ---
   observeEvent(input$data_type, {
     output$ncfile <- renderUI({
       fileInput("ncfile", "Choose the appropriate NetCDF File", accept = ".nc")
     })
   })
+  # End of Reset file input when data_type changes
   
+  # --- Reactive expression for NetCDF file ---
   nc_file <- reactive({
     if (is.null(input$ncfile)) {
       # Load default NetCDF file if no file is uploaded
@@ -54,8 +63,9 @@ server <- function(input, output, session) {
       return(open.nc(input$ncfile$datapath))
     }
   })
+  # End of Reactive expression for NetCDF file
   
-  # Function to read NetCDF file and update UI based on data_type
+  # --- Function to read NetCDF file and update UI ---
   observeEvent(input$data_type, {
     req(input$data_type)
     nc <- nc_file()
@@ -87,20 +97,38 @@ server <- function(input, output, session) {
       }
     })
   })
+  # End of Function to read NetCDF file and update UI
   
+  # --- Render UI for Ensemble Box ---
   output$ensemble_box <- renderUI({
     if (input$data_type == "Ensemble") {
       box(
-        title = "Traffic lights: recommendations",
-        width = 14,
+        width = 12,
+        p("All CEPHALOPOD outputs follow a strict quality check that includes", tags$br(),
+          tags$b("- Environmental Feature Importance:"), "Assesses the potential of the set of environmental features in explaining the biological target", tags$br(),
+          tags$b("- Predictive performance:"), "Evaluates the accuracy of each algorithm in predicting the observed target", tags$br(),
+          tags$b("- Feature importance:"), "Measures how well key features emerge in explaining the observed pattern", tags$br(),
+          tags$b("- Projection uncertainty:"), "Ensures low uncertainty in habitat suitability projections", tags$br(),
+          "These quality checks are displayed in a comprehensive traffic-light system, that indicate their success, with red, yellow or green lights showing the number of quality checks passed. The white color indicate which quality checks did not pass."),
+        tags$hr(style="border-color: black;"),
         plotOutput("ensemble_plot")
       )
     } else {
-      NULL
+      box(
+        width = 12,
+        p("All CEPHALOPOD outputs follow a strict quality check that includes", tags$br(),
+          tags$b("- Environmental Feature Importance:"), "Assesses the potential of the set of environmental features in explaining the biological target", tags$br(),
+          tags$b("- Predictive performance:"), "Evaluates the accuracy of each algorithm in predicting the observed target", tags$br(),
+          tags$b("- Feature importance:"), "Measures how well key features emerge in explaining the observed pattern", tags$br(),
+          tags$b("- Projection uncertainty:"), "Ensures low uncertainty in habitat suitability projections", tags$br(),
+          "These quality checks are only displayed at the taxa-level. The diversity estimate above only integrates taxa-level ensemble that successfully passed all quality checks."),
+        tags$hr(style="border-color: black;")
+      )
     }
   })
+  # End of Render UI for Ensemble Box
   
-  # Event handler for update button and highlight_high_sd checkbox
+  # --- Event handler for update button and highlight_high_sd checkbox ---
   observeEvent(c(input$update, input$highlight_high_sd), {
     req(input$data_type, input$feature, input$time, input$variable)
     
@@ -152,10 +180,17 @@ server <- function(input, output, session) {
     land_raster <- raster_map
     land_raster[land_mask] <- -9999
     land_raster[!land_mask] <- NA  # Set non-land values to NA
+    message(extent(land_raster))
     
     output$map <- renderLeaflet({
-      base_map <- leaflet() %>%
-        setView(lng = mean(lon), lat = mean(lat) + 30, zoom = 1)
+      
+      base_map <- leaflet(options = leafletOptions(
+        crs = leafletCRS(crsClass = "L.CRS.EPSG4326"),
+        minZoom = 1,  # Set minimum zoom level
+        maxZoom = 5  # Set maximum zoom level
+      )) %>%
+        setMaxBounds(lng1 = -180, lat1 = -90, lng2 = 180, lat2 = 90) %>%
+        fitBounds(lng1 = -180, lat1 = -90, lng2 = 180, lat2 = 90)
       
       if (input$highlight_high_sd) {
         # Calculate the threshold for high SD values
@@ -168,8 +203,8 @@ server <- function(input, output, session) {
             high_sd_raster[values(raster_map_sd) <= sd_threshold] <- NA
             
             base_map %>%
-              addRasterImage(raster_map, colors = pal) %>%
-              addRasterImage(land_raster, colors = "black") %>%
+              addRasterImage(raster_map, colors = pal, opacity = 0.7) %>%
+              # addRasterImage(land_raster, colors = "black") %>%
               {
                 if (!is.null(contours)) {
                   addPolylines(., data = contours, color = "yellow", weight = 2)
@@ -194,8 +229,8 @@ server <- function(input, output, session) {
             all_lines <- rc0@lines[[1]]@Lines
             
             base_map %>%
-              addRasterImage(raster_map, colors = pal) %>%
-              addRasterImage(land_raster, colors = 'black') %>%
+              addRasterImage(raster_map, colors = pal, opacity = 0.7) %>%
+              # addRasterImage(land_raster, colors = 'black') %>%
               {
                 if (!is.null(contours)) {
                   addPolylines(., data = contours, color = "yellow", weight = 2)
@@ -209,8 +244,8 @@ server <- function(input, output, session) {
         }
       } else {
         base_map %>%
-          addRasterImage(raster_map, colors = pal) %>%
-          addRasterImage(land_raster, colors = 'black') %>%
+          addRasterImage(raster_map, colors = pal, opacity = 0.7) %>%
+          # addRasterImage(land_raster, colors = 'black') %>%
           {
             if (!is.null(contours)) {
               addPolylines(., data = contours, color = "yellow", weight = 2)
@@ -244,8 +279,9 @@ server <- function(input, output, session) {
       title(main = title_str, cex.main = 1.2, line = -0.5)
     })
   })
+  # End of Event handler for update button and highlight_high_sd checkbox
   
-  # Update the custom time label based on slider input
+  # --- Update the custom time label based on slider input ---
   output$time_label <- renderText({
     month_names <- c("January", "February", "March", "April", "May", "June", 
                      "July", "August", "September", "October", "November", "December")
@@ -255,7 +291,9 @@ server <- function(input, output, session) {
       paste("Selected month:", month_names[input$time])
     }
   })
+  # End of Update the custom time label based on slider input
   
+  # --- Event handler for ensemble data type and feature selection ---
   observeEvent(c(input$data_type, input$feature), {
     req(input$data_type, input$feature, input$ncfile)  # Ensure necessary inputs are available
     
@@ -322,7 +360,9 @@ server <- function(input, output, session) {
       })
     }
   })
+  # End of Event handler for ensemble data type and feature selection
   
+  # --- Function to create raster from NetCDF data ---
   create_raster_from_nc <- function(nc_data, lon, lat) {
     nlon <- length(lon)
     nlat <- length(lat)
@@ -332,5 +372,6 @@ server <- function(input, output, session) {
     extent(r) <- c(min(lon), max(lon), min(lat), max(lat))
     return(r)
   }
+  # End of Function to create raster from NetCDF data
+  
 }
-
