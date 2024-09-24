@@ -8,19 +8,20 @@
 #' metric and variable importance metric)
 #' @return outputs are saved in the MODEL.RData object
 
-eval_wrapper <- function(FOLDER_NAME = NULL,
+eval_wrapper <- function(CALL,
+                         FOLDER_NAME = NULL,
                          SUBFOLDER_NAME = NULL){
 
   # --- 1. Initialize function
   set.seed(123)
-  
+
   # --- 1.1. Start logs - append file
   sinkfile <- log_sink(FILE = file(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/log.txt"), open = "a"),
                        START = TRUE)
   message(paste(Sys.time(), "******************** START : eval_wrapper ********************"))
 
   # --- 1.2. Parameter loading
-  load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
+  # load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/MODEL.RData"))
 

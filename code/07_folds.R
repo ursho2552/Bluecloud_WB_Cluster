@@ -6,7 +6,8 @@
 #' @param SUBFOLDER_NAME list of sub_folders to parallelize on.
 #' @return Updates the FOLDS in a QUERY.RData file
 
-folds <- function(FOLDER_NAME = NULL,
+folds <- function(CALL,
+                  FOLDER_NAME = NULL,
                   SUBFOLDER_NAME = NULL){
 
   # --- 1. Initialize function
@@ -17,7 +18,7 @@ folds <- function(FOLDER_NAME = NULL,
   message(paste(Sys.time(), "******************** START : folds ********************"))
 
   # --- 1.2. Parameter loading
-  load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
+  # load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))
 
   # --- 1.3. Target transformation
@@ -34,10 +35,10 @@ folds <- function(FOLDER_NAME = NULL,
 
   # --- 2. Define cross-validation split
   # We use the same for both hyper parameter tuning and model evaluation
-  
+
   # --- 2.1. Re-assemble all query tables
   tmp <- cbind(Y, QUERY$X, QUERY$S)
-  
+
   # --- 2.2. Parameter check
   if(CALL$FOLD_METHOD != "kfold" & CALL$FOLD_METHOD != "lon"){
     stop("FOLD_METHOD not implemented or incorrect. It should be 'kfold' or 'lon'")
@@ -50,7 +51,7 @@ folds <- function(FOLDER_NAME = NULL,
                       strata = measurementvalue,
                       v = CALL$NFOLD)
   }
-  
+
   # --- 2.3.2. For multivariate data - strata is not possible
   if(CALL$FOLD_METHOD == "kfold" & CALL$DATA_TYPE == "proportions"){
     folds <- vfold_cv(data = tmp,
@@ -66,7 +67,7 @@ folds <- function(FOLDER_NAME = NULL,
 
   # --- 3. Append QUERY and CALL objects
   # S$id keeps track of the initial row numbers within each split/re sample
-  
+
   # --- 3.1. Append QUERY
   QUERY$FOLDS$resample_split <- folds
   for(i in 1:nrow(folds)){

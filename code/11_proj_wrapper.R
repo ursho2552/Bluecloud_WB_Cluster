@@ -10,19 +10,20 @@
 #' embedded in each model sub-list.
 #' @return outputs are saved in the MODEL.RData object
 
-proj_wrapper <- function(FOLDER_NAME = NULL,
+proj_wrapper <- function(CALL,
+                         FOLDER_NAME = NULL,
                          SUBFOLDER_NAME = NULL){
 
   # --- 1. Initialize function
   set.seed(123)
-  
+
   # --- 1.1. Start logs - append file
   sinkfile <- log_sink(FILE = file(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/log.txt"), open = "a"),
                        START = TRUE)
   message(paste(Sys.time(), "******************** START : proj_wrapper ********************"))
 
   # --- 1.2. Parameter loading
-  load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
+  # load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/MODEL.RData"))
 

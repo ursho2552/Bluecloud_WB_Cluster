@@ -12,11 +12,12 @@
 #' for each target species.
 #' @return the output in a QUERY object
 
-query_abundance_biomass <- function(FOLDER_NAME = NULL,
+query_abundance_biomass <- function(CALL,
+                                    FOLDER_NAME = NULL,
                                     QUERY = NULL){
 
   # --- 1. Parameter loading
-  load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
+  # load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
   # --- 1.1. Single query if no WORMS_CHECK
   SP_SELECT <- QUERY$SUBFOLDER_INFO$SP_SELECT
   # --- 1.2. Multiple query if WORMS_CHECK = TRUE; i.e., also requesting children and synonyms

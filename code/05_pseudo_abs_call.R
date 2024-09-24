@@ -8,7 +8,7 @@
 #' @return Y updated with the environmental values corresponding
 #' @return Updates the output in a QUERY.RData and CALL.Rdata files
 
-pseudo_abs <- function(CALL,
+pseudo_abs_call <- function(CALL,
                        FOLDER_NAME = NULL,
                        SUBFOLDER_NAME = NULL){
 
@@ -21,7 +21,6 @@ pseudo_abs <- function(CALL,
   message(paste(Sys.time(), "******************** START : pseudo_absences ********************"))
 
   # --- 1.2. Parameter loading
-  # load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))
   if(is.null(CALL$NB_PA)){CALL$NB_PA = nrow(QUERY$S)}
 
@@ -172,7 +171,6 @@ pseudo_abs <- function(CALL,
       }
     } # END if background_filter TRUE
 
-    # NEW ENTRY (POSSIBLE BUG!)
     # --- 4.2.5. Additional Environmental distance (MESS)
     if(CALL$PA_ENV_STRATA == TRUE){
       env_strata <- dismo::mess(x = CALL$ENV_DATA[[as.numeric(m)]], v = QUERY$X)
@@ -192,7 +190,6 @@ pseudo_abs <- function(CALL,
         background <- background[,-4]
       }
     } # end if env strata
-
 
     # --- 4.2.6. Additional Percentage Random
     if(!is.null(CALL$PER_RANDOM) == TRUE & ncol(background) == 3){
@@ -288,5 +285,3 @@ pseudo_abs <- function(CALL,
   return(SUBFOLDER_NAME)
 
 } # END FUNCTION
-
-

@@ -12,18 +12,19 @@
 #' for each target species.
 #' @return Saves the output in a QUERY.RData file
 
-query_bio_wrapper <- function(FOLDER_NAME = NULL,
+query_bio_wrapper <- function(CALL,
+                              FOLDER_NAME = NULL,
                               SUBFOLDER_NAME = NULL){
 
   # --- 1. Initialize function
   set.seed(123)
-  
+
   # --- 1.1. Start logs - new file
   sinkfile <- log_sink(FILE = file(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/log.txt"), open = "wt"),
                        START = TRUE)
   message(paste(Sys.time(), "******************** START : query_bio_wrapper ********************"))
   # --- 1.3. Load the run metadata in the CALL.RData object
-  load(paste0(project_wd, "/output/", FOLDER_NAME, "/CALL.RData"))
+  # load(paste0(project_wd, "/output/", FOLDER_NAME, "/CALL.RData"))
   # --- 1.4. Load the parallel node metadata in the QUERY.RData object
   load(paste0(project_wd, "/output/", FOLDER_NAME, "/", SUBFOLDER_NAME, "/QUERY.RData"))
 
@@ -32,7 +33,8 @@ query_bio_wrapper <- function(FOLDER_NAME = NULL,
   if(CALL$DATA_SOURCE == "occurrence"){
 
     # --- 2.1. Run function
-    QUERY <- query_occurrence(FOLDER_NAME = FOLDER_NAME,
+    QUERY <- query_occurrence(CALL = CALL,
+                              FOLDER_NAME = FOLDER_NAME,
                               QUERY = QUERY)
   } # End ATLANTECO redirection
 
@@ -41,7 +43,8 @@ query_bio_wrapper <- function(FOLDER_NAME = NULL,
   if(CALL$DATA_SOURCE == "biomass" | CALL$DATA_SOURCE == "abundance"){
 
     # --- 3.1. Run function
-    QUERY <- query_abundance_biomass(FOLDER_NAME = FOLDER_NAME,
+    QUERY <- query_abundance_biomass(CALL = CALL,
+                                     FOLDER_NAME = FOLDER_NAME,
                                      QUERY = QUERY)
   } # End ATLANTECO redirection
 
@@ -49,8 +52,9 @@ query_bio_wrapper <- function(FOLDER_NAME = NULL,
   if(CALL$DATA_SOURCE == "MAG"){
 
     # --- 4.2. Run function
-    QUERY <- query_MAG(FOLDER_NAME = FOLDER_NAME,
-                          QUERY = QUERY)
+    QUERY <- query_MAG(CALL = CALL,
+                       FOLDER_NAME = FOLDER_NAME,
+                       QUERY = QUERY)
   } # End MGNIFY redirection
 
   # --- 5. Redirection to the CUSTOM query
@@ -59,7 +63,8 @@ query_bio_wrapper <- function(FOLDER_NAME = NULL,
     source(file = paste0(project_wd, "/code/03d_query_custom.R"))
 
     # --- 5.2. Run function
-    QUERY <- query_custom(FOLDER_NAME = FOLDER_NAME,
+    QUERY <- query_custom(CALL = CALL,
+                          FOLDER_NAME = FOLDER_NAME,
                           QUERY = QUERY)
   } # End MGNIFY redirection
 

@@ -18,24 +18,27 @@ eval_presence_only <- function(CALL,
   for(i in MODEL$MODEL_LIST){
     # --- 1.1. Load final model data
     # Loop over the cross validation runs
-    
+
     model_data <- lapply(1:(length(MODEL[[i]][["final_fit"]])), function(x){
       # Extract final fit
       final_fit <- MODEL[[i]][["final_fit"]][[x]] %>%
         collect_predictions()
-      
+
       # Extract y and y_hat
       y <- final_fit$measurementvalue
       y_hat <- final_fit$.pred
-      
+
       # Return
       df <- data.frame(y = y, y_hat = y_hat)
       return(df)
     }) %>% bind_rows()
-    
+
     # --- 1.2. Extract observations and predictions
     y <- model_data$y
     y_hat <- model_data$y_hat
+
+    # Track memory usage after extracting predictions
+    message(paste("Memory used after extracting model data:", round(pryr::mem_used() / (1024^3), 6), "GB"))
 
     # --- 1.3. Compute Continuous Boyce Index into MODELS object
     MODEL[[i]][["eval"]][["CBI"]] <- ecospat.boyce(fit = y_hat,
@@ -46,65 +49,69 @@ eval_presence_only <- function(CALL,
                                                    res = 100) %>%
       .$cor
 
+    # Track memory usage after computing the Boyce Index
+    message(paste("Memory used after computing Boyce Index for model", i, ":", round(pryr::mem_used() / (1024^3), 6), "GB"))
   } # for each model loop
 
   # --- 2. Variable importance - algorithm level
   # --- 2.1. Initialize function
   # --- 2.1.1. Storage
   var_imp <- NULL
-  
+
   # --- 2.1.2. General features - used later for plots
   features <- QUERY[["FOLDS"]][["resample_split"]][["splits"]][[1]]$data %>%
     dplyr::select(all_of(QUERY$SUBFOLDER_INFO$ENV_VAR))
-  
+
   # --- 2.1.3. Loop over models
-  
-  
+  message(paste("Models: ", MODEL$MODEL_LIST))
   for(i in MODEL$MODEL_LIST){
-    
+
     # --- 2.2. Loop over the cross-validations
     var_imp[[i]][["Raw"]] <- lapply(1:CALL$NFOLD, function(x){
-      
+
       # --- 2.2.1. Extract related target and feature
       # Model and cross-validation specific
       id <- QUERY[["FOLDS"]][["resample_split"]][["splits"]][[x]][["in_id"]]
-      
+
       features_x <- QUERY[["FOLDS"]][["resample_split"]][["splits"]][[x]]$data[id,] %>%
         dplyr::select(all_of(QUERY$SUBFOLDER_INFO$ENV_VAR))
-      
+
       target <- QUERY[["FOLDS"]][["resample_split"]][["splits"]][[x]]$data[id,] %>%
         dplyr::select(measurementvalue)
-      
+
       # --- 2.2.2. Extract final model fit
       m <- extract_fit_parsnip(MODEL[[i]][["final_fit"]][[x]])
-      
+
       # --- 2.2.3. Build model explainer
       explainer <- explain_tidymodels(model = m,
                                       data = features_x,
                                       y = target)
-      
+
       # --- 2.2.4. First in terms of RMSE, i.e., raw var importance for later ensemble computing
-      message(paste("--- VAR IMPORTANCE : compute for", i))
+      #Something wrong here!!
       out <- model_parts(explainer = explainer,
                          loss_function = loss_root_mean_square) %>%
         dplyr::filter(permutation != 0) %>%
         dplyr::filter(variable != "_baseline_") %>%
         group_by(permutation) %>%
         mutate(value = dropout_loss - dropout_loss[variable == "_full_model_"]) %>%
-        dplyr::filter(variable != "_full_model_") %>% 
-        ungroup() %>% 
+        dplyr::filter(variable != "_full_model_") %>%
+        ungroup() %>%
         mutate(cv = x) # add the cv information for percentage
-      
+
+      # Track memory usage after each cross-validation fold
+      message(paste("Memory used after cross-validation fold", x, "for model", i, ":", round(pryr::mem_used() / (1024^3), 6), "GB"))
+
       return(out)
-      
+
     }) %>% bind_rows() # end cross validation loop
-    
+
     # --- 2.3. Further compute it as percentage for model-level plot
     # Security if a model did not fit, hence var_imp = 0 for all predictors
     # Avoids an error leading to a function stop, while other models could be OK
     if(sum(var_imp[[i]][["Raw"]][["value"]]) > 0){
       var_imp[[i]][["Percent"]] <- var_imp[[i]][["Raw"]] %>%
-        group_by(cv, permutation) %>% 
+        group_by(cv, permutation) %>%
         mutate(value = value / sum(value) * 100)  %>%
         ungroup() %>%
         dplyr::select(variable, value) %>%
@@ -113,7 +120,7 @@ eval_presence_only <- function(CALL,
     } else {
       var_imp[[i]][["Percent"]] <- var_imp[[i]][["Raw"]]
     }
-    
+
     # --- 2.4. Compute cumulative variable importance
     MODEL[[i]][["eval"]][["CUM_VIP"]] <- var_imp[[i]][["Percent"]] %>%
       group_by(variable) %>%
@@ -121,12 +128,12 @@ eval_presence_only <- function(CALL,
       dplyr::slice(1:3) %>%
       dplyr::select(average) %>%
       sum()
-    
+
     # --- 2.5. Save row VIP
     MODEL[[i]][["vip"]] <- var_imp[[i]][["Percent"]]
-    
+    message(paste("Memory used after computing variable importance percentage for model", i, ":", round(pryr::mem_used() / (1024^3), 6), "GB"))
   } # for each model loop
-  
+
   # --- 3. Removing low quality algorithms
   for(i in MODEL$MODEL_LIST){
     # --- 3.1. Based on model performance
@@ -181,6 +188,9 @@ eval_presence_only <- function(CALL,
       dplyr::select(average) %>%
       sum()
 
+    # Track memory usage after ensemble computations
+    message(paste("Memory used after ensemble computations:", round(pryr::mem_used() / (1024^3), 6), "GB"))
+
     # --- 5.3. Ensemble raw VIP
     MODEL[["ENSEMBLE"]][["vip"]] <- var_imp[["ENSEMBLE"]][["Percent"]]
   } # End ENSEMBLE QC
@@ -196,6 +206,8 @@ eval_presence_only <- function(CALL,
   } else {
     plot_display <- NULL
   }
+
+  message(paste("--- PDF"))
 
   # --- 6.3. Plot algorithm level and ensemble variable importance
   if(is.null(plot_display) == FALSE){

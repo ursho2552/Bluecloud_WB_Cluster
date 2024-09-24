@@ -7,21 +7,22 @@
 #' @param MONTH list corresponding to the groups of month to computes maps from.
 #' @return plots mean and uncertainty maps per model or ensemble
 
-standard_maps <- function(FOLDER_NAME = NULL,
+standard_maps <- function(CALL,
+                          FOLDER_NAME = NULL,
                           SUBFOLDER_NAME = NULL,
                           MONTH = list(c(10,11,12,1,2,3),
                                        4:9)){
 
   # --- 1. Initialize function
   set.seed(123)
-  
+
   # --- 1.1. Start logs - append file
   sinkfile <- log_sink(FILE = file(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/log.txt"), open = "a"),
                        START = TRUE)
                        message(paste(Sys.time(), "******************** START : standard_maps ********************"))
 
   # --- 1.2. Parameter loading
-  load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
+  # load(paste0(project_wd, "/output/", FOLDER_NAME,"/CALL.RData"))
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/QUERY.RData"))
   load(paste0(project_wd, "/output/", FOLDER_NAME,"/", SUBFOLDER_NAME, "/MODEL.RData"))
 
@@ -55,7 +56,7 @@ standard_maps <- function(FOLDER_NAME = NULL,
   # Compute and save algorithm level recommendations in MODEL
   rec <- qc_recommandations(QUERY = QUERY, MODEL = MODEL, DATA_TYPE = CALL$DATA_TYPE)
   MODEL$recommandations <- rec
-  
+
   # Transform to traffic light
   traffic_col <- rep(rec$COL, each = 4)
   traffic_val <- rec[,1:4] %>% as.matrix() %>% t() %>% c()
@@ -222,7 +223,7 @@ standard_maps <- function(FOLDER_NAME = NULL,
     traffic_col <- rep(rec$COL, each = 4)
     traffic_val <- rec[,1:4] %>% as.matrix() %>% t() %>% c()
     traffic_col[which(traffic_val == 0)] <- "white"
-    
+
     # --- 2.2. Plot the traffic lights and recommendations
     plot.new()
     par(mar = c(1,3,7,1), xpd = NA)

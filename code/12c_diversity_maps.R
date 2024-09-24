@@ -6,7 +6,7 @@
 #' @param MONTH a list of month to concatenate together
 #' @return plots mean and uncertainty maps per diversity metric
 #' @return a diversity and mess object per projection, species and bootstrap.
-#' @return a .nc matching the EMODnet standards with the same informations as 
+#' @return a .nc matching the EMODnet standards with the same informations as
 #' above. - Saved in FOLDERNAME.
 
 diversity_maps <- function(FOLDER_NAME = NULL,
@@ -27,14 +27,14 @@ diversity_maps <- function(FOLDER_NAME = NULL,
 
   # --- 2. Build the ensemble(s)
   message(paste0(Sys.time(), "--- DIVERSITY: build the ensembles - START"))
-  
+
   # --- 2.1. Extract file information
   # Which subfolder list and which model in the ensemble
   all_files <- list.files(paste0(project_wd, "/output/", FOLDER_NAME), recursive = TRUE)
   model_files <- unique(dirname(all_files[grepl("MODEL.RData", all_files)])) #%>% .[1:30]
   ensemble_files <- mclapply(model_files, function(x){
     memory_cleanup() # low memory use
-    
+
     load(paste0(project_wd, "/output/", FOLDER_NAME,"/", x, "/MODEL.RData"))
     if(length(MODEL$MODEL_LIST) >= 1){
       load(paste0(project_wd, "/output/", FOLDER_NAME,"/", x, "/QUERY.RData"))
@@ -42,16 +42,18 @@ diversity_maps <- function(FOLDER_NAME = NULL,
     } else {
       return(NULL)
     } # if model list
-  }, mc.cores = round(MAX_CLUSTERS/2, 0)) %>% .[lengths(.) != 0]
-  
+  }, mc.cores = round(MAX_CLUSTERS/2, 0), mc.preschedule = FALSE) %>%
+    .[lengths(.) != 0] %>%
+    .[grep("Error", ., invert = TRUE)] # to exclude any API error or else
+
   # --- 2.2. Loop over the files
   message(paste0(Sys.time(), "--- DIVERSITY: build the ensembles - loop over files"))
   tmp <- mclapply(ensemble_files, function(x){
     memory_cleanup() # low memory use
-    
+
     # --- 2.2.1. Load MODEL files
     load(paste0(project_wd, "/output/", FOLDER_NAME,"/", x$SUBFOLDER_NAME, "/MODEL.RData"))
-    
+
     # --- 2.2.2. Extract projections in a matrix
     # If there is more than 1 algorithm, we extract and average across algorithm
     # Output matrix is cell x bootstrap x month
@@ -63,35 +65,35 @@ diversity_maps <- function(FOLDER_NAME = NULL,
       m <- MODEL[[x$MODEL_LIST]][["proj"]]$y_hat
     } # end if
   }, mc.cores = round(MAX_CLUSTERS/2, 0), mc.cleanup = TRUE)
-  
+
   # --- 2.3. Stack in a cell x species x bootstrap x month matrix
   # --- 2.3.1. Re-arrange the array
   message(paste0(Sys.time(), "--- DIVERSITY: build the ensembles - format to array"))
-  all_ens <- tmp %>% 
-    abind(along = 4) %>% 
+  all_ens <- tmp %>%
+    abind(along = 4) %>%
     aperm(c(1,4,2,3))
   # --- 2.3.2. Pretty dimensions
   dimnames(all_ens)[[2]] <- lapply(ensemble_files, function(x){out <- x$SUBFOLDER_NAME}) %>% unlist() %>% as.character()
   dimnames(all_ens)[[4]] <- 1:12 %>% as.character()
-  
+
   # --- 2.4. Memory cleanup
   rm(tmp)
   gc() # clean garbage and temporary files
   message(paste0(Sys.time(), "--- DIVERSITY: build the ensembles - DONE"))
-  
+
   # --- 2.5. Return if not enough ensembles
   if(dim(all_ens)[[2]] < 5){
     message("--- DIVERSITY : not enough ensembles to compute diversity from")
     return(NA)
   }
-  
+
   # --- 2.6. Convert recommendations to list
   # --- 2.6.1. Extract recommandations as a list
   tmp <- lapply(ensemble_files, function(x){
     out <- setNames(as.list(apply(x$REC, 1, function(row) paste(row, collapse = ", "))), rownames(x$REC))
     return(out)
   }) # end lapply
-  
+
   # --- 2.6.2. Flatten for each ensemble
   if(CALL$DATA_TYPE == "proportions"){
     flat_list <- paste(names(tmp), ": ", tmp[["MBTR"]])
@@ -102,25 +104,29 @@ diversity_maps <- function(FOLDER_NAME = NULL,
       }) # end lapply
     }) # end lapply
   } # end if
-  
+
   # --- 2.6.3. Flatten again
   flat_list <- lapply(flat_list, function(x) paste(unlist(x), collapse = "\n"))
   recommandation_list <- paste(flat_list, collapse = "; ")
-  
+
   # --- 3. Compute habitat suitability - for the .nc in the shiny app.
   # --- 3.1. Across bootstrap for each month
-  a_m <- apply(all_ens, c(1,2,4), function(x)(x = mean(x, na.rm = T)))
-  a_sd <- apply(all_ens, c(1,2,4), function(x)(x = sd(x, na.rm = T)))
-  
+  a_m <- mclapply(1:dim(all_ens)[1], function(i) {
+    apply(all_ens[i,,,], c(1,3), function(x) mean(x, na.rm = TRUE))
+  }, mc.cores = MAX_CLUSTERS) %>% abind(along = 3) %>% aperm(c(3,1,2))
+  a_sd <- mclapply(1:dim(all_ens)[1], function(i) {
+    apply(all_ens[i,,,], c(1,3), function(x) sd(x, na.rm = TRUE))
+  }, mc.cores = MAX_CLUSTERS) %>% abind(along = 3) %>% aperm(c(3,1,2))
+
   # --- 3.2. Add a 13th month: mean across the year
   mean_across_12_a_m_expanded <- array(apply(a_m, c(1, 2), function(x) mean(x, na.rm = TRUE)),
                                        dim = c(dim(a_m)[1], dim(a_m)[2], 1))
   sd_across_12_a_sd_expanded <- array(apply(a_sd, c(1,2), function(x) sd(x, na.rm = TRUE)),
                                       dim = c(dim(a_m)[1],  dim(a_m)[2],1))
-  
+
   a_m <- abind::abind(a_m, mean_across_12_a_m_expanded, along = 3) %>% aperm(., c(1, 3, 2))
   a_sd <- abind::abind(a_sd, sd_across_12_a_sd_expanded, along = 3) %>% aperm(., c(1, 3, 2))
-  
+
   # --- 4. Construct diversity
   # --- 4.1. Compute alpha diversity indices
   a_shannon <- apply(all_ens, c(1,3,4), function(x)(x = vegan::diversity(x, "shannon")))
@@ -139,10 +145,10 @@ diversity_maps <- function(FOLDER_NAME = NULL,
                                          dim = c(dim(div_m)[1], 1, dim(div_m)[3]))
   sd_across_12_div_sd_expanded <- array(apply(div_sd, c(1,3), function(x) sd(x, na.rm = TRUE)),
                                         dim = c(dim(div_m)[1], 1, dim(div_m)[3]))
-  
+
   div_m <- abind::abind(div_m, mean_across_12_div_m_expanded, along = 2)
   div_sd <- abind::abind(div_sd, sd_across_12_div_sd_expanded, along = 2)
-  
+
   # --- 5. Extract MESS analysis
   message(paste(Sys.time(), "--- Extract MESS"))
   mess_all <- mclapply(model_files, FUN = function(s){
@@ -260,11 +266,9 @@ diversity_maps <- function(FOLDER_NAME = NULL,
   # --- 8.1. Species ensemble
   file = paste0(project_wd, "/output/", FOLDER_NAME,"/","output_ensemble.nc")
   CEPHALOPOD_to_netcdf(r0, a_m, a_sd, dimnames(a_m)[[3]], recommandation_list, file)
-  
+
   # --- 8.2. Diversity level
   file = paste0(project_wd, "/output/", FOLDER_NAME,"/","output_diversity.nc")
   CEPHALOPOD_to_netcdf(r0, div_m, div_sd, div_names, recommandation_list, file)
-  
+
 } # END FUNCTION
-
-
